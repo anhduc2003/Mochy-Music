@@ -906,6 +906,8 @@
     <string name="most_played_genre">Được phát nhiều nhất %1$s</string>
     <string name="add_music">Thêm nhạc</string>
 
+    <string name="player_show_video">Hiển thị video</string>
+    <string name="player_show_cover">Hiển thị ảnh bìa</string>
     <string name="video_mode">Toàn bộ video</string>
     <string name="video_mode_exit">Thoát chế độ video</string>
     <string name="video_mode_close_player">Đóng trình phát</string>

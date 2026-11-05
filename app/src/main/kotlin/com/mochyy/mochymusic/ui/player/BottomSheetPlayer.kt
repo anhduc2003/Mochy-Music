@@ -298,6 +298,10 @@ private fun PlayerSheet(
 
     var showExpandMenu by remember { mutableStateOf(false) }
     var seeVideo by remember { mutableStateOf(false) }
+    // null follows the normal autoplay/preference rules; true/false is the user's direct choice
+    // from the cover button and wins over those rules for the current song.
+    var coverVideoOverride by remember { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(trackInfo.mediaId) { coverVideoOverride = null }
     // a youtube video is playing on the cover, so the chevron offers the full video mode
     var videoShowing by remember { mutableStateOf(false) }
     var showSleepTimer by remember { mutableStateOf(false) }
@@ -822,7 +826,11 @@ private fun PlayerSheet(
                     showActionMenu = true
                 }
                 com.mochyy.mochymusic.ui.player.studio.PlayerMenuAction.SLEEP_TIMER -> showSleepTimer = true
-                com.mochyy.mochymusic.ui.player.studio.PlayerMenuAction.SEE_VIDEO -> seeVideo = !seeVideo
+                com.mochyy.mochymusic.ui.player.studio.PlayerMenuAction.SEE_VIDEO -> {
+                    val next = !videoShowing
+                    coverVideoOverride = next
+                    seeVideo = next
+                }
                 com.mochyy.mochymusic.ui.player.studio.PlayerMenuAction.REPEAT -> playerConnection.player.toggleRepeatMode()
                 com.mochyy.mochymusic.ui.player.studio.PlayerMenuAction.SHUFFLE ->
                     playerConnection.player.shuffleModeEnabled = !playerConnection.player.shuffleModeEnabled
@@ -895,7 +903,13 @@ private fun PlayerSheet(
                     pureBlack = pureBlack,
                     glassState = morphingGlassState,
                     lyricsProgressProvider = { lyricsProgress },
-                    forceVideoBackground = seeVideo,
+                    forceVideoBackground = coverVideoOverride ?: seeVideo,
+                    forceCoverBackground = coverVideoOverride == false,
+                    onToggleVideo = {
+                        val next = !videoShowing
+                        coverVideoOverride = next
+                        seeVideo = next
+                    },
                     modifier = Modifier.fillMaxSize(),
                     coverStyle = shownCoverStyle,
                     backgroundStyle = backgroundStyle,

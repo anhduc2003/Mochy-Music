@@ -985,6 +985,8 @@
     <string name="most_played_genre">Most played %1$s</string>
     <string name="add_music">Add Music</string>
     <!-- the full video mode and youtube video quality -->
+    <string name="player_show_video">Show video</string>
+    <string name="player_show_cover">Show cover art</string>
     <string name="video_mode">Full video</string>
     <string name="video_mode_exit">Exit video mode</string>
     <string name="video_mode_close_player">Close player</string>

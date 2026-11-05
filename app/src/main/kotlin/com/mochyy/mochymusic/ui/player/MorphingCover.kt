@@ -54,6 +54,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
@@ -80,6 +81,7 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -398,6 +400,12 @@ fun MorphingCover(
 
     forceVideoBackground: Boolean = false,
 
+    /** Explicitly keeps the still cover visible when the user toggles away from a video. */
+    forceCoverBackground: Boolean = false,
+
+    /** A direct cover-level switch, rather than making the user open the player menu. */
+    onToggleVideo: (() -> Unit)? = null,
+
     coverStyle: PlayerCoverStyle = PlayerCoverStyle.EDGE_TO_EDGE,
 
     backgroundStyle: PlayerBackgroundStyle = PlayerBackgroundStyle.COVER_GRADIENT,
@@ -455,7 +463,11 @@ fun MorphingCover(
     // video here on its own; songs only get one when the video background setting asks for it
     val songIsVideo = currentMetadata?.id == trackInfo.mediaId && currentMetadata?.isVideoSong == true
     val trackIsVideo = !disableVideoAutoplay && songIsVideo
-    val playVideoBackground = if (alternateStyle) miniVideo else forceVideoBackground || playVideoPref || trackIsVideo
+    val playVideoBackground = when {
+        forceCoverBackground -> false
+        alternateStyle -> miniVideo
+        else -> forceVideoBackground || playVideoPref || trackIsVideo
+    }
     // the audio of a track that is a video is that very video, so its own stream lines up exactly and needs no search;
     // the full video mode asked for the video itself, so it plays its own even with autoplay off, as the mode does
     val videoInfo = rememberSongVideo(
@@ -1126,6 +1138,36 @@ fun MorphingCover(
                             .graphicsLayer { alpha = discWeight(progressProvider, lyricsProgressProvider) },
                     )
                 }
+            }
+        }
+
+        // Keep the switch visible on the full player, like the reference layout: one tap replaces
+        // the cover with the song's YouTube video, and the same button restores the cover. The
+        // video lookup remains lazy until the user asks for it, so opening the player does not
+        // start network work or a second decoder for every song.
+        if (onToggleVideo != null && !alternateStyle && !isDiscStyle && trackInfo.mediaId.isNotBlank()) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = statusBarTop + 18.dp, end = 20.dp)
+                    .size(48.dp)
+                    .graphicsLayer {
+                        val visible = ((progressProvider() - 0.78f) / 0.22f).coerceIn(0f, 1f)
+                        alpha = visible * (1f - lyricsProgressProvider()).coerceIn(0f, 1f)
+                        scaleX = 0.88f + 0.12f * visible
+                        scaleY = 0.88f + 0.12f * visible
+                    }
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.42f))
+                    .clickable(onClick = onToggleVideo),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(if (isVideoActive) R.drawable.album else R.drawable.slow_motion_video),
+                    contentDescription = stringResource(if (isVideoActive) R.string.player_show_cover else R.string.player_show_video),
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp),
+                )
             }
         }
 
