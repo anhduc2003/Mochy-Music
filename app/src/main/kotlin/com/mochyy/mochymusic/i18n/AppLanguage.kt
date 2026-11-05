@@ -21,10 +21,17 @@ import java.util.Locale
 
 private val migratedToPlatformKey = booleanPreferencesKey("appLanguageMigratedToPlatform")
 
+/** Normalizes legacy language tags to the resource locale shipped by the app. */
+internal fun canonicalUiTag(tag: String): String = when (tag.lowercase(Locale.ROOT)) {
+    "vi", "vi-vn" -> "vi-VN"
+    else -> tag
+}
+
 /** Resolves the UI language independently of the country/content/lyrics preferences. */
 internal fun resolveUiLocale(selection: String?, system: Locale): Locale {
     val selected = selection
         ?.takeUnless { it.isBlank() || it == SYSTEM_DEFAULT }
+        ?.let(::canonicalUiTag)
         ?.let(Locale::forLanguageTag)
         ?.takeIf { it.language.isNotBlank() }
     return selected ?: system.takeIf { it.language.isNotBlank() } ?: Locale.ENGLISH
@@ -49,12 +56,12 @@ object AppLanguage {
     fun selection(context: Context): String {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val locales = context.getSystemService(LocaleManager::class.java).applicationLocales
-            return if (locales.isEmpty) SYSTEM_DEFAULT else locales[0]?.toLanguageTag() ?: SYSTEM_DEFAULT
+            return if (locales.isEmpty) SYSTEM_DEFAULT else canonicalUiTag(locales[0]?.toLanguageTag() ?: SYSTEM_DEFAULT)
         }
         // Read the store itself, not the asynchronous UI cache: Activity recreation may follow
         // immediately after a completed edit, before the cache's collector has caught up.
         return runBlocking(Dispatchers.IO) {
-            context.applicationContext.dataStore.data.first()[AppLanguageKey] ?: SYSTEM_DEFAULT
+            canonicalUiTag(context.applicationContext.dataStore.data.first()[AppLanguageKey] ?: SYSTEM_DEFAULT)
         }
     }
 
@@ -83,7 +90,7 @@ object AppLanguage {
                 }
                 val manager = application.getSystemService(LocaleManager::class.java)
                 if (manager.applicationLocales.isEmpty && !previous.isNullOrBlank() && previous != SYSTEM_DEFAULT) {
-                    manager.applicationLocales = LocaleList.forLanguageTags(previous)
+                    manager.applicationLocales = LocaleList.forLanguageTags(canonicalUiTag(previous))
                 }
             }
         }
@@ -99,9 +106,10 @@ object AppLanguage {
 
     /** Persist before recreating, so the first frame and a process restart use the same choice. */
     suspend fun select(activity: Activity, tag: String) {
+        val canonicalTag = canonicalUiTag(tag)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val locales = if (tag == SYSTEM_DEFAULT) LocaleList.getEmptyLocaleList()
-                else LocaleList.forLanguageTags(tag)
+            val locales = if (canonicalTag == SYSTEM_DEFAULT) LocaleList.getEmptyLocaleList()
+                else LocaleList.forLanguageTags(canonicalTag)
             activity.getSystemService(LocaleManager::class.java).applicationLocales = locales
             // Android normally recreates the Activity for a locale change. It can skip
             // that when a legacy locale was migrated during cold start, or when the
@@ -115,7 +123,7 @@ object AppLanguage {
                 }
             }, 1_000L)
         } else {
-            activity.applicationContext.dataStore.edit { it[AppLanguageKey] = tag }
+            activity.applicationContext.dataStore.edit { it[AppLanguageKey] = canonicalTag }
             refreshApplicationResources(activity.applicationContext)
             activity.recreate()
         }

@@ -6,6 +6,12 @@ import org.junit.Test
 import java.util.Locale
 
 class AppLanguageTest {
+    @Test fun `legacy Vietnamese tags use the shipped regional locale`() {
+        assertEquals("vi-VN", canonicalUiTag("vi"))
+        assertEquals("vi-VN", canonicalUiTag("vi-vn"))
+        assertEquals(Locale.forLanguageTag("vi-VN"), resolveUiLocale("vi", Locale.ENGLISH))
+    }
+
     @Test fun `system default follows the device`() {
         val device = Locale.forLanguageTag("id-ID")
         assertEquals(device, resolveUiLocale(SYSTEM_DEFAULT, device))
