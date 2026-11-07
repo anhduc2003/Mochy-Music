@@ -757,7 +757,32 @@ fun ExpressiveLyrics(
     baseSize: TextUnit,
     modifier: Modifier = Modifier,
     dimAlpha: Float = 0.32f,
+    /** The colour the sung words take. The accent styles pass the cover's tone here. */
+    accentColor: Color = color,
 ) {
+    // Neon and Mask fill the sung words with the cover's colour. The style players draw their own
+    // words and never go through LyricsGlowLine, so without this the styles did nothing on them.
+    val (motionStyleNow) = com.mochyy.mochymusic.utils.rememberEnumPreference(
+        com.mochyy.mochymusic.constants.LyricsMotionStyleKey,
+        defaultValue = com.mochyy.mochymusic.constants.LyricsMotionStyle.MOTION,
+    )
+    val sungColor = remember(color, accentColor, motionStyleNow) {
+        val accent = accentColor
+        if (!motionStyleNow.accentFill) color else {
+            // lifted toward white when the cover's tone is dark, or it sinks into the page
+            val r = accent.red
+            val g = accent.green
+            val b = accent.blue
+            val luma = 0.299f * r + 0.587f * g + 0.114f * b
+            val lift = if (luma < 0.55f) 0.55f - luma else 0f
+            Color(
+                red = r + (1f - r) * lift,
+                green = g + (1f - g) * lift,
+                blue = b + (1f - b) * lift,
+                alpha = color.alpha,
+            )
+        }
+    }
     val density = LocalDensity.current
     val fontFamilyResolver = LocalFontFamilyResolver.current
     val layoutDirection = LocalLayoutDirection.current
@@ -885,6 +910,7 @@ fun ExpressiveLyrics(
                             exitAt = exitAts[index],
                             position = position,
                             color = color,
+                            sungColor = sungColor,
                             dimAlpha = dimAlpha,
                             offsetY = { t ->
                                 var y = 0f
@@ -963,6 +989,7 @@ private fun LyricLine(
     exitAt: Long?,
     position: LivePosition,
     color: Color,
+    sungColor: Color,
     dimAlpha: Float,
     /** how far down the overlapping lines above push this one, this frame */
     offsetY: (Long) -> Float = { 0f },
@@ -1036,9 +1063,9 @@ private fun LyricLine(
                         val t = cells.drawTimeOf(w, now, clock)
                         cells.frameAt(t)
                         if (moving && blurLayer != null) {
-                            drawBlurred(blurLayer, blurOf(w, clock)) { drawWord(cell, cells.scale[w], cells.headAt(t), t, color, dim, glowLayer) }
+                            drawBlurred(blurLayer, blurOf(w, clock)) { drawWord(cell, cells.scale[w], cells.headAt(t), t, sungColor, dim, glowLayer) }
                         } else {
-                            drawWord(cell, cells.scale[w], cells.headAt(t), t, color, dim, glowLayer)
+                            drawWord(cell, cells.scale[w], cells.headAt(t), t, sungColor, dim, glowLayer)
                         }
                     },
             )

@@ -479,6 +479,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.PosterText(
                     lines = lines,
                     position = position.withLyricsOffset(),
                     color = tones.ink,
+                    accentColor = tones.played,
                     baseSize = baseSize,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -795,6 +796,7 @@ private fun LyricsPlayerStyle(actions: StyleActions, modifier: Modifier, preview
                                     lines = song.lines,
                                     position = position.withLyricsOffset(),
                                     color = tones.ink,
+                                    accentColor = tones.played,
                                     baseSize = if (landscape) r.sp(0.092f, 28f, 46f) else r.sp(0.118f, 34f, 58f),
                                     modifier = Modifier.fillMaxSize(),
                                 )
