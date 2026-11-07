@@ -103,7 +103,7 @@ internal class LyricsShareSession(
 
     val looks = mutableStateMapOf<WordKey, WordLook>()
 
-    // what "Chọn" does once the lines are picked: the song share moves on to the styles
+    // what "Select" does once the lines are picked: the song share moves on to the styles
     var onLinesPicked: (PopupSheetState) -> Unit = {}
 
     /** the held line's row in the picker, so the flying copy knows where to land */

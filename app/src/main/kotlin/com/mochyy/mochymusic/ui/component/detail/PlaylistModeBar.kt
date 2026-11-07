@@ -132,7 +132,7 @@ internal fun PlaylistModeBarRow(
     }
 }
 
-/** "Chọn" until something is picked, then the count, which rolls up or down as it changes */
+/** "Select" until something is picked, then the count, which rolls up or down as it changes */
 @Composable
 private fun SelectTitle(count: Int, modifier: Modifier = Modifier) {
     AnimatedContent(

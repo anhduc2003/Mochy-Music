@@ -384,7 +384,7 @@ private fun albumStats(year: Int?, songCount: Int, totalSeconds: Int, explicit: 
     val minutes = (totalSeconds % 3600) / 60
     return listOfNotNull(
         year?.toString(),
-        "$songCount ${if (songCount == 1) "bài hát" else "bài hát"}",
+        "$songCount ${if (songCount == 1) "song" else "songs"}",
         (if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m").takeIf { totalSeconds > 0 },
         "Có nội dung nhạy cảm".takeIf { explicit },
         format?.ifBlank { null },

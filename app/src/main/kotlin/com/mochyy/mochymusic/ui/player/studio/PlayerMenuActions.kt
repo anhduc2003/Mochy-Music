@@ -11,7 +11,7 @@ import com.mochyy.mochymusic.utils.rememberPreference
 
 /**
  * Everything the player's round buttons can do: the button beside the chevron and the four in the
- * menu the chevron opens are each set to one of these in the editor ("Chỉnh sửa menu").
+ * menu the chevron opens are each set to one of these in the editor ("Edit menu").
  */
 enum class PlayerMenuAction(val label: String, @param:DrawableRes val icon: Int) {
     LIKE("Thích", R.drawable.ic_untitled_heart_unfill),

@@ -290,7 +290,7 @@ class AccountImportSession(
             }
             _state.value = lastChoosing ?: choosing
             if (liked.isEmpty() && librarySongs.isEmpty() && playlists.isEmpty()) {
-                _notice.value = "Không thể đọc ${failed.joinToString(", ").ifEmpty { "các danh sách phát đó" }}."
+                _notice.value = "Không thể đọc ${failed.joinToString(", ").ifEmpty { "those playlists" }}."
                 return@launch
             }
             _ready.value = ParsedImport(

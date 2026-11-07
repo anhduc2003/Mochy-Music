@@ -540,7 +540,7 @@ fun ProfileScreen(navController: NavController) {
                     ) {
                         // greeting (in the header; its scrolled-away twin lives in the top bar)
                         Text(
-                            text = "${MochyGreeting.current}, ${accountName.ifBlank { "bạn" }}!",
+                            text = "${MochyGreeting.current}, ${accountName.ifBlank { "there" }}!",
                             style = PageTitle,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -794,7 +794,7 @@ fun ProfileScreen(navController: NavController) {
             )
             if (collapseProgress > 0.01f) {
                 Text(
-                    text = "${MochyGreeting.current}, ${accountName.ifBlank { "bạn" }}!",
+                    text = "${MochyGreeting.current}, ${accountName.ifBlank { "there" }}!",
                     style = PageTitle.copy(fontSize = 18.sp),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -1002,7 +1002,7 @@ private fun VersionCard(
 }
 
 /**
- * The version card's capsule: "Thông tin ứng dụng", or "Cập nhật" once one is out. The swap pops - the
+ * The version card's capsule: "About app", or "Update" once one is out. The swap pops - the
  * capsule squashes and springs back past its size while the new word grows in on a bounce and
  * the width springs to fit it.
  */

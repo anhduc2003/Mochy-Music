@@ -49,7 +49,7 @@ internal class PlaylistFormState(name: String, description: String) {
 
 /**
  * The body of the create and edit sheets, as in the reference mocks: the cover carousel, then
- * "Tên danh sách phát" and "Mô tả danh sách phát". Scrolls when the screen is short or the text large; the
+ * "Playlist title" and "Playlist desc". Scrolls when the screen is short or the text large; the
  * sheet's own button bar stays pinned underneath.
  *
  * @param seed what a playlist with no top song yet takes its colours from.

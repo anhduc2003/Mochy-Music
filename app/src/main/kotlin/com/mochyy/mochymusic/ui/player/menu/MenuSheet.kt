@@ -99,7 +99,7 @@ private val FloatingMaxWidth = 360.dp
 private val FloatingCorner = 28.dp
 
 /**
- * The player's sheets opened from one another - the action menu, then "Đổi thiết bị đầu ra",
+ * The player's sheets opened from one another - the action menu, then "Change device output",
  * playback speed, sleep timer or a lyrics tool on top of it, then the language picker on top of
  * the translation sheet. Same stacking as `ui/component/PopupSheet.kt`, matched to the same
  * reference mock: a covered sheet scales to [RecedeScale] and rises so only a [PeekHeight] strip
@@ -126,7 +126,7 @@ val LocalMenuSheetStack = staticCompositionLocalOf<MenuSheetStack?> { null }
 
 /**
  * Closes the [MenuSheetSurface] this is read inside with its normal exit animation, then calls
- * its `onDismiss`. Buttons inside a sheet's content that finish its job ("Lưu", "Đặt hẹn giờ",
+ * its `onDismiss`. Buttons inside a sheet's content that finish its job ("Save", "Set timer",
  * picking an entry) should call this rather than the `onDismiss` they were handed: that one
  * removes the sheet on the spot, skipping the slide-out, and the sheet behind it with it.
  */

@@ -1,6 +1,6 @@
 // LibraryManageSheets.kt
 //
-// "Quản lý nội dung đã nhập", "Quản lý nhạc trên thiết bị" and "Quản lý bộ nhớ đệm": big tiles for the main actions and a row per
+// "Manage imports", "Manage local" and "Manage cache": big tiles for the main actions and a row per
 // other action, as in the mocks. Anything that takes music out of the library asks once more on a
 // sheet pushed over this one.
 
@@ -137,7 +137,7 @@ fun PopupSheetState.showManageLocalSheet(
 }
 
 /**
- * [cachedSongs] are the songs "Xóa bài hát" lists. Clearing goes further and also drops songs that
+ * [cachedSongs] are the songs "Remove songs" lists. Clearing goes further and also drops songs that
  * only got partly cached; downloads are kept apart and never touched.
  */
 fun PopupSheetState.showManageCachedSheet(

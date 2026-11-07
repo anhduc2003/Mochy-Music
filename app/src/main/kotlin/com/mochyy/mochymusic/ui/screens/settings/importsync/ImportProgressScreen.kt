@@ -27,21 +27,21 @@ import com.mochyy.mochymusic.ui.component.SettingsGroup
 import com.mochyy.mochymusic.ui.component.SettingsGroupStyle
 import com.mochyy.mochymusic.ui.component.SettingsItem
 import com.mochyy.mochymusic.ui.component.SubSettingsScaffold
-import com.mochyy.mochymusic.viewmodels.NhậpSyncViewModel
+import com.mochyy.mochymusic.viewmodels.ImportSyncViewModel
 
 private const val UNMATCHED_SHOWN = 200
 
 @Composable
-fun NhậpProgressScreen(
+fun ImportProgressScreen(
     navController: NavController,
-    viewModel: NhậpSyncViewModel = hiltViewModel(),
+    viewModel: ImportSyncViewModel = hiltViewModel(),
 ) {
     val progress by viewModel.importProgress.collectAsState()
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
 
     fun leave() {
-        if (!navController.popBackStack(NhậpSyncRoute, inclusive = false)) navController.navigateUp()
+        if (!navController.popBackStack(ImportSyncRoute, inclusive = false)) navController.navigateUp()
     }
 
     val resync = progress.resync
@@ -53,14 +53,14 @@ fun NhậpProgressScreen(
         },
         onBack = { navController.navigateUp() },
     ) {
-        NhậpInfoCard {
+        ImportInfoCard {
             val fraction = if (progress.totalTracks > 0) progress.processedTracks.toFloat() / progress.totalTracks else 0f
             Text(
                 text = when {
                     progress.isRunning -> "${progress.processedTracks}/${progress.totalTracks} bài hát"
                     progress.cancelled -> "Đã dừng"
                     progress.error != null -> if (resync != null) "Đồng bộ lại không thành công" else "Nhập không thành công"
-                    progress.isHoàn tất -> "Hoàn tất"
+                    progress.isDone -> "Hoàn tất"
                     else -> "Không có lượt nhập nào đang chạy"
                 },
                 style = MaterialTheme.typography.headlineSmall,
@@ -83,11 +83,11 @@ fun NhậpProgressScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (progress.isHoàn tất || progress.processedTracks > 0) {
+            if (progress.isDone || progress.processedTracks > 0) {
                 Spacer(Modifier.height(12.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     SummaryLine("Tìm thấy trên YouTube Music", "${progress.matchedTracks} trên ${progress.totalTracks}")
-                    if (resync != null && progress.isHoàn tất) SummaryLine("Đã thêm vào \"${resync.playlistName}\"", resync.added.toString())
+                    if (resync != null && progress.isDone) SummaryLine("Đã thêm vào \"${resync.playlistName}\"", resync.added.toString())
                     if (progress.playlistsCreated > 0) SummaryLine("Danh sách phát mới", progress.playlistsCreated.toString())
                     if (progress.likedAdded > 0) SummaryLine("Bài hát đã thích", progress.likedAdded.toString())
                     if (progress.unmatched.isNotEmpty()) SummaryLine("Không tìm thấy", progress.unmatched.size.toString())
@@ -119,7 +119,7 @@ fun NhậpProgressScreen(
                             descriptionText = "Các bài hát và danh sách phát đã nhập vẫn được giữ lại",
                             icon = painterResource(R.drawable.close),
                             iconShape = CircleShape,
-                            onClick = viewModel::cancelNhập,
+                            onClick = viewModel::cancelImport,
                         )
                     )
                 } else {
@@ -129,7 +129,7 @@ fun NhậpProgressScreen(
                             icon = painterResource(R.drawable.check),
                             iconShape = CircleShape,
                             onClick = {
-                                viewModel.clearFinishedNhập()
+                                viewModel.clearFinishedImport()
                                 leave()
                             },
                         )

@@ -154,7 +154,7 @@ internal fun PopupSheetState.showStylePage(session: SongShareSession) {
     }
 }
 
-// "Chỉnh sửa nền" asks this first: a moving background, or a still one
+// "Edit background" asks this first: a moving background, or a still one
 internal fun PopupSheetState.showBackgroundType(session: SongShareSession) {
     val popup = this
     lateinit var typePage: PopupSheetHandle

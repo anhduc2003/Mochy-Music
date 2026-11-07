@@ -1,4 +1,4 @@
-// "tìm thêm nguồn": add a module from a pasted link, a zip on the phone or mochy's catalog, after seeing what it adds
+// "find more sources": add a module from a pasted link, a zip on the phone or mochy's catalog, after seeing what it adds
 
 package com.mochyy.mochymusic.ui.screens.settings.modules
 

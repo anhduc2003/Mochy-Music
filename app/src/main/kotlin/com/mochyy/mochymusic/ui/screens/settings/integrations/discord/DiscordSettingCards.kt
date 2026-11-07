@@ -521,7 +521,7 @@ internal fun DiscordStepSlider(
 
 private val SliderLabelWidth = 52.dp
 
-/** the bold one-liner card, like "để trống để tắt" */
+/** the bold one-liner card, like "empty it to disable" */
 @Composable
 internal fun DiscordNoticeCard(text: String) {
     DiscordCard {

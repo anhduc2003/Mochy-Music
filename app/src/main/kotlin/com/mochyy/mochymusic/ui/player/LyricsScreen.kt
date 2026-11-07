@@ -226,7 +226,7 @@ fun LyricsScreen(
 
     morph: CardMorphState? = null,
 
-    /** Opens the source picker from the footer's "Chuyển đổi" button. Without it the button is hidden. */
+    /** Opens the source picker from the footer's "Switch" button. Without it the button is hidden. */
     onSwitchSource: (() -> Unit)? = null,
 
     modifier: Modifier = Modifier,

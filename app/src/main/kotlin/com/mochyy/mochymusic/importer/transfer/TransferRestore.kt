@@ -63,9 +63,9 @@ object TransferRestore {
         note ?: return null
         val missing = note.optInt("missingLocal")
         return if (missing > 0) {
-            "Chào mừng bạn quay lại! Thư viện đã được khôi phục, nhưng không tìm thấy $missing ${if (missing == 1) "bài hát" else "bài hát"} trong máy này."
+            "Welcome back! Your library is here, but $missing local ${if (missing == 1) "song wasn't" else "songs weren't"} found on this phone."
         } else {
-            "Chào mừng bạn quay lại! Thư viện của bạn đã được khôi phục."
+            "Welcome back! Your whole library is here."
         }
     }
 

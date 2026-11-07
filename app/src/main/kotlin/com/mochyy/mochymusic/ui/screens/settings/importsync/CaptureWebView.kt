@@ -211,7 +211,7 @@ fun CaptureWebView(
             .stableStatusBarsPadding()
             .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom)),
     ) {
-        WebLoginHeader(title = title, subtitle = subtitle, onQuay lại = onExit)
+        WebLoginHeader(title = title, subtitle = subtitle, onBack = onExit)
         Box(modifier = Modifier.height(2.dp).fillMaxWidth()) {
             if (pageLoading) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         }
@@ -416,14 +416,14 @@ fun CaptureWebContent(
 }
 
 @Composable
-fun WebLoginHeader(title: String, subtitle: String, onQuay lại: () -> Unit) {
+fun WebLoginHeader(title: String, subtitle: String, onBack: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
-        IconButton(onClick = onQuay lại) {
+        IconButton(onClick = onBack) {
             Icon(painterResource(R.drawable.arrow_back), contentDescription = "Quay lại", tint = Color.White)
         }
         Spacer(Modifier.width(4.dp))

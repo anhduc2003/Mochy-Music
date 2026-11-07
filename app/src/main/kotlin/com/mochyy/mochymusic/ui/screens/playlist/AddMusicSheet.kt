@@ -67,11 +67,11 @@ import timber.log.Timber
 private enum class AddMusicTab { Suggested, Library }
 
 /**
- * Pushes the "Thêm nhạc" sheet for a playlist, as in the mock: a search over every song (your
+ * Pushes the "Add music" sheet for a playlist, as in the mock: a search over every song (your
  * library and YouTube), chips for suggestions and your library, and Done pinned below. It goes on
  * the sheet stack, so back closes only this sheet and you land on whatever was showing before.
  *
- * @param startInLibrary open on "Trong thư viện": an empty playlist has nothing to base suggestions on.
+ * @param startInLibrary open on "In library": an empty playlist has nothing to base suggestions on.
  */
 fun PopupSheetState.showAddMusicSheet(playlistId: String, startInLibrary: Boolean) {
     var sheet: PopupSheetHandle? = null

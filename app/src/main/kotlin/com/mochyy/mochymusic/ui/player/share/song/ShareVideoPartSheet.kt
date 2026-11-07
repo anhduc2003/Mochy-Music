@@ -50,7 +50,7 @@ private const val StripFrames = 24
 // the most of your own video a share uses; under a longer song it loops
 internal const val OwnVideoLongestMs = 10_000L
 
-// "Bạn muốn chọn đoạn nào?": your video playing on its own card, and its frames sliding under a window of up to ten seconds
+// "which part?": your video playing on its own card, and its frames sliding under a window of up to ten seconds
 internal fun PopupSheetState.showVideoPart(session: SongShareSession) {
     val popup = this
     show(buttonBar = { SheetPillButton(text = stringResource(R.string.song_share_ok), onClick = popup::dismiss) }) {

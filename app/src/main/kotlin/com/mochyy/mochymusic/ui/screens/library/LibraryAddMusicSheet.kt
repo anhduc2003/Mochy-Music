@@ -1,8 +1,8 @@
 // LibraryAddMusicSheet.kt
 //
-// Picking songs in a sheet: "Thêm nhạc" lists what a storage scan found on the phone (all ticked,
-// so bringing everything in is one tap), "Xóa khỏi danh sách" lists the files already imported and
-// "Xóa khỏi bộ nhớ đệm" the cached songs (none ticked). All the same list with a search field and a
+// Picking songs in a sheet: "Add music" lists what a storage scan found on the phone (all ticked,
+// so bringing everything in is one tap), "Remove from list" lists the files already imported and
+// "Remove from cache" the cached songs (none ticked). All the same list with a search field and a
 // checkbox per song.
 
 package com.mochyy.mochymusic.ui.screens.library

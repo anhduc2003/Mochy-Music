@@ -157,7 +157,7 @@ private fun EditBackgroundPill(modifier: Modifier = Modifier, onClick: () -> Uni
     )
 }
 
-// "Tùy chỉnh thẻ": the card up close, its colour, how see-through it is, and how much it blurs what's behind it
+// "Customize card": the card up close, its colour, how see-through it is, and how much it blurs what's behind it
 internal fun PopupSheetState.showCardStyle(session: SongShareSession) {
     val popup = this
     show(buttonBar = { SheetPillButton(text = stringResource(R.string.song_share_ok), onClick = popup::dismiss) }) {

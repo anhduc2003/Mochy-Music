@@ -80,7 +80,7 @@ internal fun announceAddedToPlaylist(database: com.mochyy.mochymusic.db.MusicDat
         val first = database.song(ids.first()).firstOrNull()?.song
         val name = playlist.playlist.name
         com.mochyy.mochymusic.ui.component.TopToaster.show(
-            text = if (ids.size == 1) "Đã thêm ${first?.title ?: "bài hát"} vào $name" else "Đã thêm ${ids.size} bài hát vào $name",
+            text = if (ids.size == 1) "Đã thêm ${first?.title ?: "song"} vào $name" else "Đã thêm ${ids.size} bài hát vào $name",
             thumbnail = first?.thumbnailUrl,
             iconRes = R.drawable.playlist_add,
             actionLabel = if (playlist.playlist.browseId == null) "Hoàn tác" else null,

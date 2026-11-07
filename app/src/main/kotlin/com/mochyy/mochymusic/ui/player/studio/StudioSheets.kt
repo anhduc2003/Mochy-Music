@@ -268,7 +268,7 @@ private fun ColumnScope.PosterOptions() {
     }
 }
 
-/** "Chọn nội dung cần chỉnh": the title, what it's for, the options, and Done */
+/** "What to change with": the title, what it's for, the options, and Done */
 @Composable
 internal fun ColumnScope.OptionSheet(
     title: String,

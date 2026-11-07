@@ -1272,7 +1272,7 @@ private fun CreatorAvatar(creator: CreatorUi, size: Dp, modifier: Modifier = Mod
     }
 }
 
-/** "Tìm kiếm" beside the sort control, in its style: opens the list's own song search */
+/** "search" beside the sort control, in its style: opens the list's own song search */
 @Composable
 fun PlaylistSearchControl(onClick: () -> Unit) {
     Text(
@@ -1514,7 +1514,7 @@ fun PlaylistEndOfLine(
                 .height(25.dp)
         ) {
             Text(
-                text = "$songCount ${if (songCount == 1) "BÀI HÁT" else "BÀI HÁT"}",
+                text = "$songCount ${if (songCount == 1) "SONG" else "SONGS"}",
                 style = ReceiptSmallStyle,
                 color = Color.White.copy(alpha = 0.6f),
                 maxLines = 1,
@@ -1529,7 +1529,7 @@ fun PlaylistEndOfLine(
             )
             val minutes = (totalSeconds + 30) / 60
             Text(
-                text = "$minutes ${if (minutes == 1) "PHÚT" else "PHÚT"}",
+                text = "$minutes ${if (minutes == 1) "MINUTE" else "MINUTES"}",
                 style = ReceiptSmallStyle,
                 color = Color.White.copy(alpha = 0.6f),
                 maxLines = 1,

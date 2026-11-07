@@ -85,7 +85,7 @@ import kotlinx.coroutines.withContext
 import java.io.FileNotFoundException
 import java.io.IOException
 
-// "Chia sẻ lên": the finished picture, the three apps, and export and share for everything else
+// "Share to": the finished picture, the three apps, and export and share for everything else
 internal fun PopupSheetState.showSendPage(session: SongShareSession) {
     val popup = this
     val send = SendState(session)

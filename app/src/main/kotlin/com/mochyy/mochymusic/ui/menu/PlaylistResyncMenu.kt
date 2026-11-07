@@ -89,7 +89,7 @@ class PlaylistResyncState internal constructor(
     private fun handle(start: ResyncStart) {
         when (start) {
             ResyncStart.Started -> {
-                toast("Đang tìm bài hát mới trên ${source?.label ?: "dịch vụ"}…")
+                toast("Đang tìm bài hát mới trên ${source?.label ?: "the service"}…")
                 onDismiss()
             }
             is ResyncStart.ThroughAccount -> {

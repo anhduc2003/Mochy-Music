@@ -275,8 +275,8 @@ private fun playOrOpen(rec: YTItem, playerConnection: PlayerConnection, navContr
 }
 
 /**
- * a pick from Home's related rows, worded by what it grew out of: "Dựa trên nghệ sĩ bạn nghe" an artist,
- * "Tương tự" a song, "Dựa trên nội dung bạn đã nghe" an album. built from rows Home already loaded, so no fetch
+ * a pick from Home's related rows, worded by what it grew out of: "Because you listen to" an artist,
+ * "Similar to" a song, "Because you played" an album. built from rows Home already loaded, so no fetch
  */
 data class RelatedPickItem(
     val recommendation: YTItem,
@@ -296,7 +296,7 @@ data class RelatedPickItem(
         playOrOpen(recommendation, playerConnection, navController)
 }
 
-/** one of your own songs brought back with a reason of its own: "Nghe lặp lại", "Nghe lại gần đây" */
+/** one of your own songs brought back with a reason of its own: "On repeat", "Back in rotation" */
 data class ListeningPickItem(val item: MediaMetadata, val reason: String) : HeroCarouselItem {
     override fun label(isPlaying: Boolean): HeroLabel = HeroLabel(if (isPlaying) "Đang phát" else reason)
     override val mainText: String = item.title
@@ -451,7 +451,7 @@ private fun sharedArtist(item: DailyDiscoverItem): String? {
 }
 
 /**
- * the wording for each recommendation: "Có thể bạn cũng thích" leads, then whatever is most specific
+ * the wording for each recommendation: "You may also like" leads, then whatever is most specific
  * to that card (the same artist, a song you liked, a song you played), never the same phrase twice
  * in a row and no phrase more than twice in all.
  */

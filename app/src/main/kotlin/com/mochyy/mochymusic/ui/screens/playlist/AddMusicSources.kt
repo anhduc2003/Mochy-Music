@@ -33,7 +33,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
 /*
- * Where the "Thêm nhạc" sheet's songs come from, and where they go: the search over the library
+ * Where the "Add music" sheet's songs come from, and where they go: the search over the library
  * and YouTube, the suggestions drawn from the playlist's own songs, and saving the picks.
  */
 

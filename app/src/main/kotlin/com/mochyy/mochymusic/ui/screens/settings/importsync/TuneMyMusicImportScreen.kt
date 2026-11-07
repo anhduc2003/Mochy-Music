@@ -55,7 +55,7 @@ fun TuneMyMusicImportScreen(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Step(1, "Mở TuneMyMusic và chọn dịch vụ nguồn (Spotify, Apple Music, Tidal, Amazon Music…).")
                 Step(2, "Đăng nhập tại đó rồi chọn danh sách phát và bài hát đã thích cần chuyển.")
-                Step(3, "Ở bước chọn đích, hãy chọn \"Xuất ra tệp\”, sau đó chọn CSV.")
+                Step(3, "Ở bước chọn đích, hãy chọn \"Xuất ra tệp\", sau đó chọn CSV.")
                 Step(4, "Quay lại đây và chọn tệp .csv đã tải xuống.")
             }
         }

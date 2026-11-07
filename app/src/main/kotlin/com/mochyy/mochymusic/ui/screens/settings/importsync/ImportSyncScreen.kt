@@ -24,14 +24,14 @@ import com.mochyy.mochymusic.ui.component.SettingsGroup
 import com.mochyy.mochymusic.ui.component.SettingsGroupStyle
 import com.mochyy.mochymusic.ui.component.SettingsItem
 import com.mochyy.mochymusic.ui.component.SubSettingsScaffold
-import com.mochyy.mochymusic.viewmodels.NhậpĐồng bộViewModel
+import com.mochyy.mochymusic.viewmodels.ImportSyncViewModel
 import java.time.LocalDate
 
 /** experimental hub: import from other services, sync a youtube account, tunemymusic csv, and backup */
 @Composable
-fun NhậpĐồng bộScreen(
+fun ImportSyncScreen(
     navController: NavController,
-    viewModel: NhậpĐồng bộViewModel = hiltViewModel(),
+    viewModel: ImportSyncViewModel = hiltViewModel(),
 ) {
     val progress by viewModel.importProgress.collectAsState()
     val exportMessage by viewModel.exportMessage.collectAsState()
@@ -47,7 +47,7 @@ fun NhậpĐồng bộScreen(
     ) {
         if (progress.isRunning || progress.isDone) {
             val resync = progress.resync
-            NhậpInfoCard {
+            ImportInfoCard {
                 Text(
                     text = when {
                         resync != null && progress.isRunning -> "Re-syncing \"${resync.playlistName}\"…"
@@ -77,7 +77,7 @@ fun NhậpĐồng bộScreen(
                         title = { Text(if (progress.isRunning) "Xem tiến trình" else "Xem kết quả") },
                         icon = painterResource(R.drawable.playlist_play),
                         iconShape = CircleShape,
-                        onClick = { navController.navigate(NhậpProgressRoute) { launchSingleTop = true } },
+                        onClick = { navController.navigate(ImportProgressRoute) { launchSingleTop = true } },
                     )
                 ),
             )
@@ -94,7 +94,7 @@ fun NhậpĐồng bộScreen(
                     detail = "Đăng nhập vào Spotify, Apple Music, YouTube Music hoặc Tidal rồi chọn danh sách phát",
                     icon = painterResource(R.drawable.playlist_add),
                     iconShape = CircleShape,
-                    onClick = { navController.navigate(NhậpProvidersRoute) },
+                    onClick = { navController.navigate(ImportProvidersRoute) },
                 ),
                 SettingsItem(
                     title = { Text("Đồng bộ") },
@@ -103,7 +103,7 @@ fun NhậpĐồng bộScreen(
                     else "Kết nối tài khoản YouTube để đồng bộ danh sách phát, bài đã thích và lịch sử",
                     icon = painterResource(R.drawable.sync),
                     iconShape = CircleShape,
-                    onClick = { navController.navigate(YouTubeĐồng bộRoute) },
+                    onClick = { navController.navigate(YouTubeSyncRoute) },
                 ),
                 SettingsItem(
                     title = { Text("TuneMyMusic CSV") },
@@ -112,7 +112,7 @@ fun NhậpĐồng bộScreen(
                     detail = "Các dịch vụ khác như Amazon Music, SoundCloud hoặc thư viện Deezer",
                     icon = painterResource(R.drawable.web_link),
                     iconShape = CircleShape,
-                    onClick = { navController.navigate(NhậpTuneMyMusicRoute) },
+                    onClick = { navController.navigate(ImportTuneMyMusicRoute) },
                 ),
             ),
         )

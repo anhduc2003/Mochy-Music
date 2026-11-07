@@ -120,7 +120,7 @@ internal fun ImportSourceIcon(source: ImportSource, size: Dp, modifier: Modifier
 
 /**
  * The banner at the top of the All and Imported tabs. Idle, it invites an import - the services'
- * icons flowing past, "Nhập nhạc của bạn vào đây!" - and opens the import sheet. While an import runs
+ * icons flowing past, "Import your music here!" - and opens the import sheet. While an import runs
  * it is replaced by its progress.
  */
 @Composable

@@ -448,7 +448,7 @@ private fun rememberSettled(value: Boolean): State<Boolean> = produceState(initi
     }
 }
 
-/** "Đang tải" with its three dots lighting one after another. */
+/** "Loading" with its three dots lighting one after another. */
 @Composable
 private fun LoadingLabel(style: TextStyle, color: Color) {
     val transition = rememberInfiniteTransition(label = "loadingLabel")

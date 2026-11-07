@@ -117,7 +117,7 @@ fun PopupSheetState.showManageDownloadsSheet(viewModel: StorageViewModel) {
                         "Xong"
                     } else {
                         val n = chosen.size
-                        "Xóa ${if (n == 1) "1 bài hát" else "$n bài hát"} · ${formatSize(chosen.sumOf { it.bytes })}"
+                        "Xóa ${if (n == 1) "1 song" else "$n songs"} · ${formatSize(chosen.sumOf { it.bytes })}"
                     },
                     onClick = {
                         if (chosen.isEmpty()) {
@@ -165,7 +165,7 @@ private fun ManageDownloadsContent(viewModel: StorageViewModel, picks: DownloadP
     Column(Modifier.fillMaxWidth().fillMaxHeight()) {
         SheetSearchField(value = query, onValueChange = { query = it }, placeholder = "Tìm trong nội dung tải xuống")
         Text(
-            all?.let { "${it.size} ${if (it.size == 1) "bài hát" else "bài hát"} · ${formatSize(totalBytes)}" } ?: " ",
+            all?.let { "${it.size} ${if (it.size == 1) "song" else "songs"} · ${formatSize(totalBytes)}" } ?: " ",
             style = storageText(12f, FontWeight.Medium, StorageMuted, 0f),
             modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 10.dp),
         )

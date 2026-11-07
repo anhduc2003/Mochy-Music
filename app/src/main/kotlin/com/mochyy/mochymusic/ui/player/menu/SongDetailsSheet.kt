@@ -300,7 +300,7 @@ private fun DetailImage(url: String?, shape: Shape, placeholder: Int) {
     }
 }
 
-/** The mock's "Xong": a full-width pill, lighter than the rows so it reads as the way out. */
+/** The mock's "done": a full-width pill, lighter than the rows so it reads as the way out. */
 @Composable
 private fun DoneButton(onClick: () -> Unit) {
     Box(

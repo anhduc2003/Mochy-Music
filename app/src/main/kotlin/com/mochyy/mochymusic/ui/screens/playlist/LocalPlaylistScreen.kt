@@ -650,7 +650,7 @@ fun LocalPlaylistScreen(
                     deleteFromPlaylist()
                     val browseId = playlist?.playlist?.browseId
                     com.mochyy.mochymusic.ui.component.TopToaster.show(
-                        text = "Đã xóa ${removed.song.song.title} khỏi ${playlist?.playlist?.name ?: "danh sách phát"}",
+                        text = "Đã xóa ${removed.song.song.title} khỏi ${playlist?.playlist?.name ?: "playlist"}",
                         thumbnail = removed.song.song.thumbnailUrl,
                         iconRes = R.drawable.playlist_add,
                         actionLabel = context.getString(R.string.undo),

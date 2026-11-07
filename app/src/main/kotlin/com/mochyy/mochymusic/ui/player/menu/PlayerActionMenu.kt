@@ -129,7 +129,7 @@ fun PlayerActionMenu(
     val lyricsEntity by playerConnection.currentLyrics.collectAsState(initial = null)
 
     // Shared by this menu and every sheet it opens, so they stack: the menu shrinks back and
-    // peeks above "Đổi thiết bị đầu ra", a lyrics tool, etc. instead of being dimmed under it.
+    // peeks above "Change device output", a lyrics tool, etc. instead of being dimmed under it.
     val sheetStack = rememberMenuSheetStack()
 
     CompositionLocalProvider(LocalMenuSheetStack provides sheetStack) {

@@ -1,7 +1,7 @@
 // LibraryProgressSheet.kt
 //
 // The progress sheet: the whole batch's bar, every song with its ring, and a button at the bottom:
-// "Hủy tất cả lượt tải xuống" for downloads, "Tạo danh sách phát" for local imports to keep them together. Opened from the Library's progress card, and right after a local
+// "Cancel all downloads" for downloads, "Create playlist" for local imports to keep them together. Opened from the Library's progress card, and right after a local
 // import starts.
 
 package com.mochyy.mochymusic.ui.screens.library

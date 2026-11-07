@@ -253,7 +253,7 @@ fun ArtistItemsScreen(
                             CreatorUi(name = it, avatarUrl = viewModel.artistId?.let { id -> com.mochyy.mochymusic.utils.ArtistPageCache.header(id)?.avatarUrl }, artistId = viewModel.artistId)
                         }
                     ),
-                    stats = "${songs.size} ${if (songs.size == 1) "bài hát" else "bài hát"}",
+                    stats = "${songs.size} ${if (songs.size == 1) "song" else "songs"}",
                     isPlaying = isThisQueue && isPlaying,
                     onPlayClick = { if (isThisQueue) playerConnection.togglePlayPause() else playSongs() },
                     onShuffleClick = { playSongs(shuffled = true) },

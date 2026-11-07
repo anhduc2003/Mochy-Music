@@ -492,7 +492,7 @@ fun downloadSwipeAction(mediaItem: (() -> MediaItem)?): SwipeAction {
                 .setData(title.toByteArray())
                 .build()
             DownloadService.sendAddDownload(context, ExoDownloadService::class.java, request, false)
-            TopToaster.show(text = "${context.getString(R.string.downloading)} ${title.ifBlank { "bài hát" }}", thumbnail = thumb, iconRes = R.drawable.download)
+            TopToaster.show(text = "${context.getString(R.string.downloading)} ${title.ifBlank { "song" }}", thumbnail = thumb, iconRes = R.drawable.download)
         }
     }
 }
@@ -510,7 +510,7 @@ fun playNextSwipeAction(mediaItem: (() -> MediaItem)?): SwipeAction {
         val target = mediaItem?.invoke() ?: return@SwipeAction
         playerConnection?.playNext(target)
         TopToaster.show(
-            text = "Phát ${target.mediaMetadata.title ?: "bài hát"} tiếp theo",
+            text = "Phát ${target.mediaMetadata.title ?: "song"} tiếp theo",
             thumbnail = target.mediaMetadata.artworkUri?.toString(),
             iconRes = R.drawable.playlist_play,
         )

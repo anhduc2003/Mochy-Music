@@ -30,7 +30,7 @@ import timber.log.Timber
 import java.time.LocalDateTime
 
 /**
- * Creating a playlist, as a sheet (the "Tạo danh sách phát" mock): a carousel of generated covers -
+ * Creating a playlist, as a sheet (the "Create playlist" mock): a carousel of generated covers -
  * or a picture of the user's own - then the title and description. The name is kept for the old
  * dialog this replaces; it is shown through the app's popup system like every other sheet, and
  * [onDismiss] is called once it has closed, however it was closed.

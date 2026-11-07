@@ -112,7 +112,7 @@ private val RingGap = 3.dp
 private val RingCorner = 16.dp
 private val PillCorner = 12.dp
 
-// how long the "hãy chọn kiểu trước" hint stays after tapping a word with no look chosen
+// how long the "pick a look first" hint stays after tapping a word with no look chosen
 private const val HintMs = 1_800L
 
 // a fast swipe is checked every this many px along its path, so it can't jump over a word
@@ -355,7 +355,7 @@ private fun WordChip(
     }
 }
 
-// one of the three "Tạo ngay" cards; picked, it lights up and becomes the way out of picking
+// one of the three "Make it" cards; picked, it lights up and becomes the way out of picking
 @Composable
 private fun MakeItCard(
     mode: WordMode,

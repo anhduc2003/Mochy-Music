@@ -219,7 +219,7 @@ fun GeneratedNoResults(query: String, modifier: Modifier = Modifier) {
 
 /** "21 songs · 1h 23m" */
 fun generatedStats(songCount: Int, totalSeconds: Int): String {
-    val count = "$songCount ${if (songCount == 1) "bài hát" else "bài hát"}"
+    val count = "$songCount ${if (songCount == 1) "song" else "songs"}"
     if (totalSeconds <= 0) return count
     val hours = totalSeconds / 3600
     val minutes = (totalSeconds % 3600) / 60
