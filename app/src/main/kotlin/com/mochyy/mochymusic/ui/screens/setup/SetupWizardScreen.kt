@@ -343,7 +343,7 @@ fun SetupWizardScreen(
                         Step.Welcome -> Box(Modifier.fillMaxSize().background(Color.Black)) {
                             WelcomeStep(isHiding = isLeavingWelcome)
                             OnbButton(
-                                text = "Next",
+                                text = "Tiếp theo",
                                 onClick = {
                                     isLeavingWelcome = true
                                     scope.launch {

@@ -228,7 +228,7 @@ fun SectionDetailScreen(
         onShuffleClick = { playAll(shuffled = true) },
         query = query,
         onQueryChange = { query = it },
-        searchPlaceholder = "Search in $title",
+        searchPlaceholder = "Tìm kiếm trong $title",
         onBackClick = { navController.navigateUp() },
         onBackLongClick = { navController.backToMain() },
         creator = accountName,
@@ -350,12 +350,12 @@ private fun rowText(item: Any): Pair<String, String> = when (item) {
         item.album.year?.toString(),
     ).joinToString(" • ")
     is Playlist -> item.playlist.name to "${item.songCount} songs"
-    is Artist -> item.title to "Artist"
+    is Artist -> item.title to "Nghệ sĩ"
     is AlbumItem -> item.title to listOfNotNull(
         item.artists?.joinToString { it.name }?.ifBlank { null },
         item.year?.toString(),
     ).joinToString(" • ")
-    is ArtistItem -> item.title to "Artist"
+    is ArtistItem -> item.title to "Nghệ sĩ"
     is PlaylistItem -> item.title to listOfNotNull(item.author?.name, item.songCountText).joinToString(" • ")
     else -> "" to ""
 }

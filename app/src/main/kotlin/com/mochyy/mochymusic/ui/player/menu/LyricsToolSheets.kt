@@ -119,7 +119,7 @@ fun LyricsEditorSheet(onDismiss: () -> Unit) {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Edit lyrics",
+                    text = "Chỉnh sửa lời bài hát",
                     color = Color.White,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
@@ -127,7 +127,7 @@ fun LyricsEditorSheet(onDismiss: () -> Unit) {
                 )
                 if (parsed.isNotEmpty()) {
                     Text(
-                        text = "Save",
+                        text = "Lưu",
                         color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
@@ -153,7 +153,7 @@ fun LyricsEditorSheet(onDismiss: () -> Unit) {
 
             if (parsed.isEmpty()) {
                 Text(
-                    text = "No lyrics to edit for this song.",
+                    text = "Bài hát này không có lời để chỉnh sửa.",
                     color = Color(0xFF9A9A9A),
                     fontSize = 13.sp,
                     modifier = Modifier.padding(vertical = 24.dp),
@@ -273,7 +273,7 @@ fun LyricsProviderSheet(onDismiss: () -> Unit) {
                 .padding(top = 16.dp, bottom = 24.dp)
         ) {
             Text(
-                text = "Lyrics Provider",
+                text = "Nguồn lời bài hát",
                 color = Color.White,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
@@ -294,8 +294,8 @@ fun LyricsProviderSheet(onDismiss: () -> Unit) {
                         LyricsUtils.SyncKind.LINE -> "Line synced"
                         else -> "Plain"
                     } + if (available.candidate.hasDuet) " · duet" else ""
-                    state == LyricsMenuViewModel.SourceState.Unavailable -> "Not found"
-                    state == LyricsMenuViewModel.SourceState.Off -> "Off"
+                    state == LyricsMenuViewModel.SourceState.Unavailable -> "Không tìm thấy"
+                    state == LyricsMenuViewModel.SourceState.Off -> "Tắt"
                     else -> "Checking…"
                 }
                 Row(
@@ -418,9 +418,9 @@ fun LyricsTranslationSheet(onDismiss: () -> Unit) {
                 .padding(horizontal = 20.dp)
                 .padding(top = 16.dp, bottom = 24.dp)
         ) {
-            Text(text = "Lyrics translation", color = Color(0xFF9A9A9A), fontSize = 12.sp)
+            Text(text = "Bản dịch lời bài hát", color = Color(0xFF9A9A9A), fontSize = 12.sp)
             Text(
-                text = "Translate from",
+                text = "Dịch từ",
                 color = Color.White,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
@@ -439,16 +439,16 @@ fun LyricsTranslationSheet(onDismiss: () -> Unit) {
             )
 
             Spacer(modifier = Modifier.height(14.dp))
-            Text(text = "To", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(text = "Sang", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
             PillButton(
-                label = TranslationTargets.firstOrNull { it.first == target }?.second ?: "unselected",
+                label = TranslationTargets.firstOrNull { it.first == target }?.second ?: "chưa chọn",
                 onClick = { picking = true },
                 trailing = if (target in youtubeLanguages) ({ YouTubeTick() }) else null,
             )
             AnimatedVisibility(visible = youtubeLanguages.isNotEmpty(), enter = fadeIn() + expandVertically()) {
                 Text(
-                    text = "A green tick means the video has its own captions in that language, so they're used as " +
+                    text = "Dấu tích xanh nghĩa là video có phụ đề bằng ngôn ngữ đó và phụ đề sẽ được dùng làm " +
                         "the translation. You can turn this off in Settings > General.",
                     color = Color(0xFF9A9A9A),
                     fontSize = 12.sp,
@@ -458,7 +458,7 @@ fun LyricsTranslationSheet(onDismiss: () -> Unit) {
             }
 
             Spacer(modifier = Modifier.height(14.dp))
-            Text(text = "And", color = Color(0xFF9A9A9A), fontSize = 12.sp)
+            Text(text = "Và", color = Color(0xFF9A9A9A), fontSize = 12.sp)
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(
@@ -472,7 +472,7 @@ fun LyricsTranslationSheet(onDismiss: () -> Unit) {
                 SheetIcon(R.drawable.translate)
                 Spacer(modifier = Modifier.width(14.dp))
                 Text(
-                    text = "Translate this whole session",
+                    text = "Dịch toàn bộ phiên này",
                     color = Color.White,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -543,7 +543,7 @@ fun LyricsTranslationSheet(onDismiss: () -> Unit) {
 
     if (picking) {
         LanguagePickerSheet(
-            title = "Translate to",
+            title = "Dịch sang",
             selected = target,
             marked = youtubeLanguages,
             // The picker closes itself (animated) after a pick; onDismiss then drops it. While a
@@ -554,7 +554,7 @@ fun LyricsTranslationSheet(onDismiss: () -> Unit) {
     }
     if (pickingSource) {
         LanguagePickerSheet(
-            title = "Translate from",
+            title = "Dịch từ",
             selected = source.ifBlank { "auto" },
             options = listOf("auto" to "Detect automatically") + TranslationTargets,
             onPick = { setSource(it) },
@@ -600,7 +600,7 @@ private fun YouTubeTick() {
     ) {
         Icon(
             painter = painterResource(R.drawable.check),
-            contentDescription = "Captions on YouTube",
+            contentDescription = "Phụ đề trên YouTube",
             tint = Color.White,
             modifier = Modifier.size(18.dp),
         )
@@ -659,7 +659,7 @@ private fun LanguagePickerSheet(
                     .padding(horizontal = 16.dp)
             ) {
                 if (query.isEmpty()) {
-                    Text(text = "Search language", color = Color(0xFF8A8A8A), fontSize = 13.sp)
+                    Text(text = "Tìm ngôn ngữ", color = Color(0xFF8A8A8A), fontSize = 13.sp)
                 }
                 BasicTextField(
                     value = query,

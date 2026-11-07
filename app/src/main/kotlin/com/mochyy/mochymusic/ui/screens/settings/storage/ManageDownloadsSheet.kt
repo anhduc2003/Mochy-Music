@@ -114,10 +114,10 @@ fun PopupSheetState.showManageDownloadsSheet(viewModel: StorageViewModel) {
             ) { nothingPicked ->
                 SheetPillButton(
                     text = if (nothingPicked) {
-                        "Done"
+                        "Xong"
                     } else {
                         val n = chosen.size
-                        "Remove ${if (n == 1) "1 song" else "$n songs"} · ${formatSize(chosen.sumOf { it.bytes })}"
+                        "Xóa ${if (n == 1) "1 bài hát" else "$n bài hát"} · ${formatSize(chosen.sumOf { it.bytes })}"
                     },
                     onClick = {
                         if (chosen.isEmpty()) {
@@ -126,10 +126,10 @@ fun PopupSheetState.showManageDownloadsSheet(viewModel: StorageViewModel) {
                         }
                         val ids = chosen.map { it.song.id }
                         popup.showConfirm(
-                            title = if (ids.size == 1) "Remove this download?" else "Remove ${ids.size} downloads?",
-                            message = "They're deleted from this phone but stay in your library, and stream again " +
-                                "when you play them.",
-                            action = "Remove",
+                            title = if (ids.size == 1) "Xóa nội dung tải xuống này?" else "Xóa ${ids.size} nội dung tải xuống?",
+                            message = "Nội dung sẽ bị xóa khỏi điện thoại nhưng vẫn còn trong thư viện và được phát trực tuyến " +
+                                "khi bạn phát.",
+                            action = "Xóa",
                         ) {
                             viewModel.removeDownloads(ids)
                             picks.ids.clear()
@@ -163,9 +163,9 @@ private fun ManageDownloadsContent(viewModel: StorageViewModel, picks: DownloadP
     val totalBytes = remember(all) { all.orEmpty().sumOf { it.bytes } }
 
     Column(Modifier.fillMaxWidth().fillMaxHeight()) {
-        SheetSearchField(value = query, onValueChange = { query = it }, placeholder = "Search your downloads")
+        SheetSearchField(value = query, onValueChange = { query = it }, placeholder = "Tìm trong nội dung tải xuống")
         Text(
-            all?.let { "${it.size} ${if (it.size == 1) "song" else "songs"} · ${formatSize(totalBytes)}" } ?: " ",
+            all?.let { "${it.size} ${if (it.size == 1) "bài hát" else "bài hát"} · ${formatSize(totalBytes)}" } ?: " ",
             style = storageText(12f, FontWeight.Medium, StorageMuted, 0f),
             modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 10.dp),
         )
@@ -177,24 +177,24 @@ private fun ManageDownloadsContent(viewModel: StorageViewModel, picks: DownloadP
         ) {
             when {
                 all == null -> Unit
-                all.isEmpty() -> item(key = "empty") { SheetNote("Nothing downloaded yet. Songs you download show up here.") }
+                all.isEmpty() -> item(key = "empty") { SheetNote("Chưa tải nội dung nào. Những bài hát bạn tải sẽ xuất hiện tại đây.") }
                 needle.isNotEmpty() -> {
                     if (matches.isEmpty()) {
-                        item(key = "no-match") { SheetNote("No downloads match \"$needle\".") }
+                        item(key = "no-match") { SheetNote("Không có nội dung tải xuống nào khớp với \"$needle\".") }
                     } else {
                         downloadRows("search", matches, picks)
                     }
                 }
                 else -> {
                     if (all.size >= ShelvesFrom) {
-                        shelf("biggest", "Biggest", null, biggest, picks)
+                        shelf("biggest", "Lớn nhất", null, biggest, picks)
                         if (lessListened.isNotEmpty()) {
-                            shelf("less", "Less listened", "Downloaded a while ago and hardly played", lessListened, picks)
+                            shelf("less", "Ít nghe nhất", "Đã tải từ lâu và ít được phát", lessListened, picks)
                         }
                     }
                     item(key = "all-label") {
                         Column(Modifier.padding(bottom = 8.dp)) {
-                            SheetLabel("All")
+                            SheetLabel("Tất cả")
                             SortSwitch(sort) { sort = DownloadSort.entries[(sort.ordinal + 1) % DownloadSort.entries.size] }
                         }
                     }
@@ -230,7 +230,7 @@ private fun LazyListScope.shelf(
             }
             // a whole shelf in one go: it's what the suggestion is for
             Text(
-                if (allPicked) "Unpick" else "Pick all",
+                if (allPicked) "Bỏ chọn" else "Chọn tất cả",
                 style = storageText(12f, FontWeight.SemiBold, Color.White, -0.2f),
                 modifier = Modifier
                     .clip(CircleShape)
@@ -265,7 +265,7 @@ private fun SortSwitch(sort: DownloadSort, onNext: () -> Unit) {
             .clickable(onClick = onNext)
             .padding(vertical = 2.dp),
     ) {
-        Text("Sort by - ", style = storageText(12f, FontWeight.Medium, StorageMuted, 0f))
+        Text("Sắp xếp theo - ", style = storageText(12f, FontWeight.Medium, StorageMuted, 0f))
         AnimatedContent(
             targetState = sort,
             transitionSpec = { (slideInVertically { it } + fadeIn()).togetherWith(slideOutVertically { -it } + fadeOut()) },

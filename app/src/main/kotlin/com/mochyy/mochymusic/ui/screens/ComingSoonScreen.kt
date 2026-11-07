@@ -59,8 +59,8 @@ fun ComingSoonScreen(
             IconButton(onClick = { navController.navigateUp() }) {
                 Icon(
                     painter = painterResource(R.drawable.arrow_back),
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onBackground
+                    contentDescription = "Quay lại",
+                    tint = MaterialTheme.colorScheme.onQuay lạiground
                 )
             }
             Spacer(modifier = Modifier.width(4.dp))
@@ -68,7 +68,7 @@ fun ComingSoonScreen(
                 text = sectionTitle,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onQuay lạiground
             )
         }
 
@@ -95,16 +95,16 @@ fun ComingSoonScreen(
                 }
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(
-                    text = "Coming Soon",
+                    text = "Sắp ra mắt",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.onQuay lạiground
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "$sectionTitle is still a work in progress.",
+                    text = "$sectionTitle vẫn đang trong quá trình phát triển.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onQuay lạiground.copy(alpha = 0.7f)
                 )
             }
         }

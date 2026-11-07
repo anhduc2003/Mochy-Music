@@ -66,14 +66,14 @@ object LinkImporter {
     }
 
     suspend fun fetch(link: String): ParsedImport {
-        val text = extractUrl(link.trim()) ?: throw LinkImportException("That doesn't look like a link.")
+        val text = extractUrl(link.trim()) ?: throw LinkImportException("Liên kết này có vẻ không hợp lệ.")
         val resolved = if (SHORT_LINK_HOSTS.any { text.contains(it) }) resolveShortLink(text) else text
         return when (detect(resolved) ?: detect(text)) {
             LinkSource.SPOTIFY -> fetchSpotify(resolved)
             LinkSource.APPLE_MUSIC -> fetchApple(resolved)
             LinkSource.DEEZER -> fetchDeezer(resolved)
             LinkSource.YOUTUBE -> fetchYouTube(resolved)
-            null -> throw LinkImportException("Paste a Spotify, Apple Music, Deezer or YouTube Music link.")
+            null -> throw LinkImportException("Hãy dán liên kết Spotify, Apple Music, Deezer hoặc YouTube Music.")
         }
     }
 
@@ -102,16 +102,16 @@ object LinkImporter {
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
     } catch (e: Exception) {
-        throw LinkImportException("Couldn't reach the server — check your connection.")
+        throw LinkImportException("Không thể kết nối đến máy chủ — hãy kiểm tra kết nối mạng.")
     }
 
     private suspend fun getOk(url: String, what: String): String {
         val response = get(url)
         when (response.status.value) {
             in 200..299 -> return response.bodyAsText()
-            404 -> throw LinkImportException("$what wasn't found. Is it public?")
-            429 -> throw LinkImportException("$what is rate-limiting us. Try again in a minute.")
-            else -> throw LinkImportException("$what answered with an error (${response.status.value}).")
+            404 -> throw LinkImportException("Không tìm thấy $what. Nội dung có được công khai không?")
+            429 -> throw LinkImportException("$what đang giới hạn yêu cầu. Hãy thử lại sau một phút.")
+            else -> throw LinkImportException("$what phản hồi lỗi (${response.status.value}).")
         }
     }
 
@@ -119,7 +119,7 @@ object LinkImporter {
 
     private suspend fun fetchSpotify(url: String): ParsedImport {
         val match = SPOTIFY_REGEX.find(url)
-            ?: throw LinkImportException("Paste a Spotify playlist or album link.")
+            ?: throw LinkImportException("Hãy dán liên kết danh sách phát hoặc album Spotify.")
         val (type, id) = match.destructured
         return parseSpotifyEmbed(getOk("https://open.spotify.com/embed/$type/$id", "Spotify"), type)
             .from(PlaylistOrigin(remoteId = id, remoteUrl = "https://open.spotify.com/$type/$id"))
@@ -128,10 +128,10 @@ object LinkImporter {
     internal fun parseSpotifyEmbed(html: String, type: String): ParsedImport {
         val data = Regex("<script id=\"__NEXT_DATA__\" type=\"application/json\">(.*?)</script>", RegexOption.DOT_MATCHES_ALL)
             .find(html)?.groupValues?.get(1)
-            ?: throw LinkImportException("Spotify changed its page — use TuneMyMusic for now.")
+            ?: throw LinkImportException("Spotify đã thay đổi trang — hiện tại hãy dùng TuneMyMusic.")
         val entity = json.parseToJsonElement(data)
             .path("props", "pageProps", "state", "data", "entity") as? JsonObject
-            ?: throw LinkImportException("That Spotify $type is private or doesn't exist.")
+            ?: throw LinkImportException("$type Spotify này ở chế độ riêng tư hoặc không tồn tại.")
 
         val name = entity.string("name") ?: entity.string("title") ?: "Spotify $type"
         val albumName = if (type == "album") name else null
@@ -146,7 +146,7 @@ object LinkImporter {
                 sourceId = obj.string("uri")?.takeIf { it.startsWith("spotify:track:") },
             )
         }
-        if (tracks.isEmpty()) throw LinkImportException("That Spotify $type has no songs we can read.")
+        if (tracks.isEmpty()) throw LinkImportException("Không có bài hát nào trong $type Spotify này mà chúng tôi có thể đọc.")
 
         val warnings = buildList {
             if (type == "playlist" && tracks.size >= SPOTIFY_EMBED_LIMIT) {
@@ -172,7 +172,7 @@ object LinkImporter {
 
     private suspend fun fetchApple(url: String): ParsedImport {
         val match = APPLE_REGEX.find(url)
-            ?: throw LinkImportException("Paste an Apple Music playlist or album link.")
+            ?: throw LinkImportException("Hãy dán liên kết danh sách phát hoặc album Apple Music.")
         val type = match.groupValues[1]
         val page = url.substringBefore('#')
         return parseApplePage(getOk(page, "Apple Music"), type)
@@ -182,11 +182,11 @@ object LinkImporter {
     internal fun parseApplePage(html: String, type: String): ParsedImport {
         val data = Regex("<script[^>]*id=\"serialized-server-data\"[^>]*>(.*?)</script>", RegexOption.DOT_MATCHES_ALL)
             .find(html)?.groupValues?.get(1)
-            ?: throw LinkImportException("Apple Music changed its page — use TuneMyMusic for now.")
+            ?: throw LinkImportException("Apple Music đã thay đổi trang — hiện tại hãy dùng TuneMyMusic.")
         val root = json.parseToJsonElement(data)
         val page = (root.path("data") as? JsonArray)?.firstOrNull()?.path("data")
             ?: (root as? JsonArray)?.firstOrNull()?.path("data")
-            ?: throw LinkImportException("That Apple Music $type is private or doesn't exist.")
+            ?: throw LinkImportException("$type Apple Music này ở chế độ riêng tư hoặc không tồn tại.")
         val sections = (page.path("sections") as? JsonArray).orEmpty().mapNotNull { it as? JsonObject }
 
         val header = sections.firstOrNull { it.string("itemKind") == "containerDetailHeaderLockup" }
@@ -210,7 +210,7 @@ object LinkImporter {
                     durationMs = obj.long("duration"),
                 )
             }
-        if (tracks.isEmpty()) throw LinkImportException("That Apple Music $type has no songs we can read.")
+        if (tracks.isEmpty()) throw LinkImportException("Không có bài hát nào trong $type Apple Music này mà chúng tôi có thể đọc.")
 
         val warnings = buildList {
             if (declaredCount != null && declaredCount > tracks.size) {
@@ -233,7 +233,7 @@ object LinkImporter {
 
     private suspend fun fetchDeezer(url: String): ParsedImport {
         val match = DEEZER_REGEX.find(url)
-            ?: throw LinkImportException("Paste a Deezer playlist or album link.")
+            ?: throw LinkImportException("Hãy dán liên kết danh sách phát hoặc album Deezer.")
         val (type, id) = match.destructured
         val info = deezerJson("https://api.deezer.com/$type/$id")
         val name = info.string("title") ?: "Deezer $type"
@@ -257,7 +257,7 @@ object LinkImporter {
             next = page.string("next")?.takeIf { it.startsWith("https://api.deezer.com/") }
             pages++
         }
-        if (tracks.isEmpty()) throw LinkImportException("That Deezer $type has no songs we can read.")
+        if (tracks.isEmpty()) throw LinkImportException("Không có bài hát nào trong $type Deezer này mà chúng tôi có thể đọc.")
         val cover = info.string("picture_xl") ?: info.string("cover_xl")
         return ParsedImport(likedSongs = emptyList(), playlists = mapOf(name to tracks), provider = ImportSource.DEEZER, playlistCovers = coverFor(name, cover))
             .from(PlaylistOrigin(remoteId = id, remoteUrl = "https://www.deezer.com/$type/$id"))
@@ -265,10 +265,10 @@ object LinkImporter {
 
     private suspend fun deezerJson(url: String): JsonObject {
         val obj = json.parseToJsonElement(getOk(url, "Deezer")) as? JsonObject
-            ?: throw LinkImportException("Deezer sent something we couldn't read.")
+            ?: throw LinkImportException("Deezer đã gửi dữ liệu không thể đọc được.")
         obj["error"]?.let { error ->
             val message = (error.path("message") as? JsonPrimitive)?.contentOrNull
-            throw LinkImportException(if (message?.contains("no data", true) == true) "That Deezer playlist is private or doesn't exist." else "Deezer: ${message ?: "unknown error"}")
+            throw LinkImportException(if (message?.contains("no data", true) == true) "Danh sách phát Deezer này ở chế độ riêng tư hoặc không tồn tại." else "Deezer: ${message ?: "unknown error"}")
         }
         return obj
     }
@@ -282,17 +282,17 @@ object LinkImporter {
             browseId != null && browseId.startsWith("MPREb_") -> fetchYouTubeAlbum(browseId)
             listId != null -> fetchYouTubePlaylist(listId)
             browseId != null -> fetchYouTubePlaylist(browseId.removePrefix("VL"))
-            else -> throw LinkImportException("Paste a YouTube playlist or album link.")
+            else -> throw LinkImportException("Hãy dán liên kết danh sách phát hoặc album trên YouTube.")
         }
     }
 
     suspend fun fetchYouTubePlaylist(playlistId: String): ParsedImport {
-        if (playlistId.startsWith("RD")) throw LinkImportException("That's a YouTube mix, which changes every time — save it as a playlist first.")
+        if (playlistId.startsWith("RD")) throw LinkImportException("Đây là bản phối YouTube thay đổi mỗi lần phát — trước tiên hãy lưu thành danh sách phát.")
         val page = YouTube.playlist(playlistId).completed().getOrElse {
-            throw LinkImportException("Couldn't open that YouTube playlist. Is it public or unlisted?")
+            throw LinkImportException("Không thể mở danh sách phát YouTube đó. Danh sách phát có ở chế độ công khai hoặc không công khai không?")
         }
         val tracks = page.songs.map { it.toImportedTrack() }
-        if (tracks.isEmpty()) throw LinkImportException("That YouTube playlist is empty.")
+        if (tracks.isEmpty()) throw LinkImportException("Danh sách phát YouTube đó đang trống.")
         return ParsedImport(
             likedSongs = emptyList(),
             playlists = mapOf(page.playlist.title to tracks),
@@ -303,10 +303,10 @@ object LinkImporter {
 
     private suspend fun fetchYouTubeAlbum(browseId: String): ParsedImport {
         val page = YouTube.album(browseId).getOrElse {
-            throw LinkImportException("Couldn't open that YouTube Music album.")
+            throw LinkImportException("Không thể mở album YouTube Music đó.")
         }
         val tracks = page.songs.map { it.toImportedTrack() }
-        if (tracks.isEmpty()) throw LinkImportException("That album has no songs.")
+        if (tracks.isEmpty()) throw LinkImportException("Album đó không có bài hát.")
         return ParsedImport(
             likedSongs = emptyList(),
             playlists = mapOf(page.album.title to tracks),

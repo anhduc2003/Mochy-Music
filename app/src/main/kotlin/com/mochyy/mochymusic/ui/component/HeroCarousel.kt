@@ -200,9 +200,9 @@ sealed interface HeroCarouselItem {
 data class KeepListeningItem(val item: MediaMetadata, val isLastPlayed: Boolean = false) : HeroCarouselItem {
     override fun label(isPlaying: Boolean): HeroLabel = HeroLabel(
         when {
-            isPlaying -> "Now playing"
-            isLastPlayed -> "Continue"
-            else -> "Recently played"
+            isPlaying -> "Đang phát"
+            isLastPlayed -> "Tiếp tục"
+            else -> "Nghe gần đây"
         }
     )
     override val mainText: String = item.title
@@ -231,19 +231,19 @@ data class DiscoverItem(
     val reason: DiscoverReason = DiscoverReason.YouMayAlsoLike,
 ) : HeroCarouselItem {
     override fun label(isPlaying: Boolean): HeroLabel {
-        if (isPlaying) return HeroLabel("Now playing")
+        if (isPlaying) return HeroLabel("Đang phát")
         val seed = item.seed
         val seedCover = seed.song.thumbnailUrl
         return when (reason) {
-            DiscoverReason.YouMayAlsoLike -> HeroLabel("You may also like")
-            DiscoverReason.BecauseYouLike -> HeroLabel("Because you like", seedCover, seed.song.title)
+            DiscoverReason.YouMayAlsoLike -> HeroLabel("Có thể bạn cũng thích")
+            DiscoverReason.BecauseYouLike -> HeroLabel("Dựa trên nội dung bạn thích", seedCover, seed.song.title)
             DiscoverReason.MoreFrom -> HeroLabel(
-                "More from",
+                "Thêm từ",
                 seedCover,
                 sharedArtist(item) ?: seed.artists.firstOrNull()?.name ?: seed.song.title,
             )
-            DiscoverReason.BecauseYouPlayed -> HeroLabel("Because you played", seedCover, seed.song.title)
-            DiscoverReason.InspiredBy -> HeroLabel("Inspired by", seedCover, seed.song.title)
+            DiscoverReason.BecauseYouPlayed -> HeroLabel("Dựa trên nội dung bạn đã nghe", seedCover, seed.song.title)
+            DiscoverReason.InspiredBy -> HeroLabel("Lấy cảm hứng từ", seedCover, seed.song.title)
         }
     }
     override val mainText: String = item.recommendation.title
@@ -275,14 +275,14 @@ private fun playOrOpen(rec: YTItem, playerConnection: PlayerConnection, navContr
 }
 
 /**
- * a pick from Home's related rows, worded by what it grew out of: "Because you listen to" an artist,
- * "Similar to" a song, "Because you played" an album. built from rows Home already loaded, so no fetch
+ * a pick from Home's related rows, worded by what it grew out of: "Dựa trên nghệ sĩ bạn nghe" an artist,
+ * "Tương tự" a song, "Dựa trên nội dung bạn đã nghe" an album. built from rows Home already loaded, so no fetch
  */
 data class RelatedPickItem(
     val recommendation: YTItem,
     val reason: HeroLabel,
 ) : HeroCarouselItem {
-    override fun label(isPlaying: Boolean): HeroLabel = if (isPlaying) HeroLabel("Now playing") else reason
+    override fun label(isPlaying: Boolean): HeroLabel = if (isPlaying) HeroLabel("Đang phát") else reason
     override val mainText: String = recommendation.title
     override val subText: String = (recommendation as? SongItem)?.artists?.joinToString(", ") { it.name } ?: ""
     override val thumbnailUrl: String? = recommendation.thumbnail
@@ -296,9 +296,9 @@ data class RelatedPickItem(
         playOrOpen(recommendation, playerConnection, navController)
 }
 
-/** one of your own songs brought back with a reason of its own: "On repeat", "Back in rotation" */
+/** one of your own songs brought back with a reason of its own: "Nghe lặp lại", "Nghe lại gần đây" */
 data class ListeningPickItem(val item: MediaMetadata, val reason: String) : HeroCarouselItem {
-    override fun label(isPlaying: Boolean): HeroLabel = HeroLabel(if (isPlaying) "Now playing" else reason)
+    override fun label(isPlaying: Boolean): HeroLabel = HeroLabel(if (isPlaying) "Đang phát" else reason)
     override val mainText: String = item.title
     override val subText: String = item.artists.joinToString(", ") { it.name }
     override val thumbnailUrl: String? = item.thumbnailUrl
@@ -331,17 +331,17 @@ private fun extraHeroPicks(
             val seed = row.title
             val reason = when (seed) {
                 is com.mochyy.mochymusic.db.entities.Artist ->
-                    HeroLabel("Because you listen to", seed.thumbnailUrl, seed.title, roundCover = true)
-                is com.mochyy.mochymusic.db.entities.Album -> HeroLabel("Because you played", seed.thumbnailUrl, seed.title)
-                else -> HeroLabel("Similar to", seed.thumbnailUrl, seed.title)
+                    HeroLabel("Dựa trên nghệ sĩ bạn nghe", seed.thumbnailUrl, seed.title, roundCover = true)
+                is com.mochyy.mochymusic.db.entities.Album -> HeroLabel("Dựa trên nội dung bạn đã nghe", seed.thumbnailUrl, seed.title)
+                else -> HeroLabel("Tương tự", seed.thumbnailUrl, seed.title)
             }
             add(RelatedPickItem(pick, reason))
         }
     onRepeat?.firstOrNull { !it.thumbnailUrl.isNullOrEmpty() }?.let {
-        add(ListeningPickItem(it.toMediaMetadata(), "On repeat"))
+        add(ListeningPickItem(it.toMediaMetadata(), "Nghe lặp lại"))
     }
     forgotten?.firstOrNull { !it.thumbnailUrl.isNullOrEmpty() }?.let {
-        add(ListeningPickItem(it.toMediaMetadata(), "Back in rotation"))
+        add(ListeningPickItem(it.toMediaMetadata(), "Nghe lại gần đây"))
     }
 }
 
@@ -355,8 +355,8 @@ private fun <T> interleave(a: List<T>, b: List<T>): List<T> = buildList(a.size +
 
 /** the "Gacha here! / Random plays" card (Figma 25:1508): roll a reel of covers for a random song */
 data object GachaItem : HeroCarouselItem {
-    override fun label(isPlaying: Boolean): HeroLabel = HeroLabel("Gacha here!")
-    override val mainText: String = "Random plays"
+    override fun label(isPlaying: Boolean): HeroLabel = HeroLabel("Quay gacha!")
+    override val mainText: String = "Phát ngẫu nhiên"
     override val subText: String = ""
     override val thumbnailUrl: String? = null
     override val mediaId: String? = null
@@ -376,7 +376,7 @@ class PlaylistPickItem(
     override val thumbnailUrl: String?,
     private val play: () -> Unit,
 ) : HeroCarouselItem {
-    override fun label(isPlaying: Boolean): HeroLabel = HeroLabel("From your playlists")
+    override fun label(isPlaying: Boolean): HeroLabel = HeroLabel("Từ danh sách phát của bạn")
     override val mainText: String = name
     override val subText: String = ""
     override val mediaId: String? = null
@@ -404,7 +404,7 @@ data class StarterItem(
     enum class Kind { Playlist, Artist }
 
     override fun label(isPlaying: Boolean): HeroLabel =
-        HeroLabel(if (kind == Kind.Playlist) "From your import" else "Recommended from")
+        HeroLabel(if (kind == Kind.Playlist) "Từ nội dung đã nhập" else "Đề xuất từ")
     override val mainText: String = title
     override val subText: String = ""
     override val mediaId: String? = null
@@ -425,8 +425,8 @@ data class StarterSongItem(
     val pickedArtistThumbnail: String?,
 ) : HeroCarouselItem {
     override fun label(isPlaying: Boolean): HeroLabel =
-        if (isPlaying) HeroLabel("Now playing")
-        else HeroLabel("Recommended from", pickedArtistThumbnail, pickedArtist, roundCover = true)
+        if (isPlaying) HeroLabel("Đang phát")
+        else HeroLabel("Đề xuất từ", pickedArtistThumbnail, pickedArtist, roundCover = true)
     override val mainText: String = song.title
     override val subText: String = song.artists.joinToString(", ") { it.name }
     override val thumbnailUrl: String? = song.thumbnail
@@ -451,7 +451,7 @@ private fun sharedArtist(item: DailyDiscoverItem): String? {
 }
 
 /**
- * the wording for each recommendation: "You may also like" leads, then whatever is most specific
+ * the wording for each recommendation: "Có thể bạn cũng thích" leads, then whatever is most specific
  * to that card (the same artist, a song you liked, a song you played), never the same phrase twice
  * in a row and no phrase more than twice in all.
  */
@@ -1144,11 +1144,11 @@ private fun HeroPill(
                 }
                 Text(
                     text = when (current) {
-                        HeroPillKind.Play -> "Play"
-                        HeroPillKind.Pause -> "Pause"
-                        HeroPillKind.View -> "View"
-                        HeroPillKind.Roll -> "roll!!"
-                        HeroPillKind.Rolling -> "rolling!!"
+                        HeroPillKind.Play -> "Phát"
+                        HeroPillKind.Pause -> "Tạm dừng"
+                        HeroPillKind.View -> "Xem"
+                        HeroPillKind.Roll -> "quay!!"
+                        HeroPillKind.Rolling -> "đang quay!!"
                     },
                     style = HomeLabelStyle,
                     color = HeroPillContent,
@@ -1216,9 +1216,9 @@ private fun QuietHero(modifier: Modifier = Modifier) {
                 .align(Alignment.BottomStart)
                 .padding(start = HomeContentInset, end = HomeContentInset, bottom = 64.dp)
         ) {
-            Text(text = "Nothing here yet", style = HomeLabelStyle, color = HeroLabelColor, maxLines = 1)
+            Text(text = "Chưa có nội dung nào", style = HomeLabelStyle, color = HeroLabelColor, maxLines = 1)
             Text(
-                text = "Play something and it shows up here",
+                text = "Phát nhạc để nội dung xuất hiện ở đây",
                 style = HomeTitleStyle,
                 color = Color.White,
                 maxLines = 2,
@@ -1960,13 +1960,13 @@ private fun GachaPage(
             HeroText(
                 label = HeroLabel(
                     when {
-                        result == null || rolling -> "Gacha here!"
-                        isResultPlaying -> "Now playing"
-                        else -> "You got"
+                        result == null || rolling -> "Quay gacha!"
+                        isResultPlaying -> "Đang phát"
+                        else -> "Bạn nhận được"
                     }
                 ),
                 title = if (result == null || rolling) {
-                    "Random plays"
+                    "Phát ngẫu nhiên"
                 } else {
                     val artists = result.artists.joinToString(", ") { it.name }
                     if (artists.isNotEmpty()) "${result.title} - $artists" else result.title

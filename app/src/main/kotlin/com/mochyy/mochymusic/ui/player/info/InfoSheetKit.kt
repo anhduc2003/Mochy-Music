@@ -97,7 +97,7 @@ internal fun NerdsDivider() {
     ) {
         Box(Modifier.weight(1f).height(1.dp).background(InfoLine))
         Text(
-            text = "STATS FOR NERDS",
+            text = "THÔNG SỐ CHUYÊN SÂU",
             color = InfoMuted,
             fontSize = 10.sp,
             fontFamily = FontFamily.Monospace,

@@ -296,8 +296,8 @@ internal fun MiddleEditor(
 
         // what each tile edits
         val labelStyle = studioText(StudioType.Title, FontWeight.Bold)
-        MiddleLabel("Edit menus", labelStyle, stage.labelX, stage.menusTile.center.y) { tiles() * (1f - menu() * 2f) }
-        MiddleLabel("Edit Seekbar", labelStyle, stage.labelX, stage.seekTile.center.y) { tiles() * (1f - menu() * 2f) }
+        MiddleLabel("Chỉnh sửa menu", labelStyle, stage.labelX, stage.menusTile.center.y) { tiles() * (1f - menu() * 2f) }
+        MiddleLabel("Chỉnh thanh tua", labelStyle, stage.labelX, stage.seekTile.center.y) { tiles() * (1f - menu() * 2f) }
         MiddleLabel("Edit end\ntimestamp", labelStyle, stage.labelX, stage.endTile.center.y) { tiles() * (1f - menu() * 2f) }
 
         // taps

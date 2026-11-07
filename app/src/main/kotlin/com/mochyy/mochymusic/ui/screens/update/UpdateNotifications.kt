@@ -84,10 +84,10 @@ private fun postNotification(context: Context, release: GithubRelease): Boolean 
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
 
-    val summary = changelogSummaryLine(release.body).ifBlank { "Tap to see what's new." }
+    val summary = changelogSummaryLine(release.body).ifBlank { "Chạm để xem có gì mới." }
     val notification = NotificationCompat.Builder(context, ChannelId)
         .setSmallIcon(R.drawable.mochy_notification)
-        .setContentTitle("Mochy ${release.version} is out")
+        .setContentTitle("Mochy ${release.version} đã ra mắt")
         .setContentText(summary)
         .setStyle(NotificationCompat.BigTextStyle().bigText(summary))
         .setContentIntent(pending)

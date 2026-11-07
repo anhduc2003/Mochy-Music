@@ -80,10 +80,10 @@ internal fun announceAddedToPlaylist(database: com.mochyy.mochymusic.db.MusicDat
         val first = database.song(ids.first()).firstOrNull()?.song
         val name = playlist.playlist.name
         com.mochyy.mochymusic.ui.component.TopToaster.show(
-            text = if (ids.size == 1) "Added ${first?.title ?: "song"} to $name" else "Added ${ids.size} songs to $name",
+            text = if (ids.size == 1) "Đã thêm ${first?.title ?: "bài hát"} vào $name" else "Đã thêm ${ids.size} bài hát vào $name",
             thumbnail = first?.thumbnailUrl,
             iconRes = R.drawable.playlist_add,
-            actionLabel = if (playlist.playlist.browseId == null) "Undo" else null,
+            actionLabel = if (playlist.playlist.browseId == null) "Hoàn tác" else null,
             onAction = { database.query { removeAddedSongs(playlist.id, ids, playlist.songCount) } },
         )
     }
@@ -149,7 +149,7 @@ fun AddToPlaylistDialog(
             sheet[0] = menuState.showWithHandle(
                 buttonBar = {
                     SheetPillButton(
-                        text = "Create playlist",
+                        text = "Tạo danh sách phát",
                         onClick = { showCreate = true },
                     )
                 },
@@ -266,7 +266,7 @@ private fun AddToPlaylistContent(
         SheetSearchField(
             value = query,
             onValueChange = { query = it },
-            placeholder = "Search your playlist",
+            placeholder = "Tìm trong danh sách phát",
         )
         Spacer(Modifier.height(16.dp))
 
@@ -292,7 +292,7 @@ private fun AddToPlaylistContent(
             } else if (sections.recents.isEmpty()) {
                 item(key = "empty") {
                     Text(
-                        text = if (sections.searching) "No playlists found" else "No playlists yet",
+                        text = if (sections.searching) "Không tìm thấy danh sách phát nào" else "Chưa có danh sách phát nào",
                         color = Color.White.copy(alpha = 0.55f),
                         fontSize = 14.sp,
                         textAlign = TextAlign.Center,

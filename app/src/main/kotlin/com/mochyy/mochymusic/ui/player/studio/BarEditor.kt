@@ -52,7 +52,7 @@ private const val BarLandingY = 0.56f
 /** the highest the transport goes, as a share of the screen's height */
 private const val TransportLandingY = 0.345f
 
-/** half the height of the "Card Style" title and the style's name under it */
+/** half the height of the "Kiểu thẻ" title and the style's name under it */
 private val LabelHalf = 16.dp
 
 /**
@@ -264,7 +264,7 @@ internal fun BarEditor(
             )
         }
 
-        // "Card Style", and the style in view under it
+        // "Kiểu thanh", and the style in view under it
         val focused by remember(studio, last) {
             derivedStateOf { studio.barPage.value.roundToInt().coerceIn(0, last) }
         }
@@ -281,7 +281,7 @@ internal fun BarEditor(
                 }
             },
         ) {
-            Text("Card Style", color = Color.White, style = studioText(StudioType.Title, FontWeight.Bold))
+            Text("Kiểu thẻ", color = Color.White, style = studioText(StudioType.Title, FontWeight.Bold))
             AnimatedContent(
                 targetState = barStyles.getOrNull(focused)?.displayName.orEmpty(),
                 transitionSpec = {

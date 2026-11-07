@@ -127,7 +127,7 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.librarySearchResults
     if (results.isEmpty()) {
         item(key = "no_results") {
             Text(
-                text = "Nothing in your library matches \"$query\"",
+                text = "Không có mục nào trong thư viện khớp với \"$query\"",
                 color = SearchColors.Secondary,
                 fontSize = 13.sp,
                 modifier = Modifier.padding(horizontal = SearchHorizontalPadding, vertical = 24.dp),
@@ -139,8 +139,8 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.librarySearchResults
         val subtitle = when (item) {
             is SongItem -> item.artists.joinToString { it.name }
             is AlbumItem -> "Album"
-            is ArtistItem -> "Artist"
-            is PlaylistItem -> "Playlist"
+            is ArtistItem -> "Nghệ sĩ"
+            is PlaylistItem -> "Danh sách phát"
         }
         LibraryListRow(
             title = item.title,

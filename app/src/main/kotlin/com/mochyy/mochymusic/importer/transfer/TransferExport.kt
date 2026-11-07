@@ -41,12 +41,12 @@ class TransferExporter @Inject constructor(
 
     /** writes the zip to target, onProgress goes from 0 to 1, the failure message is ready to show */
     suspend fun export(target: Uri, onProgress: (Float) -> Unit): Result<TransferManifest> = withContext(Dispatchers.IO) {
-        if (!running.tryLock()) return@withContext Result.failure(TransferException("An export is already running."))
+        if (!running.tryLock()) return@withContext Result.failure(TransferException("Đang có một lượt xuất khác."))
         val work = File(context.cacheDir, "transfer_export").apply { deleteRecursively(); mkdirs() }
         try {
             runCatching { withDownloadsPaused { pack(target, work, onProgress) } }
                 .onSuccess { markExported(context) }
-                .recoverCatching { throw if (it is TransferException) it else TransferException("Couldn't export. Make sure there's free space and try again.", it) }
+                .recoverCatching { throw if (it is TransferException) it else TransferException("Không thể xuất dữ liệu. Hãy kiểm tra dung lượng trống rồi thử lại.", it) }
         } finally {
             work.deleteRecursively()
             running.unlock()
@@ -79,7 +79,7 @@ class TransferExporter @Inject constructor(
         // "wt" empties a file picked twice, some providers like drive only know "w"
         val stream = runCatching { context.contentResolver.openOutputStream(target, "wt") }.getOrNull()
             ?: runCatching { context.contentResolver.openOutputStream(target, "w") }.getOrNull()
-            ?: throw TransferException("Couldn't open the file you picked. Try picking another folder.")
+            ?: throw TransferException("Không thể mở tệp đã chọn. Hãy thử chọn thư mục khác.")
         var written = 0L
         val report: (Long) -> Unit = { bytes ->
             written += bytes

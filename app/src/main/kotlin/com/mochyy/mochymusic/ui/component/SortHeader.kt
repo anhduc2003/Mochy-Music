@@ -77,7 +77,7 @@ inline fun <reified T : Enum<T>> SortHeader(
         },
         trailingButton = {
             if (displayDescending) {
-                val description = "Toggle sort order"
+                val description = "Đổi thứ tự sắp xếp"
                 TooltipBox(
                     positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
                     tooltip = { PlainTooltip { Text(description) } },
@@ -91,13 +91,13 @@ inline fun <reified T : Enum<T>> SortHeader(
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         ),
                         modifier = Modifier.semantics {
-                            stateDescription = if (sortDescending) "Descending" else "Ascending"
+                            stateDescription = if (sortDescending) "Giảm dần" else "Tăng dần"
                             contentDescription = description
                         },
                     ) {
                         val rotation: Float by animateFloatAsState(
                             targetValue = if (sortDescending) 180f else 0f,
-                            label = "Trailing Icon Rotation",
+                            label = "Xoay biểu tượng cuối",
                         )
                         Icon(
                             imageVector = Icons.Filled.KeyboardArrowDown,
@@ -119,13 +119,13 @@ inline fun <reified T : Enum<T>> SortHeader(
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
                     modifier = Modifier.semantics {
-                        stateDescription = if (menuExpanded) "Expanded" else "Collapsed"
-                        contentDescription = "Show sort options"
+                        stateDescription = if (menuExpanded) "Đã mở rộng" else "Đã thu gọn"
+                        contentDescription = "Hiện tùy chọn sắp xếp"
                     },
                 ) {
                     val rotation: Float by animateFloatAsState(
                         targetValue = if (menuExpanded) 180f else 0f,
-                        label = "Trailing Icon Rotation",
+                        label = "Xoay biểu tượng cuối",
                     )
                     Icon(
                         imageVector = Icons.Filled.KeyboardArrowDown,

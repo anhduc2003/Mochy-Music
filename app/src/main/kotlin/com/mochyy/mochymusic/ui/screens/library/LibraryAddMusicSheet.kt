@@ -1,8 +1,8 @@
 // LibraryAddMusicSheet.kt
 //
-// Picking songs in a sheet: "Add music" lists what a storage scan found on the phone (all ticked,
-// so bringing everything in is one tap), "Remove from list" lists the files already imported and
-// "Remove from cache" the cached songs (none ticked). All the same list with a search field and a
+// Picking songs in a sheet: "Thêm nhạc" lists what a storage scan found on the phone (all ticked,
+// so bringing everything in is one tap), "Xóa khỏi danh sách" lists the files already imported and
+// "Xóa khỏi bộ nhớ đệm" the cached songs (none ticked). All the same list with a search field and a
 // checkbox per song.
 
 package com.mochyy.mochymusic.ui.screens.library
@@ -92,14 +92,14 @@ fun PopupSheetState.showAddLocalMusicSheet(viewModel: LibraryImportViewModel, on
             val scan by viewModel.scan.collectAsState()
             val count = selection.keys.size
             SheetPillButton(
-                text = if (count == 0) "Done" else "Add ${songCount(count)}",
+                text = if (count == 0) "Xong" else "Thêm ${songCount(count)}",
                 onClick = {
                     val found = (scan as? DeviceScan.Found)?.songs.orEmpty()
                     val picked = found.filter { it.uri.toString() in selection.keys }
                     sheet?.dismiss()
                     if (picked.isEmpty()) return@SheetPillButton
                     if (!viewModel.importDeviceSongs(picked)) {
-                        TopToaster.show("An import is still running. Try again once it's done.", iconRes = R.drawable.library_music)
+                        TopToaster.show("Quá trình nhập vẫn đang chạy. Hãy thử lại khi hoàn tất.", iconRes = R.drawable.library_music)
                     }
                     onStarted()
                 },
@@ -117,11 +117,11 @@ fun PopupSheetState.showAddLocalMusicSheet(viewModel: LibraryImportViewModel, on
             }
         }
         SongPickerContent(
-            title = "Add music",
+            title = "Thêm nhạc",
             songs = songs,
             selection = selection,
-            loadingText = "Looking for music on your phone…",
-            emptyText = "Every song on your phone is already in your library.",
+            loadingText = "Đang tìm nhạc trên điện thoại…",
+            emptyText = "Mọi bài hát trên điện thoại đã có trong thư viện.",
         )
     }
 }
@@ -130,9 +130,9 @@ fun PopupSheetState.showAddLocalMusicSheet(viewModel: LibraryImportViewModel, on
 fun PopupSheetState.showRemoveLocalSheet(localFiles: List<Song>, viewModel: LibraryImportViewModel) =
     showRemoveSongsSheet(
         songs = localFiles,
-        title = "Remove from list",
-        emptyText = "No files from your phone in your library yet.",
-        hint = "The files stay on your phone.",
+        title = "Xóa khỏi danh sách",
+        emptyText = "Thư viện chưa có tệp nhạc nào từ điện thoại.",
+        hint = "Các tệp vẫn được giữ trên điện thoại.",
         onRemove = { viewModel.removeLocalSongs(it) },
     )
 
@@ -140,9 +140,9 @@ fun PopupSheetState.showRemoveLocalSheet(localFiles: List<Song>, viewModel: Libr
 fun PopupSheetState.showRemoveCachedSheet(cachedSongs: List<Song>, onRemove: (Set<String>) -> Unit) =
     showRemoveSongsSheet(
         songs = cachedSongs,
-        title = "Remove from cache",
-        emptyText = "Nothing cached yet.",
-        hint = "They'll stream again the next time you play them.",
+        title = "Xóa khỏi bộ nhớ đệm",
+        emptyText = "Chưa có nội dung nào trong bộ nhớ đệm.",
+        hint = "Bài hát sẽ được phát trực tuyến vào lần nghe tiếp theo.",
         onRemove = onRemove,
     )
 
@@ -160,7 +160,7 @@ private fun PopupSheetState.showRemoveSongsSheet(
         buttonBar = {
             val count = selection.keys.size
             SheetPillButton(
-                text = if (count == 0) "Pick songs to remove" else "Remove ${songCount(count)}",
+                text = if (count == 0) "Chọn bài hát cần xóa" else "Xóa ${songCount(count)}",
                 enabled = count > 0,
                 onClick = {
                     onRemove(selection.keys)
@@ -180,7 +180,7 @@ private fun PopupSheetState.showRemoveSongsSheet(
     }
 }
 
-private fun songCount(count: Int) = if (count == 1) "1 song" else "$count songs"
+private fun songCount(count: Int) = if (count == 1) "1 bài hát" else "$count bài hát"
 
 /** Title, search, then the songs with their checkboxes. A null [songs] is still loading. */
 @Composable
@@ -212,7 +212,7 @@ private fun ColumnScope.SongPickerContent(
         if (!songs.isNullOrEmpty()) {
             val allTicked = selection.keys.size == songs.size
             Text(
-                text = if (allTicked) "Select none" else "Select all",
+                text = if (allTicked) "Bỏ chọn tất cả" else "Chọn tất cả",
                 color = SearchColors.Secondary,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -229,13 +229,13 @@ private fun ColumnScope.SongPickerContent(
         Text(text = hint, color = SearchColors.Secondary, fontSize = 13.sp)
     }
     Spacer(Modifier.height(14.dp))
-    SheetSearchField(value = query, onValueChange = { query = it }, placeholder = "Search")
+    SheetSearchField(value = query, onValueChange = { query = it }, placeholder = "Tìm kiếm")
     Spacer(Modifier.height(14.dp))
 
     val message = when {
         songs == null -> loadingText
         songs.isEmpty() -> emptyText
-        shown.isEmpty() -> "Nothing matches \"${query.trim()}\""
+        shown.isEmpty() -> "Không có mục nào khớp với \"${query.trim()}\""
         else -> null
     }
     if (message != null) {

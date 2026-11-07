@@ -82,7 +82,7 @@ internal fun PopupSheetState.showLinePicker(session: LyricsShareSession): PopupS
     return showWithHandle(
         buttonBar = {
             SheetPillButton(
-                text = "Select",
+                text = "Chọn",
                 enabled = session.lineCount > 0,
                 onClick = { session.onLinesPicked(popup) },
             )
@@ -96,7 +96,7 @@ internal fun PopupSheetState.showLinePicker(session: LyricsShareSession): PopupS
 private fun LinePickerContent(session: LyricsShareSession) {
     LaunchedEffect(Unit) { session.choreography.playForward() }
     Column(Modifier.fillMaxWidth().fillMaxHeight()) {
-        ShareTitle("Share")
+        ShareTitle("Chia sẻ")
         PickedSummary(session)
         LazyColumn(
             state = session.choreography.listState,
@@ -142,9 +142,9 @@ private fun PickedSummary(session: LyricsShareSession) {
                 ) { count ->
                     Text(
                         when (count) {
-                            0 -> "Pick some lines"
-                            1 -> "1 line selected"
-                            else -> "$count lines selected"
+                            0 -> "Hãy chọn một vài dòng"
+                            1 -> "Đã chọn 1 dòng"
+                            else -> "Đã chọn $count dòng"
                         },
                         fontFamily = InterFontFamily,
                         fontWeight = FontWeight.Bold,
@@ -171,10 +171,10 @@ private fun limitText(session: LyricsShareSession): String {
     val words = session.wordCount
     val card = ShareStyle.Card.maxWords
     return when {
-        words == 0 -> "Tap the lines you want to share"
-        session.atLimit -> "$words words · that's as much as fits"
-        words <= card -> "$words of $card words · fits every style"
-        else -> "$words of $ShareWordLimit words · Cinematic only"
+        words == 0 -> "Chạm vào những dòng bạn muốn chia sẻ"
+        session.atLimit -> "$words từ · đây là số từ tối đa có thể hiển thị"
+        words <= card -> "$words/$card từ · phù hợp với mọi kiểu"
+        else -> "$words/$ShareWordLimit từ · chỉ dùng với kiểu Điện ảnh"
     }
 }
 

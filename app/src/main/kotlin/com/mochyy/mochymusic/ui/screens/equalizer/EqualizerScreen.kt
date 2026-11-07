@@ -159,16 +159,16 @@ fun EqualizerScreen(
 }
 
 private fun statusLine(eq: EqSettings, presets: List<EqPreset>): String {
-    if (!eq.enabled) return "Off"
+    if (!eq.enabled) return "Tắt"
     val curve = eq.presetId?.let { id ->
         EqPresets.BuiltIn.firstOrNull { it.id == id }?.name ?: presets.firstOrNull { it.id == id }?.name
-    } ?: "Custom"
+    } ?: "Tùy chỉnh"
     val correction = eq.correction?.takeIf { eq.correctionEnabled }?.model
     return when {
-        eq.isFlat() -> "On · Flat"
-        correction != null && eq.presetId == EqPresets.FlatId -> "On · $correction"
-        correction != null -> "On · $curve + $correction"
-        else -> "On · $curve"
+        eq.isFlat() -> "Bật · Phẳng"
+        correction != null && eq.presetId == EqPresets.FlatId -> "Bật · $correction"
+        correction != null -> "Bật · $curve + $correction"
+        else -> "Bật · $curve"
     }
 }
 

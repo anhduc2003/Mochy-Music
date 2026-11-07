@@ -33,14 +33,14 @@ fun DevPlaygroundScreen(navController: NavController) {
     val settled = stats != null || !loading
 
     SubSettingsScaffold(
-        title = "Developer playground",
-        backLabel = "Dev Spaces",
+        title = "Khu vực thử nghiệm của nhà phát triển",
+        backLabel = "Không gian nhà phát triển",
         onBack = { navController.navigateUp() },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             RepoFiguresCard(
-                title = "Since this build",
-                subtitle = "From when this build was made until today",
+                title = "Từ bản dựng này",
+                subtitle = "Từ khi tạo bản dựng này đến hôm nay",
                 figures = listOf(
                     stats?.newIssues to "new reported issues",
                     stats?.newResolved to "new resolved issue",
@@ -50,7 +50,7 @@ fun DevPlaygroundScreen(navController: NavController) {
                 settled = settled,
             )
             RepoFiguresCard(
-                title = "In total",
+                title = "Tổng cộng",
                 figures = listOf(
                     stats?.reportedTotal to "reported issues",
                     stats?.closedTotal to "resolved issue",
@@ -60,7 +60,7 @@ fun DevPlaygroundScreen(navController: NavController) {
             RepoIssuesSection(stats = stats, loading = loading, error = error, onRetry = { reload++ })
             Spacer(Modifier.height(6.dp))
             CategoryBubble(
-                title = "Experimental settings",
+                title = "Cài đặt thử nghiệm",
                 iconRes = R.drawable.biotech,
                 onClick = { navController.navigate("experimental_settings") },
             )

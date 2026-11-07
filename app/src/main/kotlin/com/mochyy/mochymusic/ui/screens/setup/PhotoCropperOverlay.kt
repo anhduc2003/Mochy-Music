@@ -259,7 +259,7 @@ fun PhotoCropperContainer(
         }
 
         Text(
-            text = "Adjust your photo profile",
+            text = "Điều chỉnh ảnh hồ sơ của bạn",
             color = Color.White,
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp,
@@ -285,7 +285,7 @@ fun PhotoCropperContainer(
                 .fillMaxWidth()
                 .height(48.dp)
         ) {
-            Text("Select new image", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("Chọn ảnh mới", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
 
         Button(
@@ -333,7 +333,7 @@ fun PhotoCropperContainer(
                 .fillMaxWidth()
                 .height(48.dp)
         ) {
-            Text("Done", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("Xong", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
         }
     }

@@ -650,7 +650,7 @@ fun LocalPlaylistScreen(
                     deleteFromPlaylist()
                     val browseId = playlist?.playlist?.browseId
                     com.mochyy.mochymusic.ui.component.TopToaster.show(
-                        text = "Removed ${removed.song.song.title} from ${playlist?.playlist?.name ?: "playlist"}",
+                        text = "Đã xóa ${removed.song.song.title} khỏi ${playlist?.playlist?.name ?: "danh sách phát"}",
                         thumbnail = removed.song.song.thumbnailUrl,
                         iconRes = R.drawable.playlist_add,
                         actionLabel = context.getString(R.string.undo),
@@ -725,7 +725,7 @@ fun LocalPlaylistScreen(
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.drag_handle),
-                                            contentDescription = "Drag to move",
+                                            contentDescription = "Kéo để di chuyển",
                                             tint = Color.White.copy(alpha = 0.78f),
                                         )
                                     }
@@ -823,7 +823,7 @@ fun LocalPlaylistScreen(
                             .fillMaxWidth()
                             .padding(top = 28.dp)
                     ) {
-                        PlaylistSectionTitle(title = "Related Playlists")
+                        PlaylistSectionTitle(title = "Danh sách phát liên quan")
                         Spacer(Modifier.height(9.dp))
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = 36.dp),
@@ -898,7 +898,7 @@ fun LocalPlaylistScreen(
     if (showSortDialog) {
         AlertDialog(
             onDismissRequest = { showSortDialog = false },
-            title = { Text("Sort order") },
+            title = { Text("Thứ tự sắp xếp") },
             text = {
                 Column {
                     PlaylistSongSortType.entries.forEach { type ->
@@ -922,7 +922,7 @@ fun LocalPlaylistScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = stringResource(playlistSortLabel(type)) +
-                                    if (sortType == type) (if (sortDescending) " (Desc)" else " (Asc)") else "",
+                                    if (sortType == type) (if (sortDescending) " (Giảm dần)" else " (Tăng dần)") else "",
                                 style = MaterialTheme.typography.bodyLarge
                             )
                         }

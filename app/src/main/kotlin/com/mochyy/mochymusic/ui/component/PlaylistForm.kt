@@ -49,7 +49,7 @@ internal class PlaylistFormState(name: String, description: String) {
 
 /**
  * The body of the create and edit sheets, as in the reference mocks: the cover carousel, then
- * "Playlist title" and "Playlist desc". Scrolls when the screen is short or the text large; the
+ * "Tên danh sách phát" and "Mô tả danh sách phát". Scrolls when the screen is short or the text large; the
  * sheet's own button bar stays pinned underneath.
  *
  * @param seed what a playlist with no top song yet takes its colours from.
@@ -72,7 +72,7 @@ internal fun PlaylistFormContent(
             .padding(bottom = 12.dp)
     ) {
         PlaylistCoverCarousel(
-            title = form.name.ifBlank { "My playlist" },
+            title = form.name.ifBlank { "Danh sách phát của tôi" },
             seed = seed,
             artworkUrl = artworkUrl,
             startPage = startPage,
@@ -84,12 +84,12 @@ internal fun PlaylistFormContent(
 
         Spacer(Modifier.height(22.dp))
 
-        SheetLabel("Playlist title")
+        SheetLabel("Tên danh sách phát")
         Spacer(Modifier.height(8.dp))
         SheetTextField(
             value = form.name,
             onValueChange = { form.name = it.take(MaxNameLength) },
-            placeholder = "Name your playlist",
+            placeholder = "Đặt tên cho danh sách phát",
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Sentences,
                 imeAction = ImeAction.Next,
@@ -98,12 +98,12 @@ internal fun PlaylistFormContent(
 
         Spacer(Modifier.height(18.dp))
 
-        SheetLabel("Playlist desc")
+        SheetLabel("Mô tả danh sách phát")
         Spacer(Modifier.height(8.dp))
         SheetTextField(
             value = form.description,
             onValueChange = { form.description = it.take(MaxDescriptionLength) },
-            placeholder = "What is it about?",
+            placeholder = "Danh sách phát này nói về điều gì?",
             singleLine = false,
             maxLines = 4,
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),

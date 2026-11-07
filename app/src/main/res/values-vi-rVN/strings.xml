@@ -350,4 +350,5 @@
     <string name="listen_together_smart_resync_desc">Tự động đồng bộ lại với người chủ trì sau khi mất kết nối</string>
     <string name="error_stream_unavailable_title">Không thể phát bài hát này</string>
     <string name="playback_error_channel_name">Lỗi phát nhạc</string>
+    <string name="playing_music_video_audio">YouTube không thể phát bài hát này, nên bạn đang nghe video âm nhạc thay thế.</string>
 </resources>

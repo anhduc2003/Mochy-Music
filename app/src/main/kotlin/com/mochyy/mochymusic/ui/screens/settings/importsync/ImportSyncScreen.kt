@@ -24,14 +24,14 @@ import com.mochyy.mochymusic.ui.component.SettingsGroup
 import com.mochyy.mochymusic.ui.component.SettingsGroupStyle
 import com.mochyy.mochymusic.ui.component.SettingsItem
 import com.mochyy.mochymusic.ui.component.SubSettingsScaffold
-import com.mochyy.mochymusic.viewmodels.ImportSyncViewModel
+import com.mochyy.mochymusic.viewmodels.NhậpĐồng bộViewModel
 import java.time.LocalDate
 
 /** experimental hub: import from other services, sync a youtube account, tunemymusic csv, and backup */
 @Composable
-fun ImportSyncScreen(
+fun NhậpĐồng bộScreen(
     navController: NavController,
-    viewModel: ImportSyncViewModel = hiltViewModel(),
+    viewModel: NhậpĐồng bộViewModel = hiltViewModel(),
 ) {
     val progress by viewModel.importProgress.collectAsState()
     val exportMessage by viewModel.exportMessage.collectAsState()
@@ -42,22 +42,22 @@ fun ImportSyncScreen(
     }
 
     SubSettingsScaffold(
-        title = "Import & sync",
+        title = "Nhập và đồng bộ",
         onBack = { navController.navigateUp() },
     ) {
         if (progress.isRunning || progress.isDone) {
             val resync = progress.resync
-            ImportInfoCard {
+            NhậpInfoCard {
                 Text(
                     text = when {
                         resync != null && progress.isRunning -> "Re-syncing \"${resync.playlistName}\"…"
-                        progress.isRunning -> "Importing… ${progress.processedTracks} of ${progress.totalTracks}"
-                        progress.cancelled -> "Import stopped"
+                        progress.isRunning -> "Đang nhập… ${progress.processedTracks}/${progress.totalTracks}"
+                        progress.cancelled -> "Đã dừng nhập"
                         resync != null && resync.failed.size < resync.playlists ->
-                            (if (resync.playlists == 1) "Re-synced \"${resync.playlistName}\": " else "Re-synced ${resync.playlists} playlists: ") +
-                                if (resync.added == 1) "1 new song" else "${resync.added} new songs"
-                        progress.error != null -> "Import failed"
-                        else -> "Import finished: ${progress.matchedTracks} of ${progress.totalTracks} songs"
+                            (if (resync.playlists == 1) "Re-synced \"${resync.playlistName}\": " else "Đã đồng bộ lại ${resync.playlists} danh sách phát: ") +
+                                if (resync.added == 1) "1 bài hát mới" else "${resync.added} bài hát mới"
+                        progress.error != null -> "Nhập không thành công"
+                        else -> "Đã nhập: ${progress.matchedTracks}/${progress.totalTracks} bài hát"
                     },
                     style = MaterialTheme.typography.titleMedium,
                 )
@@ -74,10 +74,10 @@ fun ImportSyncScreen(
                 style = SettingsGroupStyle.Grouped,
                 items = listOf(
                     SettingsItem(
-                        title = { Text(if (progress.isRunning) "See progress" else "See results") },
+                        title = { Text(if (progress.isRunning) "Xem tiến trình" else "Xem kết quả") },
                         icon = painterResource(R.drawable.playlist_play),
                         iconShape = CircleShape,
-                        onClick = { navController.navigate(ImportProgressRoute) { launchSingleTop = true } },
+                        onClick = { navController.navigate(NhậpProgressRoute) { launchSingleTop = true } },
                     )
                 ),
             )
@@ -88,31 +88,31 @@ fun ImportSyncScreen(
             style = SettingsGroupStyle.Grouped,
             items = listOf(
                 SettingsItem(
-                    title = { Text("Import") },
-                    highlightKey = "Import",
-                    descriptionText = "Sign in and pick playlists",
-                    detail = "Sign in to Spotify, Apple Music, YouTube Music or Tidal and pick playlists",
+                    title = { Text("Nhập") },
+                    highlightKey = "Nhập",
+                    descriptionText = "Đăng nhập và chọn danh sách phát",
+                    detail = "Đăng nhập vào Spotify, Apple Music, YouTube Music hoặc Tidal rồi chọn danh sách phát",
                     icon = painterResource(R.drawable.playlist_add),
                     iconShape = CircleShape,
-                    onClick = { navController.navigate(ImportProvidersRoute) },
+                    onClick = { navController.navigate(NhậpProvidersRoute) },
                 ),
                 SettingsItem(
-                    title = { Text("Sync") },
-                    highlightKey = "Sync",
-                    descriptionText = if (signedIn) "YouTube account connected: playlists, likes and history"
-                    else "Connect your YouTube account to keep playlists, likes and history in step",
+                    title = { Text("Đồng bộ") },
+                    highlightKey = "Đồng bộ",
+                    descriptionText = if (signedIn) "Đã kết nối tài khoản YouTube: danh sách phát, bài đã thích và lịch sử"
+                    else "Kết nối tài khoản YouTube để đồng bộ danh sách phát, bài đã thích và lịch sử",
                     icon = painterResource(R.drawable.sync),
                     iconShape = CircleShape,
-                    onClick = { navController.navigate(YouTubeSyncRoute) },
+                    onClick = { navController.navigate(YouTubeĐồng bộRoute) },
                 ),
                 SettingsItem(
                     title = { Text("TuneMyMusic CSV") },
                     highlightKey = "TuneMyMusic CSV",
-                    descriptionText = "Amazon Music, SoundCloud, Deezer and more",
-                    detail = "Any other service, such as Amazon Music, SoundCloud or Deezer libraries",
+                    descriptionText = "Amazon Music, SoundCloud, Deezer và các dịch vụ khác",
+                    detail = "Các dịch vụ khác như Amazon Music, SoundCloud hoặc thư viện Deezer",
                     icon = painterResource(R.drawable.web_link),
                     iconShape = CircleShape,
-                    onClick = { navController.navigate(ImportTuneMyMusicRoute) },
+                    onClick = { navController.navigate(NhậpTuneMyMusicRoute) },
                 ),
             ),
         )
@@ -120,14 +120,14 @@ fun ImportSyncScreen(
         Spacer(Modifier.height(16.dp))
 
         SettingsGroup(
-            title = "Backup",
+            title = "Sao lưu",
             style = SettingsGroupStyle.Grouped,
             items = listOf(
                 SettingsItem(
-                    title = { Text("Export to Mochy CSV") },
-                    highlightKey = "Export to Mochy CSV",
-                    descriptionText = "Liked songs and playlists",
-                    detail = "Liked songs and playlists, import it back from Import → Mochy backup",
+                    title = { Text("Xuất sang CSV của Mochy") },
+                    highlightKey = "Xuất sang CSV của Mochy",
+                    descriptionText = "Bài hát đã thích và danh sách phát",
+                    detail = "Bài hát đã thích và danh sách phát; nhập lại từ Nhập → Bản sao lưu Mochy",
                     icon = painterResource(R.drawable.backup),
                     iconShape = CircleShape,
                     onClick = { exportLauncher.launch("mochy-library-${LocalDate.now()}.csv") },
@@ -137,7 +137,7 @@ fun ImportSyncScreen(
     }
 
     exportMessage?.let { message ->
-        val working = message == "Exporting…"
+        val working = message == "Đang xuất…"
         DefaultDialog(
             onDismiss = { if (!working) viewModel.clearExportMessage() },
             buttons = {

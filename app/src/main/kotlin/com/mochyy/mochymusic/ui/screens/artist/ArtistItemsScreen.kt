@@ -253,7 +253,7 @@ fun ArtistItemsScreen(
                             CreatorUi(name = it, avatarUrl = viewModel.artistId?.let { id -> com.mochyy.mochymusic.utils.ArtistPageCache.header(id)?.avatarUrl }, artistId = viewModel.artistId)
                         }
                     ),
-                    stats = "${songs.size} ${if (songs.size == 1) "song" else "songs"}",
+                    stats = "${songs.size} ${if (songs.size == 1) "bài hát" else "bài hát"}",
                     isPlaying = isThisQueue && isPlaying,
                     onPlayClick = { if (isThisQueue) playerConnection.togglePlayPause() else playSongs() },
                     onShuffleClick = { playSongs(shuffled = true) },
@@ -416,7 +416,7 @@ private fun ItemsRetry(onRetry: () -> Unit) {
             .padding(top = 24.dp)
     ) {
         Text(
-            text = "Couldn't load this page. Tap to try again",
+            text = "Không tải được trang này. Chạm để thử lại",
             style = PlaylistStatsStyle,
             color = Color.White.copy(alpha = 0.7f),
             modifier = Modifier

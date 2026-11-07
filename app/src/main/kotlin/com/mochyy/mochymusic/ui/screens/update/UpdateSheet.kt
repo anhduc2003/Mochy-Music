@@ -108,13 +108,13 @@ private suspend fun checkUpdate(force: Boolean): UpdateState =
                 else -> UpdateState.UpToDate
             }
         },
-        onFailure = { UpdateState.Failed(it.message ?: "Couldn't reach GitHub") },
+        onFailure = { UpdateState.Failed(it.message ?: "Không thể kết nối với GitHub") },
     )
 
 /** shows the app version sheet as a PopupSheet, see docs/popup-sheet.skill.md */
 fun PopupSheetState.showUpdateSheet(updateState: UpdateState, onOpenDevSpace: (Int) -> Unit = {}) {
     val popup = this
-    show(buttonBar = { SheetPrimaryButton(text = "Done", onClick = popup::dismiss) }) {
+    show(buttonBar = { SheetPrimaryButton(text = "Xong", onClick = popup::dismiss) }) {
         UpdateSheetContent(initialState = updateState, popup = popup, onOpenDevSpace = onOpenDevSpace)
     }
 }
@@ -236,12 +236,12 @@ private fun ColumnScope.UpdateSheetContent(
             )
 
             Spacer(Modifier.height(22.dp))
-            Text("Actions", fontSize = 17.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp)
+            Text("Thao tác", fontSize = 17.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp)
             Spacer(Modifier.height(10.dp))
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ActionRow(
                     icon = R.drawable.refresh,
-                    label = if (state is UpdateState.Checking) "Checking…" else "Check for update",
+                    label = if (state is UpdateState.Checking) "Đang kiểm tra…" else "Kiểm tra bản cập nhật",
                     spinning = state is UpdateState.Checking,
                     onClick = checkAgain,
                 )
@@ -253,26 +253,26 @@ private fun ColumnScope.UpdateSheetContent(
                     previous?.let { older ->
                         ActionRow(
                             icon = R.drawable.history,
-                            label = "Downgrade to ${shortVersion(older.version)}",
+                            label = "Hạ cấp xuống ${shortVersion(older.version)}",
                             onClick = { popup.showUpdateDetailSheet(older) },
                         )
                     }
                 }
                 ActionRow(
                     icon = R.drawable.bedtime,
-                    label = "Switch to nightly",
-                    hint = "Not out yet",
+                    label = "Chuyển sang bản nightly",
+                    hint = "Chưa phát hành",
                     enabled = false,
                     onClick = {},
                 )
                 ActionRow(
                     icon = R.drawable.info,
-                    label = "About app",
+                    label = "Giới thiệu ứng dụng",
                     onClick = { popup.showAboutSheet(onOpenDevSpace = onOpenDevSpace) },
                 )
                 ActionRow(
                     icon = R.drawable.favorite,
-                    label = "Help us!",
+                    label = "Ủng hộ chúng tôi!",
                     onClick = { popup.showSupportSheet() },
                 )
             }
@@ -330,17 +330,17 @@ private fun UpdateStatusCard(
         ) { shown ->
             when (shown) {
                 is UpdateState.Available -> StatusRow(
-                    title = "New update!",
+                    title = "Có bản cập nhật mới!",
                     big = shortVersion(shown.release.version),
-                    action = "UPDATE NOW",
+                    action = "CẬP NHẬT NGAY",
                     onAction = { onUpdate(shown.release) },
                 )
-                UpdateState.Checking -> StatusRow(title = "Looking for updates", big = "…", pulsing = true)
-                UpdateState.UpToDate -> StatusRow(title = "You're on the latest", big = "All good")
+                UpdateState.Checking -> StatusRow(title = "Đang tìm bản cập nhật", big = "…", pulsing = true)
+                UpdateState.UpToDate -> StatusRow(title = "Bạn đang dùng phiên bản mới nhất", big = "Mọi thứ đều ổn")
                 is UpdateState.Failed -> StatusRow(
-                    title = "Couldn't check for updates",
-                    big = "Offline?",
-                    action = "TRY AGAIN",
+                    title = "Không thể kiểm tra bản cập nhật",
+                    big = "Mất kết nối?",
+                    action = "THỬ LẠI",
                     onAction = onRetry,
                 )
             }
@@ -467,7 +467,7 @@ private fun ActionRow(
     }
 }
 
-const val UpdateHeadline = "Theres an update~!"
+const val UpdateHeadline = "Có bản cập nhật mới rồi~!"
 
 @Composable
 private fun ColumnScope.UpdateDetailContent(
@@ -484,7 +484,7 @@ private fun ColumnScope.UpdateDetailContent(
 
     val startInstall: (java.io.File) -> Unit = { file ->
         if (!installApk(context, file)) {
-            error = "Allow \"Install unknown apps\" for mochy, then tap Install here again."
+            error = "Hãy cho phép mochy “Cài đặt ứng dụng không rõ nguồn gốc”, rồi nhấn “Cài đặt tại đây” lần nữa."
         }
     }
 
@@ -504,7 +504,7 @@ private fun ColumnScope.UpdateDetailContent(
     ) {
         Icon(
             painter = painterResource(R.drawable.arrow_back),
-            contentDescription = "Back",
+            contentDescription = "Quay lại",
             modifier = Modifier.size(18.dp),
         )
         Spacer(modifier = Modifier.width(8.dp))
@@ -533,7 +533,7 @@ private fun ColumnScope.UpdateDetailContent(
             .padding(16.dp)
             .animateContentSize()
     ) {
-        Text(text = "Changelog", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(text = "Nhật ký thay đổi", fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(4.dp))
         ChangelogMarkdown(
             markdown = release.body,
@@ -545,7 +545,7 @@ private fun ColumnScope.UpdateDetailContent(
     Spacer(modifier = Modifier.height(18.dp))
 
     Text(
-        text = "To Be Installed -",
+        text = "Sẵn sàng cài đặt -",
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontSize = 11.sp,
         fontWeight = FontWeight.SemiBold,
@@ -617,7 +617,7 @@ private fun ColumnScope.UpdateDetailContent(
                             onLocked(false)
                             result.fold(
                                 onSuccess = { startInstall(it) },
-                                onFailure = { error = it.message ?: "Download failed" },
+                                onFailure = { error = it.message ?: "Tải xuống thất bại" },
                             )
                         }
                     }
@@ -633,9 +633,9 @@ private fun ColumnScope.UpdateDetailContent(
         )
         Text(
             text = when {
-                downloading -> "Downloading… ${(animatedProgress * 100).toInt()}%"
-                release.apkUrl == null -> "No APK in this release"
-                else -> "Install here"
+                downloading -> "Đang tải xuống… ${(animatedProgress * 100).toInt()}%"
+                release.apkUrl == null -> "Bản phát hành này không có APK"
+                else -> "Cài đặt tại đây"
             },
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
@@ -658,7 +658,7 @@ private fun ColumnScope.UpdateDetailContent(
                 onClick = { context.openUrl(release.htmlUrl) },
             )
     ) {
-        Text(text = "Open the web", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(text = "Mở trang web", fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
     }
 }

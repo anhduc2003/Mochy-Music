@@ -442,19 +442,19 @@ fun ArtistScreen(
                             onSimilarTitle = { navController.navigate("artist/${viewModel.artistId}/similar") },
                             topSongsMenu = { dismiss ->
                                 page?.artist?.shuffleEndpoint?.let { endpoint ->
-                                    ArtistMenuItem(text = "Shuffle", icon = R.drawable.shuffle) {
+                                    ArtistMenuItem(text = "Phát ngẫu nhiên", icon = R.drawable.shuffle) {
                                         dismiss()
                                         playerConnection.playQueue(YouTubeQueue(endpoint))
                                     }
                                 }
                                 page?.artist?.radioEndpoint?.let { endpoint ->
-                                    ArtistMenuItem(text = "Start radio", icon = R.drawable.radio) {
+                                    ArtistMenuItem(text = "Bắt đầu radio", icon = R.drawable.radio) {
                                         dismiss()
                                         playerConnection.playQueue(YouTubeQueue(endpoint))
                                     }
                                 }
                                 page?.artist?.shareLink?.let { link ->
-                                    ArtistMenuItem(text = "Copy link", icon = R.drawable.link) {
+                                    ArtistMenuItem(text = "Sao chép liên kết", icon = R.drawable.link) {
                                         dismiss()
                                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                         clipboard.setPrimaryClip(ClipData.newPlainText("Artist Link", link))
@@ -548,7 +548,7 @@ private fun LazyListScope.artistShelves(
         val songs = section.items.filterIsInstance<SongItem>().distinctBy { it.id }
         item(key = "top_songs_title", contentType = "shelf_title") {
             ArtistShelfTitle(
-                title = "Top songs",
+                title = "Bài hát hàng đầu",
                 onClick = section.moreEndpoint?.let { { onOpenMore(it) } },
                 menu = topSongsMenu,
                 modifier = Modifier
@@ -599,8 +599,8 @@ private fun LazyListScope.artistShelves(
         coverShelf(
             key = "albums_$index",
             title = when (index) {
-                0 -> "Albums"
-                1 -> "Singles & EPs"
+                0 -> "Album"
+                1 -> "Đĩa đơn & EP"
                 else -> section.title
             },
             items = section.items,
@@ -616,7 +616,7 @@ private fun LazyListScope.artistShelves(
 
     videoShelf(
         key = "videos",
-        title = "Videos",
+        title = "Video",
         videos = shelves.videos,
         moreEndpoint = shelves.videoShelf?.moreEndpoint,
         screenWidth = screenWidth,
@@ -631,7 +631,7 @@ private fun LazyListScope.artistShelves(
 
     videoShelf(
         key = "live",
-        title = "Concert",
+        title = "Buổi biểu diễn",
         videos = shelves.live,
         moreEndpoint = shelves.liveShelf?.moreEndpoint,
         screenWidth = screenWidth,
@@ -647,7 +647,7 @@ private fun LazyListScope.artistShelves(
     shelves.playlistShelves.forEachIndexed { index, section ->
         coverShelf(
             key = "playlists_$index",
-            title = if (index == 0) "Featured on" else section.title,
+            title = if (index == 0) "Có mặt trong" else section.title,
             items = section.items,
             moreEndpoint = section.moreEndpoint,
             revealSeen = revealSeen,
@@ -667,7 +667,7 @@ private fun LazyListScope.artistShelves(
             FeaturedArtistsRow(
                 artists = artists,
                 onArtistClick = { artist -> onOpen(section.items.first { it.id == artist.id }) },
-                title = "Similar Artist",
+                title = "Nghệ sĩ tương tự",
                 onTitleClick = onSimilarTitle,
                 modifier = Modifier
                     .padding(top = 30.dp)
@@ -818,7 +818,7 @@ private fun LazyListScope.librarySection(
 ) {
     item(key = "library_title", contentType = "shelf_title") {
         ArtistShelfTitle(
-            title = "In your library",
+            title = "Trong thư viện của bạn",
             onClick = onSongsTitle,
             modifier = Modifier.padding(top = 30.dp, bottom = 2.dp),
         )
@@ -842,7 +842,7 @@ private fun LazyListScope.librarySection(
     if (albums.isNotEmpty()) {
         item(key = "library_albums_title", contentType = "shelf_title") {
             ArtistShelfTitle(
-                title = "Albums of $artistName you saved",
+                title = "Album $artistName bạn đã lưu",
                 onClick = onAlbumsTitle,
                 modifier = Modifier.padding(top = 22.dp, bottom = 8.dp),
             )
@@ -881,7 +881,7 @@ private fun ArtistAbout(name: String, bio: String, modifier: Modifier = Modifier
             .padding(horizontal = PlaylistInset)
     ) {
         Text(
-            text = "About $name",
+            text = "Giới thiệu về $name",
             style = AboutTitleStyle,
             color = Color.White,
             maxLines = 2,
@@ -911,7 +911,7 @@ private fun ArtistRetry(onRetry: () -> Unit) {
             .padding(top = 40.dp)
     ) {
         Text(
-            text = "Couldn't load this artist. Tap to try again",
+            text = "Không tải được nghệ sĩ này. Chạm để thử lại",
             style = PlaylistStatsStyle,
             color = Color.White.copy(alpha = 0.7f),
             modifier = Modifier

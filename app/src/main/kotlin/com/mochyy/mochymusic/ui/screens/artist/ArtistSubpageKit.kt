@@ -110,9 +110,9 @@ internal fun ArtistSubpageHeader(
                 )
                 if (isGrid != null) {
                     Spacer(Modifier.width(10.dp))
-                    LayoutToggle(icon = R.drawable.grid_view, selected = isGrid, description = "Grid") { onGridChange(true) }
+                    LayoutToggle(icon = R.drawable.grid_view, selected = isGrid, description = "Dạng lưới") { onGridChange(true) }
                     Spacer(Modifier.width(6.dp))
-                    LayoutToggle(icon = R.drawable.list, selected = !isGrid, description = "List") { onGridChange(false) }
+                    LayoutToggle(icon = R.drawable.list, selected = !isGrid, description = "Dạng danh sách") { onGridChange(false) }
                 }
             }
             if (!subtitle.isNullOrBlank()) {

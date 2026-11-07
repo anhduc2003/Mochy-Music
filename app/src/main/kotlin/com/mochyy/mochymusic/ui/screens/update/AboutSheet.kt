@@ -115,13 +115,13 @@ private val LeadDevs = listOf(
 private val BaseCredits = listOf(
     CreditEntry(
         name = "vivizzz007",
-        subtitle = "Vivimusic dev, The base of this app",
+        subtitle = "Nhà phát triển Vivimusic, nền tảng của ứng dụng này",
         githubUser = "vivizzz007",
         url = "https://github.com/vivizzz007/vivi-music",
     ),
     CreditEntry(
         name = "Mostafa Alagamy",
-        subtitle = "Metrolist dev, The base of vivmusic too",
+        subtitle = "Nhà phát triển Metrolist, cũng là nền tảng của Vivimusic",
         githubUser = "mostafaalagamy",
         url = "https://github.com/mostafaalagamy/Metrolist",
     ),
@@ -130,49 +130,49 @@ private val BaseCredits = listOf(
 private val MoreCredits = listOf(
     CreditEntry(
         name = "maxrave-dev",
-        subtitle = "SimpMusic · lyrics API provider",
+        subtitle = "SimpMusic · nhà cung cấp API lời bài hát",
         githubUser = "maxrave-dev",
         url = "https://github.com/maxrave-dev/SimpMusic",
     ),
     CreditEntry(
         name = "Rukamori",
-        subtitle = "ArchiveTune · design & architecture inspiration",
+        subtitle = "ArchiveTune · nguồn cảm hứng về thiết kế và kiến trúc",
         githubUser = "rukamori",
         url = "https://github.com/rukamori/ArchiveTune",
     ),
     CreditEntry(
         name = "fast4x",
-        subtitle = "RiMusic · YouTube Music InnerTube service wrapper",
+        subtitle = "RiMusic · trình bao bọc dịch vụ InnerTube của YouTube Music",
         githubUser = "fast4x",
         url = "https://github.com/fast4x/RiMusic",
     ),
     CreditEntry(
         name = "tranxuanthang",
-        subtitle = "LRCLIB · synchronized LRC lyrics provider",
+        subtitle = "LRCLIB · nhà cung cấp lời bài hát LRC đồng bộ",
         githubUser = "tranxuanthang",
         url = "https://github.com/tranxuanthang/lrclib",
     ),
     CreditEntry(
         name = "monochrome-music",
-        subtitle = "Monochrome Music · lossless FLAC streams",
+        subtitle = "Monochrome Music · luồng âm thanh FLAC không mất dữ liệu",
         githubUser = "monochrome-music",
         url = "https://github.com/monochrome-music/monochrome",
     ),
     CreditEntry(
         name = "Jaakko Pasanen",
-        subtitle = "AutoEq · headphone equalizer database",
+        subtitle = "AutoEq · cơ sở dữ liệu cân bằng âm thanh tai nghe",
         githubUser = "jaakkopasanen",
         url = "https://github.com/jaakkopasanen/AutoEq",
     ),
     CreditEntry(
         name = "Ibra Al Tabian",
-        subtitle = "LyricsPlus · open source lyrics server",
+        subtitle = "LyricsPlus · máy chủ lời bài hát mã nguồn mở",
         githubUser = "ibratabian17",
         url = "https://github.com/ibratabian17/LyricsPlus",
     ),
     CreditEntry(
         name = "Boidushya",
-        subtitle = "Better Lyrics API · synced syllable lyrics",
+        subtitle = "Better Lyrics API · lời bài hát đồng bộ theo từng âm tiết",
         githubUser = "boidushya",
         url = "https://github.com/better-lyrics/api",
     ),
@@ -181,50 +181,50 @@ private val MoreCredits = listOf(
 private val Licenses = listOf(
     LicenseEntry(
         tag = "GPL-3.0",
-        title = "Mochy Music · GNU General Public License v3.0",
-        subtitle = "Free and open source software, source code on GitHub",
+        title = "Mochy Music · Giấy phép Công cộng GNU phiên bản 3.0",
+        subtitle = "Phần mềm miễn phí, mã nguồn mở; mã nguồn có trên GitHub",
         url = "$GithubRepoUrl/blob/main/LICENSE",
     ),
     LicenseEntry(
         tag = "GPL-3.0",
-        title = "ViviMusic · GNU General Public License v3.0",
-        subtitle = "by vivizzz007 · base project this app was forked from",
+        title = "ViviMusic · Giấy phép Công cộng GNU phiên bản 3.0",
+        subtitle = "bởi vivizzz007 · dự án nền mà ứng dụng này được phân nhánh từ",
         url = "https://github.com/vivizzz007/vivi-music/blob/main/LICENSE",
     ),
     LicenseEntry(
         tag = "GPL-3.0",
-        title = "Metrolist · GNU General Public License v3.0",
-        subtitle = "by Mostafa Alagamy · base framework",
+        title = "Metrolist · Giấy phép Công cộng GNU phiên bản 3.0",
+        subtitle = "bởi Mostafa Alagamy · bộ khung nền tảng",
         url = "https://github.com/mostafaalagamy/Metrolist/blob/main/LICENSE",
     ),
     LicenseEntry(
         tag = "GPL-3.0",
-        title = "SimpMusic · GNU General Public License v3.0",
-        subtitle = "by maxrave-dev · lyrics provider integration",
+        title = "SimpMusic · Giấy phép Công cộng GNU phiên bản 3.0",
+        subtitle = "bởi maxrave-dev · tích hợp nhà cung cấp lời bài hát",
         url = "https://github.com/maxrave-dev/SimpMusic/blob/dev/LICENSE",
     ),
     LicenseEntry(
         tag = "GPL-3.0",
-        title = "ArchiveTune · GNU General Public License v3.0",
-        subtitle = "by Rukamori · design and architectural inspiration",
+        title = "ArchiveTune · Giấy phép Công cộng GNU phiên bản 3.0",
+        subtitle = "bởi Rukamori · nguồn cảm hứng về thiết kế và kiến trúc",
         url = "https://github.com/rukamori/ArchiveTune/blob/main/LICENSE",
     ),
     LicenseEntry(
         tag = "GPL-3.0",
-        title = "RiMusic · GNU General Public License v3.0",
-        subtitle = "by fast4x · InnerTube API wrapper",
+        title = "RiMusic · Giấy phép Công cộng GNU phiên bản 3.0",
+        subtitle = "bởi fast4x · trình bao bọc API InnerTube",
         url = "https://github.com/fast4x/RiMusic/blob/master/LICENSE",
     ),
     LicenseEntry(
         tag = "MIT",
-        title = "LRCLIB · MIT License",
-        subtitle = "by tranxuanthang · synchronized lyrics database",
+        title = "LRCLIB · Giấy phép MIT",
+        subtitle = "bởi tranxuanthang · cơ sở dữ liệu lời bài hát đồng bộ",
         url = "https://github.com/tranxuanthang/lrclib/blob/main/LICENSE",
     ),
     LicenseEntry(
         tag = "MIT",
-        title = "AutoEq · MIT License",
-        subtitle = "by Jaakko Pasanen · headphone correction profiles",
+        title = "AutoEq · Giấy phép MIT",
+        subtitle = "bởi Jaakko Pasanen · cấu hình hiệu chỉnh tai nghe",
         url = "https://github.com/jaakkopasanen/AutoEq/blob/master/LICENSE",
     ),
 )
@@ -296,21 +296,21 @@ private suspend fun fetchContributors(): List<ContributorEntry> {
 
 fun PopupSheetState.showAboutSheet(onOpenDevSpace: (Int) -> Unit = {}) {
     val popup = this
-    show(buttonBar = { SheetPrimaryButton(text = "Done", onClick = popup::dismiss) }) {
+    show(buttonBar = { SheetPrimaryButton(text = "Xong", onClick = popup::dismiss) }) {
         AboutSheetContent(popup = popup, onOpenDevSpace = onOpenDevSpace)
     }
 }
 
 private fun PopupSheetState.showCreditsSheet() {
     val popup = this
-    show(buttonBar = { SheetPrimaryButton(text = "Done", onClick = popup::dismiss) }) {
+    show(buttonBar = { SheetPrimaryButton(text = "Xong", onClick = popup::dismiss) }) {
         CreditsSheetContent()
     }
 }
 
 private fun PopupSheetState.showLicenseSheet() {
     val popup = this
-    show(buttonBar = { SheetPrimaryButton(text = "Done", onClick = popup::dismiss) }) {
+    show(buttonBar = { SheetPrimaryButton(text = "Xong", onClick = popup::dismiss) }) {
         LicenseSheetContent()
     }
 }
@@ -378,7 +378,7 @@ private fun ColumnScope.AboutSheetContent(
                 }
                 Spacer(Modifier.height(14.dp))
                 Text(
-                    text = "About app",
+                    text = "Giới thiệu ứng dụng",
                     fontSize = 36.sp,
                     lineHeight = 38.sp,
                     fontWeight = FontWeight.Bold,
@@ -403,7 +403,7 @@ private fun ColumnScope.AboutSheetContent(
                     .padding(horizontal = 18.dp, vertical = 16.dp),
             ) {
                 Text(
-                    text = "Mochy Music is a music app but\nkinda cool.",
+                    text = "Mochy Music là ứng dụng nghe nhạc\nkhá thú vị.",
                     fontSize = 15.sp,
                     lineHeight = 19.sp,
                     fontWeight = FontWeight.Bold,
@@ -412,11 +412,11 @@ private fun ColumnScope.AboutSheetContent(
             }
 
             Spacer(Modifier.height(18.dp))
-            SectionHeader("actions")
+            SectionHeader("thao tác")
             Spacer(Modifier.height(8.dp))
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 AboutPillRow(
-                    text = "Support me please :3 \u2192",
+                    text = "Ủng hộ mình nhé :3 \u2192",
                     onClick = { popup.showSupportSheet() },
                 )
                 AboutPillRow(
@@ -426,7 +426,7 @@ private fun ColumnScope.AboutSheetContent(
             }
 
             Spacer(Modifier.height(18.dp))
-            SectionHeader("meet the lead dev")
+            SectionHeader("gặp gỡ nhà phát triển chính")
             Spacer(Modifier.height(8.dp))
             Column(
                 modifier = Modifier
@@ -448,7 +448,7 @@ private fun ColumnScope.AboutSheetContent(
             }
 
             Spacer(Modifier.height(18.dp))
-            SectionHeader("we wont exist without these guys")
+            SectionHeader("Chúng tôi sẽ không thể tồn tại nếu thiếu họ")
             Spacer(Modifier.height(8.dp))
             Column(
                 modifier = Modifier
@@ -475,15 +475,15 @@ private fun ColumnScope.AboutSheetContent(
             )
 
             Spacer(Modifier.height(18.dp))
-            SectionHeader("License")
+            SectionHeader("Giấy phép")
             Spacer(Modifier.height(8.dp))
             AboutCardButton(
-                text = "More about license",
+                text = "Tìm hiểu thêm về giấy phép",
                 onClick = { popup.showLicenseSheet() },
             )
 
             Spacer(Modifier.height(18.dp))
-            SectionHeader("Cool contributors")
+            SectionHeader("Những người đóng góp tuyệt vời")
             Spacer(Modifier.height(8.dp))
             Column(
                 modifier = Modifier
@@ -517,7 +517,7 @@ private fun ColumnScope.CreditsSheetContent() {
     ) {
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Credits",
+            text = "Ghi công",
             fontSize = 36.sp,
             lineHeight = 38.sp,
             fontWeight = FontWeight.Bold,
@@ -555,7 +555,7 @@ private fun ColumnScope.LicenseSheetContent() {
     ) {
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "License",
+            text = "Giấy phép",
             fontSize = 36.sp,
             lineHeight = 38.sp,
             fontWeight = FontWeight.Bold,

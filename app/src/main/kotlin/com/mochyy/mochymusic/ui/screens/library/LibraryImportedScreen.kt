@@ -36,7 +36,7 @@ fun LibraryImportedScreen(
     val menuState = LocalMenuState.current
     val source = viewModel.source
 
-    val label = source?.label ?: "an unknown source"
+    val label = source?.label ?: "nguồn không xác định"
     val sourceIcon: (@Composable () -> Unit)? = if (source != null) {
         { ImportSourceIcon(source, size = AvatarSize) }
     } else {
@@ -44,12 +44,12 @@ fun LibraryImportedScreen(
     }
 
     LibraryEntityListScreen(
-        title = source?.label ?: "Imported",
+        title = source?.label ?: "Đã nhập",
         subtitle = when (songs.size) {
-            1 -> "1 song imported from $label."
-            else -> "${songs.size} songs imported from $label."
+            1 -> "Đã nhập 1 bài hát từ $label."
+            else -> "Đã nhập ${songs.size} bài hát từ $label."
         },
-        searchPlaceholder = "Find a song imported from $label",
+        searchPlaceholder = "Tìm bài hát đã nhập từ $label",
         items = songs,
         idOf = { it.id },
         nameOf = { it.song.title },
@@ -61,7 +61,7 @@ fun LibraryImportedScreen(
             val ordered = sortForLibraryIndex(songs) { it.song.title }
             playerConnection.playQueue(
                 ListQueue(
-                    title = "Imported from $label",
+                    title = "Đã nhập từ $label",
                     items = ordered.map { it.toMediaItem() },
                     startIndex = ordered.indexOf(song).coerceAtLeast(0),
                 ),

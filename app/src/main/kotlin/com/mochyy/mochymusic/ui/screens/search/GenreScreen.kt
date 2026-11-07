@@ -166,7 +166,7 @@ fun GenreScreen(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
-                                    text = "Nothing here yet",
+                                    text = "Chưa có nội dung",
                                     style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
                                     color = SearchColors.Secondary,
                                 )
@@ -177,7 +177,7 @@ fun GenreScreen(
                         item(key = "section_${index}_${section.title}") {
                             if (index == 0) Spacer(modifier = Modifier.height(10.dp))
                             SearchSectionHeader(
-                                title = section.title ?: "Featured",
+                                title = section.title ?: "Nổi bật",
                                 ruleAbove = false,
                                 ruleBelow = false,
                                 large = false,
@@ -218,7 +218,7 @@ fun GenreScreen(
                             if (cards == null || cards.isNotEmpty()) {
                                 item(key = "community_header") {
                                     SearchSectionHeader(
-                                        title = "From the community",
+                                        title = "Từ cộng đồng",
                                         ruleAbove = false,
                                         ruleBelow = false,
                                         large = false,
@@ -487,8 +487,8 @@ private fun GenreItemCard(
     val subtitle = when (item) {
         is SongItem -> item.artists.joinToString { it.name }
         is AlbumItem -> item.artists?.joinToString { it.name }.orEmpty().ifEmpty { "Album" }
-        is ArtistItem -> "Artist"
-        is PlaylistItem -> item.author?.name ?: "Playlist"
+        is ArtistItem -> "Nghệ sĩ"
+        is PlaylistItem -> item.author?.name ?: "Danh sách phát"
     }
 
     Column(

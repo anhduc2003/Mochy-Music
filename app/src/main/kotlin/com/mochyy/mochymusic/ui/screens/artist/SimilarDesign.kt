@@ -158,9 +158,9 @@ internal fun SimilarPage(
     groups: SimilarGroups?,
     deepLoading: Boolean,
     artistsTitle: String,
-    playlistsTitle: String = "Featured Playlist",
-    songsTitle: String = "Featured songs",
-    albumsTitle: String = "New from them",
+    playlistsTitle: String = "Danh sách phát nổi bật",
+    songsTitle: String = "Bài hát nổi bật",
+    albumsTitle: String = "Bản phát hành mới",
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val menuState = LocalMenuState.current
@@ -373,7 +373,7 @@ internal fun SimilarPage(
                     ) {
                         item(key = "empty") {
                             Text(
-                                text = "Nothing to show here yet",
+                                text = "Chưa có nội dung để hiển thị",
                                 style = TrackSubtitleStyle.copy(fontSize = 13.sp),
                                 color = Color.White.copy(alpha = 0.6f),
                                 modifier = Modifier.padding(horizontal = PlaylistInset, vertical = 28.dp),
@@ -487,7 +487,7 @@ internal fun StartOfTheLine(modifier: Modifier = Modifier) {
     ) {
         ReceiptLine()
         Text(
-            text = "START OF THE LINE",
+            text = "BẮT ĐẦU DANH SÁCH",
             style = ReceiptCenterStyle,
             color = Color.White.copy(alpha = 0.78f),
             maxLines = 1,

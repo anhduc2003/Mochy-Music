@@ -63,7 +63,7 @@ fun YouTubeArtistMenu(
     SheetHeader(
         thumbnailUrl = artist.thumbnail,
         title = artist.title,
-        subtitle = "Artist",
+        subtitle = "Nghệ sĩ",
     )
 
     Spacer(Modifier.height(SheetHeaderGap))
@@ -132,7 +132,7 @@ fun YouTubeArtistMenu(
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             },
-                            text = if (isPinned) "Unpin" else "Pin",
+                            text = if (isPinned) "Bỏ ghim" else "Ghim",
                             onClick = {
                                 coroutineScope.launch(Dispatchers.IO) {
                                     if (isPinned) {

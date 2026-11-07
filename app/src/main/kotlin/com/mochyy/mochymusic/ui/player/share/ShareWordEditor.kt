@@ -88,9 +88,9 @@ import kotlin.math.hypot
 
 // the three looks a word can take, each with its card and its prompt
 private enum class WordMode(val label: String, val prompt: String) {
-    GLOW("Glow", "Tap or swipe the words you want to glow!"),
-    CAPS("CAPS", "Tap or swipe the words you want in CAPS!"),
-    BIG("Bigggg", "Tap or swipe the words you want bigggg!");
+    GLOW("Phát sáng", "Chạm hoặc vuốt qua những từ bạn muốn làm phát sáng!"),
+    CAPS("CAPS", "Chạm hoặc vuốt qua những từ bạn muốn viết HOA!"),
+    BIG("Bigggg", "Chạm hoặc vuốt qua những từ bạn muốn phóng to!");
 
     fun has(look: WordLook): Boolean = when (this) {
         GLOW -> look.glow
@@ -112,7 +112,7 @@ private val RingGap = 3.dp
 private val RingCorner = 16.dp
 private val PillCorner = 12.dp
 
-// how long the "pick a look first" hint stays after tapping a word with no look chosen
+// how long the "hãy chọn kiểu trước" hint stays after tapping a word with no look chosen
 private const val HintMs = 1_800L
 
 // a fast swipe is checked every this many px along its path, so it can't jump over a word
@@ -120,7 +120,7 @@ private const val PaintStepPx = 8f
 
 internal fun PopupSheetState.showWordEditor(session: LyricsShareSession) {
     val popup = this
-    show(buttonBar = { SheetPillButton(text = "Done", onClick = popup::dismiss) }) {
+    show(buttonBar = { SheetPillButton(text = "Xong", onClick = popup::dismiss) }) {
         WordEditorContent(session)
     }
 }
@@ -158,7 +158,7 @@ private fun ColumnScope.WordEditorContent(session: LyricsShareSession) {
         "CoolfontEditor",
         beta = true,
         subtitleSlot = {
-            val line = mode?.prompt ?: if (hinting) "Pick Glow, CAPS or Bigggg below first" else null
+            val line = mode?.prompt ?: if (hinting) "Trước tiên, hãy chọn Phát sáng, CHỮ HOA hoặc Chữ lớn bên dưới" else null
             AnimatedContent(
                 targetState = line,
                 transitionSpec = {
@@ -355,7 +355,7 @@ private fun WordChip(
     }
 }
 
-// one of the three "Make it" cards; picked, it lights up and becomes the way out of picking
+// one of the three "Tạo ngay" cards; picked, it lights up and becomes the way out of picking
 @Composable
 private fun MakeItCard(
     mode: WordMode,
@@ -389,7 +389,7 @@ private fun MakeItCard(
             label = "makeItCaption",
         ) { on ->
             Text(
-                if (on) "I'm done making it" else "Make it",
+                if (on) "Tôi đã chỉnh xong" else "Tạo kiểu",
                 fontFamily = InterFontFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 10.sp,

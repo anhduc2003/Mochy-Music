@@ -15,7 +15,7 @@ internal object StudioType {
     /** the app's letter spacing (theme/Type.kt), on every studio text */
     val Tracking = (-0.05).em
 
-    /** page headers: "Styles", "Edit player", a sheet's title */
+    /** page headers: "Kiểu giao diện", "Chỉnh trình phát", a sheet's title */
     val Title = 16.sp
     /** the line under a header: the style shown, what a sheet is for */
     val Subtitle = 11.sp

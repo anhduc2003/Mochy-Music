@@ -100,11 +100,11 @@ import com.mochyy.mochymusic.ui.utils.stableStatusBarsPadding
 
 internal val PlayerBackgroundStyle.studioName: String
     get() = when (this) {
-        PlayerBackgroundStyle.COVER_GRADIENT -> "Cover gradient"
-        PlayerBackgroundStyle.SOLID -> "Solid"
-        PlayerBackgroundStyle.DARK_GRADIENT -> "Dark gradient"
+        PlayerBackgroundStyle.COVER_GRADIENT -> "Chuyển sắc bìa"
+        PlayerBackgroundStyle.SOLID -> "Màu đơn sắc"
+        PlayerBackgroundStyle.DARK_GRADIENT -> "Chuyển sắc tối"
         PlayerBackgroundStyle.APPLE_MUSIC -> "Apple Music"
-        PlayerBackgroundStyle.AMBIENT -> "Ambient"
+        PlayerBackgroundStyle.AMBIENT -> "Ánh sáng môi trường"
     }
 
 private fun inter(size: TextUnit, weight: FontWeight = FontWeight.Bold) = studioText(size, weight)
@@ -194,10 +194,10 @@ private fun StudioTopBar(studio: PlayerStudioState, glassState: GlassState) {
     val title by remember(studio) {
         derivedStateOf {
             when (studio.stage) {
-                StudioStage.COVER -> if (studio.backdrop.value > 0.5f) "Edit Background" else "Edit Cover"
-                StudioStage.MIDDLE -> "Edit Middle part"
-                StudioStage.MENU -> "Edit Menu"
-                else -> "Edit Player"
+                StudioStage.COVER -> if (studio.backdrop.value > 0.5f) "Chỉnh nền" else "Chỉnh bìa"
+                StudioStage.MIDDLE -> "Chỉnh phần giữa"
+                StudioStage.MENU -> "Chỉnh menu"
+                else -> "Chỉnh trình phát"
             }
         }
     }
@@ -256,7 +256,7 @@ private fun StudioTopBar(studio: PlayerStudioState, glassState: GlassState) {
             ) {
                 Icon(
                     painter = painterResource(R.drawable.arrow_back_ios),
-                    contentDescription = "Back",
+                    contentDescription = "Quay lại",
                     tint = Color.White,
                     modifier = Modifier.size(16.dp).offset(x = 2.dp),
                 )
@@ -280,7 +280,7 @@ private fun StudioTopBar(studio: PlayerStudioState, glassState: GlassState) {
                     enter = fadeIn(tween(240)) + androidx.compose.animation.expandVertically(tween(300)),
                     exit = fadeOut(tween(160)) + androidx.compose.animation.shrinkVertically(tween(260)),
                 ) {
-                    Text("Hold to adjust position, tap to edit", color = Color.White.copy(alpha = 0.7f), style = inter(StudioType.Subtitle, FontWeight.Medium))
+                    Text("Nhấn giữ để chỉnh vị trí, chạm để chỉnh sửa", color = Color.White.copy(alpha = 0.7f), style = inter(StudioType.Subtitle, FontWeight.Medium))
                 }
             }
         }
@@ -520,7 +520,7 @@ private fun CoverEditor(
                 .graphicsLayer { translationY = (1f - studio.cover.value) * 320.dp.toPx() },
         ) {
             AnimatedContent(
-                targetState = (if (inBackdrop) "BACKGROUND - %03d" else "STYLE - %03d").format(shownIndex + 1),
+                targetState = (if (inBackdrop) "NỀN - %03d" else "KIỂU - %03d").format(shownIndex + 1),
                 transitionSpec = { (slideInVertically { it } + fadeIn()) togetherWith (slideOutVertically { -it } + fadeOut()) },
                 label = "studioStyleNumber",
             ) { label ->
@@ -552,7 +552,7 @@ private fun CoverEditor(
                     Icon(painterResource(R.drawable.tune), null, tint = Color.Black, modifier = Modifier.size(14.dp))
                 }
                 Spacer(Modifier.width(14.dp))
-                Text("Show more option for this cover", color = Color.White, style = inter(StudioType.Body, FontWeight.SemiBold))
+                Text("Hiện thêm tùy chọn cho bìa này", color = Color.White, style = inter(StudioType.Body, FontWeight.SemiBold))
             }
         }
 
@@ -561,7 +561,7 @@ private fun CoverEditor(
         val nudge by bounce.animateFloat(0f, 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "studioChevronNudge")
         Icon(
             painter = painterResource(R.drawable.expand_more),
-            contentDescription = if (inBackdrop) "Back to covers" else "Backgrounds",
+            contentDescription = if (inBackdrop) "Quay lại bìa" else "Nền",
             tint = Color.White.copy(alpha = 0.7f),
             modifier = Modifier
                 .align(Alignment.BottomCenter)

@@ -115,11 +115,11 @@ fun DeviceOutputSheet(onDismiss: () -> Unit) {
                 .padding(horizontal = 20.dp)
                 .padding(top = 10.dp, bottom = 28.dp)
         ) {
-            SectionLabel("Change playback")
+            SectionLabel("Thay đổi cách phát")
 
             VolumeCard(
                 icon = R.drawable.volume_up,
-                title = android.os.Build.MODEL ?: "this device",
+                title = android.os.Build.MODEL ?: "thiết bị này",
                 value = deviceVolume.floatValue,
                 onValueChange = { next ->
                     deviceVolume.floatValue = next
@@ -135,7 +135,7 @@ fun DeviceOutputSheet(onDismiss: () -> Unit) {
 
             VolumeCard(
                 icon = R.drawable.music_note,
-                title = "Music volume",
+                title = "Âm lượng nhạc",
                 value = musicVolume.floatValue,
                 onValueChange = { next ->
                     musicVolume.floatValue = next
@@ -144,11 +144,11 @@ fun DeviceOutputSheet(onDismiss: () -> Unit) {
             )
 
             Spacer(modifier = Modifier.height(22.dp))
-            SectionLabel("Play on")
+            SectionLabel("Phát trên")
 
             Column(modifier = Modifier.animateContentSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 DeviceRow(
-                    label = "Automatic",
+                    label = "Tự động",
                     detail = "Wherever Android sends it",
                     icon = Icons.Rounded.AutoMode,
                     selected = !anyChosen && !isCasting,
@@ -172,11 +172,11 @@ fun DeviceOutputSheet(onDismiss: () -> Unit) {
 
             if (castTargets.isNotEmpty() || isCasting) {
                 Spacer(modifier = Modifier.height(22.dp))
-                SectionLabel("Other devices on your network")
+                SectionLabel("Thiết bị khác trong mạng của bạn")
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (isCasting) {
                         DeviceRow(
-                            label = castingTo ?: "Cast device",
+                            label = castingTo ?: "Thiết bị truyền phát",
                             detail = "Playing here now · tap to stop casting",
                             icon = Icons.Rounded.CastConnected,
                             selected = true,
@@ -200,7 +200,7 @@ fun DeviceOutputSheet(onDismiss: () -> Unit) {
 
             Spacer(modifier = Modifier.height(8.dp))
             DeviceRow(
-                label = "Pair a new device",
+                label = "Ghép nối thiết bị mới",
                 detail = "Opens Bluetooth settings",
                 icon = Icons.Rounded.SettingsBluetooth,
                 onClick = {

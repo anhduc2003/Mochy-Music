@@ -185,7 +185,7 @@ fun GeneratedSearchCapsule(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.close),
-                    contentDescription = "Clear",
+                    contentDescription = "Xóa",
                     tint = Color.White,
                     modifier = Modifier.size(14.dp),
                 )
@@ -210,7 +210,7 @@ fun GeneratedGroupHeader(text: String, modifier: Modifier = Modifier) {
 @Composable
 fun GeneratedNoResults(query: String, modifier: Modifier = Modifier) {
     Text(
-        text = "Nothing here matches \"$query\"",
+        text = "Không có mục nào khớp với \"$query\"",
         style = PlaylistStatsStyle.copy(fontSize = 13.sp),
         color = Color.White.copy(alpha = 0.6f),
         modifier = modifier.padding(horizontal = PlaylistInset, vertical = 24.dp),
@@ -219,7 +219,7 @@ fun GeneratedNoResults(query: String, modifier: Modifier = Modifier) {
 
 /** "21 songs · 1h 23m" */
 fun generatedStats(songCount: Int, totalSeconds: Int): String {
-    val count = "$songCount ${if (songCount == 1) "song" else "songs"}"
+    val count = "$songCount ${if (songCount == 1) "bài hát" else "bài hát"}"
     if (totalSeconds <= 0) return count
     val hours = totalSeconds / 3600
     val minutes = (totalSeconds % 3600) / 60

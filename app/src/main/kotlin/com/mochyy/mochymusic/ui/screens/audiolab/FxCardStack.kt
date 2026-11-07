@@ -52,13 +52,13 @@ internal fun activeEffects(
     playback: PlaybackSettings,
     volume: VolumeSettings,
 ): List<ActiveEffect> = buildList {
-    if (reverb.enabled) add(ActiveEffect("reverb", "Reverb"))
-    if (loudness.enabled) add(ActiveEffect("loudness", "Loudness"))
-    if (spatial.enabled) add(ActiveEffect("spatial", "Spatial"))
-    if (spatial.surround) add(ActiveEffect("surround", "Surround"))
+    if (reverb.enabled) add(ActiveEffect("reverb", "Âm vang"))
+    if (loudness.enabled) add(ActiveEffect("loudness", "Âm lượng"))
+    if (spatial.enabled) add(ActiveEffect("spatial", "Không gian"))
+    if (spatial.surround) add(ActiveEffect("surround", "Âm thanh vòm"))
     if (spatial.mono) add(ActiveEffect("mono", "Mono"))
-    if (!playback.isNormal) add(ActiveEffect("playback", "Playback"))
-    if (volume.enabled) add(ActiveEffect("volume", "Volume"))
+    if (!playback.isNormal) add(ActiveEffect("playback", "Phát lại"))
+    if (volume.enabled) add(ActiveEffect("volume", "Âm lượng"))
 }
 
 private const val ShownCards = 3
@@ -110,7 +110,7 @@ fun BoxScope.FxCardStack(effects: List<ActiveEffect>, hidden: State<Boolean>) {
     ) {
         if (count > ShownCards) {
             Text(
-                "and ${count - ShownCards} other",
+                "và ${count - ShownCards} mục khác",
                 fontFamily = FontFamily.Monospace,
                 fontSize = 10.sp,
                 color = LabCardInk,
@@ -176,8 +176,8 @@ private fun BoxScope.StackedCard(
         LabCardFace(
             // the front card shows everything; further back it fades to its name down the edge
             modifier = Modifier.graphicsLayer { alpha = 1f - place.coerceIn(0f, 1f) },
-            topStart = label?.let { "ON" },
-            topEnd = label?.let { "$position of $count" },
+            topStart = label?.let { "BẬT" },
+            topEnd = label?.let { "$position/$count" },
             label = label,
         ) { barsModifier ->
             LabBars(spectrum = spectrum, hidden = hidden, modifier = barsModifier, color = LabCardBars, fill = 0.42f)

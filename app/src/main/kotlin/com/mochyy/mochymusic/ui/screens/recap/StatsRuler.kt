@@ -140,7 +140,7 @@ internal fun StatsRuler(
         modifier = modifier
             .fillMaxWidth()
             .height(RulerHeight)
-            .semantics { contentDescription = "Showing ${labelOf(selected)}. Drag to pick another." }
+            .semantics { contentDescription = "Đang hiển thị ${labelOf(selected)}. Kéo để chọn mục khác." }
             .pointerInput(items) {
                 val tracker = VelocityTracker()
                 detectHorizontalDragGestures(

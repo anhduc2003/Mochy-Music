@@ -195,9 +195,9 @@ private fun SearchBarInputField(
                     }
                 }
                 .semantics {
-                    contentDescription = "Search"
+                    contentDescription = "Tìm kiếm"
                     if (active) {
-                        stateDescription = "Suggestions available"
+                        stateDescription = "Có gợi ý"
                     }
                 }
                 .onKeyEvent {

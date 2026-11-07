@@ -26,10 +26,10 @@ fun ArtistSimilarScreen(
         navController = navController,
         bandImageUrl = header?.bannerUrl
             ?: (page?.artist?.thumbnail ?: viewModel.picks?.artistThumbnailUrl)?.resize(544, 544),
-        smallLine = "similar to",
+        smallLine = "tương tự",
         bigLine = header?.name ?: page?.artist?.title ?: viewModel.picks?.artistName.orEmpty(),
         groups = groups,
         deepLoading = deepLoading,
-        artistsTitle = "Similar Artist",
+        artistsTitle = "Nghệ sĩ tương tự",
     )
 }

@@ -31,21 +31,21 @@ fun LibraryArtistsScreen(
     val coroutineScope = rememberCoroutineScope()
 
     LibraryEntityListScreen(
-        title = "Artist",
+        title = "Nghệ sĩ",
         subtitle = when (shelf) {
-            LibraryShelfKind.Local -> "Artists with music on this device."
-            LibraryShelfKind.Cached -> "Artists with songs in your cache."
-            null -> "All artist on your library listed here."
+            LibraryShelfKind.Local -> "Nghệ sĩ có nhạc trên thiết bị này."
+            LibraryShelfKind.Cached -> "Nghệ sĩ có bài hát trong bộ nhớ đệm."
+            null -> "Tất cả nghệ sĩ trong thư viện của bạn."
         },
-        searchPlaceholder = "Find an artist by name",
+        searchPlaceholder = "Tìm nghệ sĩ theo tên",
         items = artists,
         idOf = { it.id },
         nameOf = { it.artist.name },
         subtitleOf = {
-            val count = if (it.songCount == 1) "1 song" else "${it.songCount} songs"
+            val count = if (it.songCount == 1) "1 bài hát" else "${it.songCount} bài hát"
             when (shelf) {
-                LibraryShelfKind.Local -> "$count on this device"
-                LibraryShelfKind.Cached -> "$count cached"
+                LibraryShelfKind.Local -> "$count trên thiết bị này"
+                LibraryShelfKind.Cached -> "$count trong bộ nhớ đệm"
                 null -> count
             }
         },

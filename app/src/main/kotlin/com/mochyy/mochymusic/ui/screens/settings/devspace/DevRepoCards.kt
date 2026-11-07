@@ -58,7 +58,7 @@ private val BugFill = Color(0xFF4A2424)
 private const val IssueRowsShown = 6
 
 private enum class IssueFilter(val label: String) {
-    All("All"), Bug("Bug"), Feature("Feature"), Other("Other");
+    All("Tất cả"), Bug("Bug"), Feature("Feature"), Other("Other");
 
     fun matches(issue: DevIssue) = when (this) {
         All -> true
@@ -86,7 +86,7 @@ internal fun DevPanel(modifier: Modifier = Modifier, content: @Composable Column
 internal fun PlaygroundCard(stats: DevSpaceStats?, settled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val interaction = remember { MutableInteractionSource() }
     RepoFiguresCard(
-        title = "Developer playground",
+        title = "Khu vực thử nghiệm của nhà phát triển",
         figures = listOf(
             stats?.newIssues to "new reported issues",
             stats?.newResolved to "new resolved issue",
@@ -175,7 +175,7 @@ internal fun RepoIssuesSection(
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         DevPanel {
-            Text("Repo issues", style = devText(17f, tracking = -0.6f))
+            Text("Vấn đề trên kho mã", style = devText(17f, tracking = -0.6f))
             Spacer(Modifier.height(10.dp))
             FilterChips(
                 selected = filter,
@@ -186,13 +186,13 @@ internal fun RepoIssuesSection(
             val shown = open.filter { filter.matches(it) }
             when {
                 stats == null && loading -> repeat(3) { SkeletonRow() }
-                stats == null -> RetryNote(error ?: "Couldn't reach GitHub", onRetry)
-                shown.isEmpty() -> Note(if (open.isEmpty()) "No open issues. Nice." else "No ${filter.label.lowercase()} issues open.")
+                stats == null -> RetryNote(error ?: "Không thể kết nối GitHub", onRetry)
+                shown.isEmpty() -> Note(if (open.isEmpty()) "Không có vấn đề nào đang mở. Tuyệt!" else "Không có vấn đề ${filter.label.lowercase()} nào đang mở.")
                 else -> IssueList(shown, showAllOpen, context) { showAllOpen = true }
             }
             if (stats != null && error != null) {
                 Spacer(Modifier.height(10.dp))
-                RetryNote("$error. Showing the last numbers.", onRetry)
+                RetryNote("$error. Đang hiển thị số liệu gần nhất.", onRetry)
             }
         }
 
@@ -200,7 +200,7 @@ internal fun RepoIssuesSection(
         if (stats != null && shownResolved.isNotEmpty()) {
             DevPanel {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Resolved", style = devText(17f, tracking = -0.6f), modifier = Modifier.weight(1f))
+                    Text("Đã giải quyết", style = devText(17f, tracking = -0.6f), modifier = Modifier.weight(1f))
                     Text("${shownResolved.size}", style = devText(15f, FontWeight.SemiBold, DevMuted))
                 }
                 Spacer(Modifier.height(12.dp))
@@ -240,7 +240,7 @@ private fun IssueList(issues: List<DevIssue>, showAll: Boolean, context: Context
         visible.forEach { IssueRow(it) { context.openDevUrl(it.url) } }
         if (!showAll && issues.size > IssueRowsShown) {
             Text(
-                "Show all ${issues.size}",
+                "Hiển thị tất cả ${issues.size}",
                 style = devText(13f, FontWeight.SemiBold, Color.White, -0.2f),
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
@@ -316,7 +316,7 @@ private fun RetryNote(text: String, onRetry: () -> Unit) {
         Text(text, style = devText(13f, FontWeight.Medium, DevMuted, -0.2f), modifier = Modifier.weight(1f))
         Spacer(Modifier.width(10.dp))
         Text(
-            "Try again",
+            "Thử lại",
             style = devText(13f, FontWeight.SemiBold, Color.Black, -0.2f),
             modifier = Modifier
                 .clip(CircleShape)
@@ -330,10 +330,10 @@ private fun RetryNote(text: String, onRetry: () -> Unit) {
 private fun ago(at: Instant): String {
     val days = ChronoUnit.DAYS.between(at, Instant.now())
     return when {
-        days <= 0L -> "today"
-        days == 1L -> "yesterday"
-        days < 30L -> "${days}d ago"
-        days < 365L -> "${days / 30}mo ago"
-        else -> "${days / 365}y ago"
+        days <= 0L -> "hôm nay"
+        days == 1L -> "hôm qua"
+        days < 30L -> "${days} ngày trước"
+        days < 365L -> "${days / 30} tháng trước"
+        else -> "${days / 365} năm trước"
     }
 }

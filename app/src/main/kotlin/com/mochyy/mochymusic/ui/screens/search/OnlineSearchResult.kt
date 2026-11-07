@@ -105,13 +105,13 @@ import java.net.URLEncoder
 import com.mochyy.mochymusic.ui.component.navigateToTab
 
 private val SearchCategories = listOf(
-    "All" to null,
-    "Music" to FILTER_SONG,
-    "Artist" to FILTER_ARTIST,
+    "Tất cả" to null,
+    "Nhạc" to FILTER_SONG,
+    "Nghệ sĩ" to FILTER_ARTIST,
     "Video" to FILTER_VIDEO,
     "Album" to FILTER_ALBUM,
-    "Playlist" to FILTER_COMMUNITY_PLAYLIST,
-    "Featured" to FILTER_FEATURED_PLAYLIST,
+    "Danh sách phát" to FILTER_COMMUNITY_PLAYLIST,
+    "Nổi bật" to FILTER_FEATURED_PLAYLIST,
 )
 
 @Composable
@@ -256,7 +256,7 @@ fun OnlineSearchResult(
                     } else {
                         if (top != null) {
                             item(key = "top_header") {
-                                SearchSectionHeader(title = "Top Results", ruleAbove = false)
+                                SearchSectionHeader(title = "Kết quả hàng đầu", ruleAbove = false)
                             }
                             item(key = "top_card") {
                                 TopResultCard(
@@ -279,7 +279,7 @@ fun OnlineSearchResult(
                                 renderedSection = true
                                 item(key = "summary_header_${index}_${section.title}") {
                                     SearchSectionHeader(
-                                        title = if (index == 0) "Exact matches" else section.title,
+                                        title = if (index == 0) "Kết quả khớp chính xác" else section.title,
                                         ruleAbove = ruleAbove,
                                     )
                                 }
@@ -320,7 +320,7 @@ fun OnlineSearchResult(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
-                                    text = "No results",
+                                    text = "Không có kết quả",
                                     style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
                                     color = SearchColors.Secondary,
                                 )
@@ -365,7 +365,7 @@ fun OnlineSearchResult(
                 value = query,
                 onValueChange = { query = it },
                 onSearch = submit,
-                placeholder = "Search for any tracks, albums, lyrics...",
+                placeholder = "Tìm bài hát, album, lời bài hát...",
                 leading = {
                     Icon(
                         painter = painterResource(R.drawable.arrow_back),
@@ -407,26 +407,26 @@ private fun TopResultCard(
     onLongClick: () -> Unit,
 ) {
     val kind = when (item) {
-        is SongItem -> if (item.isVideoSong) "Video" else "Song"
+        is SongItem -> if (item.isVideoSong) "Video" else "Bài hát"
         is AlbumItem -> "Album"
-        is ArtistItem -> "Artist"
-        is PlaylistItem -> "Playlist"
+        is ArtistItem -> "Nghệ sĩ"
+        is PlaylistItem -> "Danh sách phát"
     }
     val detail = when (item) {
         is SongItem -> listOfNotNull(
             kind,
-            item.artists.joinToString { it.name }.takeIf { it.isNotBlank() }?.let { "by $it" },
+            item.artists.joinToString { it.name }.takeIf { it.isNotBlank() }?.let { "trình bày: $it" },
             item.duration?.let { formatDuration(it) },
         ).joinToString("  •  ")
 
         is AlbumItem -> listOfNotNull(
             kind,
-            item.artists?.joinToString { it.name }?.takeIf { it.isNotBlank() }?.let { "by $it" },
+            item.artists?.joinToString { it.name }?.takeIf { it.isNotBlank() }?.let { "trình bày: $it" },
             item.year?.toString(),
         ).joinToString("  •  ")
 
         is ArtistItem -> kind
-        is PlaylistItem -> listOfNotNull(kind, item.author?.name?.let { "by $it" }, item.songCountText)
+        is PlaylistItem -> listOfNotNull(kind, item.author?.name?.let { "trình bày: $it" }, item.songCountText)
             .joinToString("  •  ")
     }
 
@@ -546,8 +546,8 @@ private fun ResultRow(
             item.artists?.joinToString { it.name }?.takeIf { it.isNotBlank() },
         ).joinToString("  •  ")
 
-        is ArtistItem -> "Artist"
-        is PlaylistItem -> listOfNotNull("Playlist", item.author?.name).joinToString("  •  ")
+        is ArtistItem -> "Nghệ sĩ"
+        is PlaylistItem -> listOfNotNull("Danh sách phát", item.author?.name).joinToString("  •  ")
     }
 
     val row: @Composable () -> Unit = {

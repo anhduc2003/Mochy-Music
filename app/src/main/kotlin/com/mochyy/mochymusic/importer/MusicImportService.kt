@@ -129,7 +129,7 @@ class MusicImportService @Inject constructor(
         try {
             val read = request.read()
             val playlist = database.playlist(request.playlistId).first()?.playlist
-                ?: throw LinkImportException("That playlist isn't in your library any more.")
+                ?: throw LinkImportException("Danh sách phát này không còn trong thư viện của bạn.")
             // new songs go in under the import that brought the playlist so undoing it takes them too, a playlist copied from a youtube page never put its songs in the library
             val owner = database.getImportedPlaylist(playlist.id)?.sessionId
             if (owner != null) {

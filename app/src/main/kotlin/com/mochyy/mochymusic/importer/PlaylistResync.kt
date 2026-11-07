@@ -171,10 +171,10 @@ class PlaylistResync @Inject constructor(
             }
             return ResyncRead(parsed.playlists.values.firstOrNull().orEmpty(), PlaylistOrigin(remoteId = remoteId))
         }
-        if (!context.isUserLoggedIn()) throw LinkImportException("Sign in to YouTube first, then try again.")
+        if (!context.isUserLoggedIn()) throw LinkImportException("Hãy đăng nhập YouTube trước rồi thử lại.")
         val library = YouTubeMusicLibrary(accountName = null)
         val remote = library.playlists().filterNot { it.isLiked }.named(name)
-            ?: throw LinkImportException("Couldn't find \"$name\" in your YouTube Music playlists.")
+            ?: throw LinkImportException("Không tìm thấy \"$name\" trong danh sách phát YouTube Music của bạn.")
         return ResyncRead(library.tracks(remote), PlaylistOrigin(remoteId = remote.id))
     }
 
@@ -193,7 +193,7 @@ class PlaylistResync @Inject constructor(
     }
 
     private companion object {
-        const val NOT_IMPORTED = "This playlist didn't come from a music service, so there's nothing to re-sync."
-        const val BUSY = "An import is still running. Try again once it's done."
+        const val NOT_IMPORTED = "Danh sách phát này không đến từ dịch vụ nhạc nào nên không có gì để đồng bộ lại."
+        const val BUSY = "Đang nhập dữ liệu. Hãy thử lại khi hoàn tất."
     }
 }

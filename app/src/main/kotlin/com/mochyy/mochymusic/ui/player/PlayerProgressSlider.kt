@@ -270,7 +270,7 @@ fun PlayerProgressSlider(
                 LoadingLabel(style = timeStyle, color = restColor)
             } else if (state == FailureKey) {
                 Text(
-                    text = failureLabel ?: "Error",
+                    text = failureLabel ?: "Lỗi",
                     style = timeStyle,
                     color = StreamFailureRed,
                     maxLines = 1,
@@ -448,12 +448,12 @@ private fun rememberSettled(value: Boolean): State<Boolean> = produceState(initi
     }
 }
 
-/** "Loading" with its three dots lighting one after another. */
+/** "Đang tải" with its three dots lighting one after another. */
 @Composable
 private fun LoadingLabel(style: TextStyle, color: Color) {
     val transition = rememberInfiniteTransition(label = "loadingLabel")
     Row(verticalAlignment = Alignment.Bottom) {
-        Text(text = "Loading", style = style, color = color, maxLines = 1)
+        Text(text = "Đang tải", style = style, color = color, maxLines = 1)
         repeat(3) { index ->
             val lit by transition.animateFloat(
                 initialValue = 0.15f,

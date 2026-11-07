@@ -851,7 +851,7 @@ internal fun extractAudioMetadata(
             ?: uri.lastPathSegment?.substringBeforeLast('.') ?: "Unknown"
         val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
             ?: retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST)
-            ?: "Unknown Artist"
+            ?: "Nghệ sĩ không xác định"
         val album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
         val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
             ?.toLongOrNull() ?: 0L
@@ -885,7 +885,7 @@ internal fun extractAudioMetadata(
     } catch (e: Exception) {
 
         LocalAudioMetadata(
-            title = uri.lastPathSegment?.substringBeforeLast('.') ?: "Unknown",
+            title = uri.lastPathSegment?.substringBeforeLast('.') ?: "Không rõ",
             artist = "Unknown Artist",
             album = null,
             durationSeconds = 0,

@@ -1,6 +1,6 @@
 // LibraryManageSheets.kt
 //
-// "Manage imports", "Manage local" and "Manage cache": big tiles for the main actions and a row per
+// "Quản lý nội dung đã nhập", "Quản lý nhạc trên thiết bị" and "Quản lý bộ nhớ đệm": big tiles for the main actions and a row per
 // other action, as in the mocks. Anything that takes music out of the library asks once more on a
 // sheet pushed over this one.
 
@@ -58,35 +58,35 @@ fun PopupSheetState.showManageImportsSheet(
         }
     sheet = showWithHandle {
         ManageLayout(
-            ManageAction(R.drawable.delete, "Delete all imports") {
+            ManageAction(R.drawable.delete, "Xóa toàn bộ nội dung đã nhập") {
                 confirmThen(
-                    title = "Delete all imports?",
-                    message = "Every song, like and playlist you imported leaves your library. Songs that were " +
-                        "already in it stay, and so does music YouTube sync keeps up to date.",
-                    action = "Delete all imports",
+                    title = "Xóa toàn bộ nội dung đã nhập?",
+                    message = "Mọi bài hát, lượt thích và danh sách phát bạn đã nhập sẽ bị xóa khỏi thư viện. Những bài hát " +
+                        "đã có sẵn vẫn được giữ lại, cũng như nhạc được YouTube đồng bộ cập nhật.",
+                    action = "Xóa toàn bộ nội dung đã nhập",
                     run = viewModel::deleteAllImports,
                 )
             },
-            ManageAction(R.drawable.undo, "Undo import session") {
+            ManageAction(R.drawable.undo, "Hoàn tác lần nhập") {
                 confirmThen(
-                    title = "Undo your last import?",
-                    message = "The songs, likes and playlists your last import brought in leave your library. " +
-                        "Anything that was there before stays.",
-                    action = "Undo import",
+                    title = "Hoàn tác lần nhập gần nhất?",
+                    message = "Bài hát, lượt thích và danh sách phát được thêm trong lần nhập gần nhất sẽ bị xóa khỏi thư viện. " +
+                        "Nội dung đã có từ trước vẫn được giữ lại.",
+                    action = "Hoàn tác nhập",
                     run = viewModel::undoLatestImport,
                 )
             },
-            wide = ManageAction(R.drawable.sync, "Re-sync all") {
+            wide = ManageAction(R.drawable.sync, "Đồng bộ lại tất cả") {
                 sheet?.dismiss()
                 onResyncAll()
             },
             rows = sources.map { source ->
-                ManageAction(R.drawable.delete, "Delete ${source.label} imports") {
+                ManageAction(R.drawable.delete, "Xóa nội dung đã nhập từ ${source.label}") {
                     confirmThen(
-                        title = "Delete ${source.label} imports?",
-                        message = "Everything you imported from ${source.label} leaves your library, playlists included." +
-                            if (source == ImportSource.YOUTUBE_MUSIC) " Music YouTube sync keeps up to date stays." else "",
-                        action = "Delete",
+                        title = "Xóa nội dung đã nhập từ ${source.label}?",
+                        message = "Mọi nội dung bạn đã nhập từ ${source.label}, kể cả danh sách phát, sẽ bị xóa khỏi thư viện." +
+                            if (source == ImportSource.YOUTUBE_MUSIC) " Nhạc được YouTube đồng bộ cập nhật vẫn được giữ lại." else "",
+                        action = "Xóa",
                         run = { viewModel.deleteImportsFrom(source) },
                     )
                 }
@@ -108,24 +108,24 @@ fun PopupSheetState.showManageLocalSheet(
     var sheet: PopupSheetHandle? = null
     sheet = showWithHandle {
         ManageLayout(
-            ManageAction(R.drawable.refresh, "Re-scan local") {
+            ManageAction(R.drawable.refresh, "Quét lại nhạc trên thiết bị") {
                 sheet?.dismiss()
                 onRescan()
             },
-            ManageAction(R.drawable.delete, "Delete from list") {
+            ManageAction(R.drawable.delete, "Xóa khỏi danh sách") {
                 sheet?.dismiss()
                 onRemoveFromList()
             },
-            wide = ManageAction(R.drawable.library_add, "Add a music folder") {
+            wide = ManageAction(R.drawable.library_add, "Thêm thư mục nhạc") {
                 sheet?.dismiss()
                 onAddFolder()
             },
             rows = listOf(
-                ManageAction(R.drawable.undo, "Undo import session") {
+                ManageAction(R.drawable.undo, "Hoàn tác lần nhập") {
                     showConfirm(
-                        title = "Undo your last local import?",
-                        message = "The songs it added leave your library. The files stay on your phone.",
-                        action = "Undo import",
+                        title = "Hoàn tác lần nhập nhạc gần nhất?",
+                        message = "Các bài hát đã thêm sẽ bị xóa khỏi thư viện. Tệp vẫn được giữ trên điện thoại.",
+                        action = "Hoàn tác nhập",
                     ) {
                         viewModel.undoLatestLocalImport()
                         sheet?.dismiss()
@@ -137,7 +137,7 @@ fun PopupSheetState.showManageLocalSheet(
 }
 
 /**
- * [cachedSongs] are the songs "Remove songs" lists. Clearing goes further and also drops songs that
+ * [cachedSongs] are the songs "Xóa bài hát" lists. Clearing goes further and also drops songs that
  * only got partly cached; downloads are kept apart and never touched.
  */
 fun PopupSheetState.showManageCachedSheet(
@@ -148,18 +148,18 @@ fun PopupSheetState.showManageCachedSheet(
     var sheet: PopupSheetHandle? = null
     sheet = showWithHandle {
         ManageLayout(
-            ManageAction(R.drawable.clear_all, "Clear cache") {
+            ManageAction(R.drawable.clear_all, "Xóa bộ nhớ đệm") {
                 showConfirm(
-                    title = "Clear your cache?",
-                    message = "Every cached song is deleted from this phone and streams again the next time " +
-                        "you play it. Your library and your downloads stay as they are.",
-                    action = "Clear cache",
+                    title = "Xóa bộ nhớ đệm?",
+                    message = "Mọi bài hát trong bộ nhớ đệm sẽ bị xóa khỏi điện thoại này và được phát trực tuyến vào lần nghe tiếp theo. " +
+                        "Thư viện và nội dung tải xuống của bạn vẫn được giữ nguyên.",
+                    action = "Xóa bộ nhớ đệm",
                 ) {
                     onClearCache()
                     sheet?.dismiss()
                 }
             },
-            ManageAction(R.drawable.delete, "Remove songs") {
+            ManageAction(R.drawable.delete, "Xóa bài hát") {
                 sheet?.dismiss()
                 showRemoveCachedSheet(cachedSongs, onRemove)
             },

@@ -18,7 +18,7 @@ class YouTubeMusicLibrary(
 
     override suspend fun playlists(): List<RemotePlaylist> {
         val page = YouTube.library("FEmusic_liked_playlists").completed().getOrElse {
-            throw AccountImportException("Couldn't read your YouTube Music playlists. Check that you're signed in.")
+            throw AccountImportException("Không thể đọc danh sách phát YouTube Music. Hãy kiểm tra xem bạn đã đăng nhập chưa.")
         }
         val result = mutableListOf(RemotePlaylist(LIKED_ID, "Liked music", null, isLiked = true))
         page.items.filterIsInstance<PlaylistItem>()
@@ -38,7 +38,7 @@ class YouTubeMusicLibrary(
 
     override suspend fun tracks(playlist: RemotePlaylist): List<ImportedTrack> {
         val page = YouTube.playlist(playlist.id).completed().getOrElse {
-            throw AccountImportException("Couldn't open \"${playlist.name}\" on YouTube Music.")
+            throw AccountImportException("Không thể mở \"${playlist.name}\" trên YouTube Music.")
         }
         return page.songs.map { it.toImportedTrack() }
     }

@@ -57,7 +57,7 @@ fun AudioFormatBadge(
     ) {
         Image(
             painter = painterResource(id = iconRes),
-            contentDescription = "Audio Format",
+            contentDescription = "Định dạng âm thanh",
             colorFilter = if (tint != Color.Unspecified) ColorFilter.tint(contentColor) else null,
             modifier = Modifier.requiredSize(width = badgeWidth, height = height)
         )

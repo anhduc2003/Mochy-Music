@@ -72,7 +72,7 @@ fun AudioFxScreen(
     val effects = activeEffects(reverb, loudness, spatial, playback, volume)
 
     AudioLabPage(
-        title = LabTitle("Audio", "FX", firstSize = 40.sp, secondSize = 84.sp, firstDim = true),
+        title = LabTitle("Âm thanh", "FX", firstSize = 40.sp, secondSize = 84.sp, firstDim = true),
         onBack = { navController.navigateUp() },
         art = { hidden -> FxCardStack(effects, hidden) },
     ) {
@@ -124,13 +124,13 @@ private fun LoudnessCard(viewModel: AudioLabViewModel) {
     EffectCard(
         picture = { LoudnessPicture(loudness, viewModel.fx) },
         header = {
-            LabToggleRow("Loudness", "Louder and fuller, never clipping", loudness.enabled,
+            LabToggleRow("Âm lượng", "Âm thanh dày và rõ hơn, không gây vỡ tiếng", loudness.enabled,
                 { on -> viewModel.updateLoudness { it.copy(enabled = on) } })
         },
         expanded = loudness.enabled,
         options = {
             LabChips(
-                chips = listOf(LabChip("gentle", "Gentle"), LabChip("punchy", "Punchy"), LabChip("night", "Night mode"), LabChip("max", "Max")),
+                chips = listOf(LabChip("gentle", "Nhẹ"), LabChip("punchy", "Mạnh"), LabChip("night", "Chế độ ban đêm"), LabChip("max", "Tối đa")),
                 selectedKey = when {
                     loudness.boostDb == 2f && loudness.compression == 0.15f -> "gentle"
                     loudness.boostDb == 4f && loudness.compression == 0.3f -> "punchy"
@@ -150,12 +150,12 @@ private fun LoudnessCard(viewModel: AudioLabViewModel) {
             )
             Spacer(Modifier.height(10.dp))
             LabPanel {
-                LabSlider("Boost", "+${String.format("%.1f", loudness.boostDb)} dB", loudness.boostDb,
+                LabSlider("Tăng cường", "+${String.format("%.1f", loudness.boostDb)} dB", loudness.boostDb,
                     { v -> viewModel.updateLoudness { it.copy(boostDb = (v * 2).roundToInt() / 2f) } }, 0f..12f)
-                LabSlider("Compression", pct(loudness.compression), loudness.compression,
+                LabSlider("Nén âm", pct(loudness.compression), loudness.compression,
                     { v -> viewModel.updateLoudness { it.copy(compression = (v * 100).roundToInt() / 100f) } }, 0f..1f)
                 Text(
-                    "Compression lifts the quiet parts up toward the loud ones. Night mode keeps whispers and explosions close.",
+                    "Nén âm giúp phần nhỏ trở nên rõ hơn, gần với phần lớn. Chế độ ban đêm cân bằng tiếng thì thầm và âm thanh lớn.",
                     fontFamily = InterFontFamily, fontSize = 12.sp, lineHeight = 16.sp, color = LabColors.Secondary,
                     modifier = Modifier.padding(top = 4.dp),
                 )
@@ -163,7 +163,7 @@ private fun LoudnessCard(viewModel: AudioLabViewModel) {
         },
         footer = {
             Spacer(Modifier.height(6.dp))
-            LabToggleRow("Even out songs", "Plays every song at the same loudness", normalize, onNormalize)
+            LabToggleRow("Cân bằng âm lượng bài hát", "Phát mọi bài hát ở cùng mức âm lượng", normalize, onNormalize)
             val rg by viewModel.normalize.collectAsState()
             LabCollapsible(normalize) {
                 Spacer(Modifier.height(4.dp))
@@ -174,7 +174,7 @@ private fun LoudnessCard(viewModel: AudioLabViewModel) {
                         color = LabColors.Secondary,
                     )
                     LabChips(
-                        chips = listOf(LabChip("track", "Track"), LabChip("album", "Album")),
+                        chips = listOf(LabChip("track", "Bài hát"), LabChip("album", "Album")),
                         selectedKey = if (rg.replayGainMode == com.mochyy.mochymusic.eq.audio.ReplayGainMode.Album) "album" else "track",
                         onSelect = { key ->
                             viewModel.updateNormalize {
@@ -182,10 +182,10 @@ private fun LoudnessCard(viewModel: AudioLabViewModel) {
                             }
                         },
                     )
-                    LabSlider("Preamp", (if (rg.preampDb > 0) "+" else "") + String.format("%.1f dB", rg.preampDb), rg.preampDb,
+                    LabSlider("Tiền khuếch đại", (if (rg.preampDb > 0) "+" else "") + String.format("%.1f dB", rg.preampDb), rg.preampDb,
                         { v -> viewModel.updateNormalize { it.copy(preampDb = (v * 2).roundToInt() / 2f) } }, -6f..6f)
                     Text(
-                        "Songs that carry ReplayGain (Monochrome's FLACs, many of your own files) even out by it: Track keeps every song level, Album keeps an album's quiet and loud songs as mastered. YouTube songs use YouTube's loudness.",
+                        "Bài hát có ReplayGain (các tệp FLAC của Monochrome và nhiều tệp của bạn) sẽ được cân bằng theo thiết lập này: Bài hát giữ mức âm lượng đồng đều giữa các bài, còn Album giữ nguyên độ chênh lệch âm lượng như khi làm chủ album. Bài hát trên YouTube dùng mức âm lượng của YouTube.",
                         fontFamily = InterFontFamily, fontSize = 12.sp, lineHeight = 16.sp, color = LabColors.Secondary,
                         modifier = Modifier.padding(top = 4.dp),
                     )
@@ -200,9 +200,9 @@ private fun LoudnessCard(viewModel: AudioLabViewModel) {
 private class CrossfeedLevel(val key: String, val label: String, val cutoff: Float, val feed: Float)
 
 private val CrossfeedLevels = listOf(
-    CrossfeedLevel("light", "Light", 700f, 4.5f),
-    CrossfeedLevel("natural", "Natural", 700f, 6f),
-    CrossfeedLevel("strong", "Strong", 650f, 9.5f),
+    CrossfeedLevel("light", "Nhẹ", 700f, 4.5f),
+    CrossfeedLevel("natural", "Tự nhiên", 700f, 6f),
+    CrossfeedLevel("strong", "Mạnh", 650f, 9.5f),
 )
 
 @Composable
@@ -211,13 +211,13 @@ private fun SpatialCard(viewModel: AudioLabViewModel) {
     EffectCard(
         picture = { SpatialPicture(spatial) },
         header = {
-            LabToggleRow("Spatial audio", "Takes stereo out of your head and puts it in front of you", spatial.enabled,
+            LabToggleRow("Âm thanh không gian", "Đưa âm thanh stereo ra phía trước thay vì cảm giác nằm trong đầu", spatial.enabled,
                 { on -> viewModel.updateSpatial { it.copy(enabled = on) } })
         },
         expanded = spatial.enabled,
         options = {
             LabSegmented(
-                options = listOf("Crossfeed", "Speakers"),
+                options = listOf("Trộn kênh chéo", "Loa"),
                 selectedIndex = if (spatial.mode == SpatialMode.Crossfeed) 0 else 1,
                 onSelect = { i -> viewModel.updateSpatial { it.copy(mode = if (i == 0) SpatialMode.Crossfeed else SpatialMode.Speakers) } },
                 height = 42.dp,
@@ -235,21 +235,21 @@ private fun SpatialCard(viewModel: AudioLabViewModel) {
                 )
                 Spacer(Modifier.height(10.dp))
                 LabPanel {
-                    LabSlider("Head shadow", "${spatial.cutoffHz.roundToInt()} Hz", spatial.cutoffHz,
+                    LabSlider("Hiệu ứng che đầu", "${spatial.cutoffHz.roundToInt()} Hz", spatial.cutoffHz,
                         { v -> viewModel.updateSpatial { it.copy(cutoffHz = (v / 10).roundToInt() * 10f) } }, 300f..1500f)
-                    LabSlider("Crossfeed", "−${String.format("%.1f", spatial.feedDb)} dB", 16f - spatial.feedDb,
+                    LabSlider("Trộn kênh chéo", "−${String.format("%.1f", spatial.feedDb)} dB", 16f - spatial.feedDb,
                         { v -> viewModel.updateSpatial { it.copy(feedDb = ((16f - v) * 2).roundToInt() / 2f) } }, 1f..15f)
-                    LabSlider("Amount", pct(spatial.amount), spatial.amount,
+                    LabSlider("Mức độ", pct(spatial.amount), spatial.amount,
                         { v -> viewModel.updateSpatial { it.copy(amount = v) } }, 0f..1f)
                 }
             } else {
                 LabPanel {
-                    LabSlider("Speaker angle", "±${spatial.speakerAngle.roundToInt()}°", spatial.speakerAngle,
+                    LabSlider("Góc loa", "±${spatial.speakerAngle.roundToInt()}°", spatial.speakerAngle,
                         { v -> viewModel.updateSpatial { it.copy(speakerAngle = v.roundToInt().toFloat()) } }, 10f..90f)
-                    LabSlider("Amount", pct(spatial.amount), spatial.amount,
+                    LabSlider("Mức độ", pct(spatial.amount), spatial.amount,
                         { v -> viewModel.updateSpatial { it.copy(amount = v) } }, 0f..1f)
                     Text(
-                        "Two virtual speakers in front of a modelled head: the far ear hears each one a little later and darker, as in a room. 30° is a studio pair.",
+                        "Hai loa ảo đặt phía trước mô hình đầu: tai ở xa nghe âm thanh trễ và trầm hơn đôi chút, như trong căn phòng. Góc 30° tương đương cặp loa phòng thu.",
                         fontFamily = InterFontFamily, fontSize = 12.sp, lineHeight = 16.sp, color = LabColors.Secondary,
                         modifier = Modifier.padding(top = 4.dp),
                     )
@@ -266,8 +266,8 @@ private fun MonoCard(viewModel: AudioLabViewModel) {
     val spatial by viewModel.spatial.collectAsState()
     LabCard(padding = 10.dp) {
         LabToggleRow(
-            title = "Mono audio",
-            subtitle = "Both ears hear the whole mix: for one earbud, or hearing in one ear",
+            title = "Âm thanh mono",
+            subtitle = "Cả hai tai cùng nghe toàn bộ âm thanh; phù hợp khi chỉ dùng một tai nghe hoặc nghe kém một bên",
             checked = spatial.mono,
             onCheckedChange = { on -> viewModel.updateSpatial { it.copy(mono = on) } },
             leadingDot = true,
@@ -288,8 +288,8 @@ private fun AtmosCard(viewModel: AudioLabViewModel) {
         picture = { AtmosPicture(enabled = spatial.surround, renderOnHeadphones = spatial.surround) },
         header = {
             LabToggleRow(
-                title = "Dolby Atmos & surround",
-                subtitle = "Plays 5.1, 7.1 and Atmos beds as 3D sound on any headphones, with Mochy's head model, instead of folding them to stereo. From the next song.",
+                title = "Dolby Atmos và âm thanh vòm",
+                subtitle = "Phát âm thanh 5.1, 7.1 và Dolby Atmos dạng 3D trên mọi tai nghe bằng mô hình đầu của Mochy, thay vì gộp về stereo. Có hiệu lực từ bài hát tiếp theo.",
                 checked = spatial.surround,
                 onCheckedChange = { on -> viewModel.updateSpatial { it.copy(surround = on) } },
             )
@@ -305,8 +305,8 @@ private fun AtmosCard(viewModel: AudioLabViewModel) {
             device?.let { support ->
                 Spacer(Modifier.height(10.dp))
                 Row(Modifier.padding(horizontal = 6.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    SupportPill("Atmos decoder", support.decoder)
-                    SupportPill("Android spatializer", support.spatializer)
+                    SupportPill("Bộ giải mã Atmos", support.decoder)
+                    SupportPill("Bộ xử lý âm thanh không gian Android", support.spatializer)
                 }
             }
         },
@@ -323,7 +323,7 @@ private fun atmosSupport(context: Context): AtmosSupport {
         }
     }.getOrDefault(false)
     val spatializer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S_V2) spatializerState(context) else "Android 12L+"
-    return AtmosSupport(if (decoder) "Yes" else "Not on this phone", spatializer)
+    return AtmosSupport(if (decoder) "Có" else "Không hỗ trợ trên điện thoại này", spatializer)
 }
 
 @RequiresApi(Build.VERSION_CODES.S_V2)
@@ -331,11 +331,11 @@ private fun spatializerState(context: Context): String = runCatching {
     val manager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     val spatializer = manager.spatializer
     when {
-        !spatializer.isAvailable -> "Not available"
-        spatializer.isEnabled -> "On"
-        else -> "Off"
+        !spatializer.isAvailable -> "Không khả dụng"
+        spatializer.isEnabled -> "Bật"
+        else -> "Tắt"
     }
-}.getOrDefault("Unknown")
+}.getOrDefault("Không rõ")
 
 @Composable
 private fun SupportPill(label: String, value: String) {
@@ -351,9 +351,9 @@ private fun SupportPill(label: String, value: String) {
 private class SpeedPreset(val key: String, val label: String, val speed: Float, val preservePitch: Boolean, val withReverb: Boolean = false)
 
 private val SpeedPresets = listOf(
-    SpeedPreset("normal", "Normal", 1f, true),
-    SpeedPreset("slowed", "Slowed", 0.85f, false),
-    SpeedPreset("slowed_reverb", "Slowed + reverb", 0.85f, false, withReverb = true),
+    SpeedPreset("normal", "Bình thường", 1f, true),
+    SpeedPreset("slowed", "Chậm", 0.85f, false),
+    SpeedPreset("slowed_reverb", "Chậm + vang", 0.85f, false, withReverb = true),
     SpeedPreset("nightcore", "Nightcore", 1.25f, false),
     SpeedPreset("0.75", "0.75×", 0.75f, true),
     SpeedPreset("1.25", "1.25×", 1.25f, true),
@@ -370,9 +370,9 @@ private fun SpeedCard(viewModel: AudioLabViewModel) {
         header = {
             Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Playback speed", fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color.White)
+                    Text("Tốc độ phát", fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color.White)
                     Text(
-                        if (playback.preservePitch) "Pitch stays where it is" else "Pitch follows the speed, like a record",
+                        if (playback.preservePitch) "Giữ nguyên cao độ" else "Cao độ thay đổi theo tốc độ, như đĩa than",
                         fontFamily = InterFontFamily, fontSize = 12.sp, color = LabColors.Secondary,
                     )
                 }
@@ -413,16 +413,16 @@ private fun SpeedCard(viewModel: AudioLabViewModel) {
             Spacer(Modifier.height(10.dp))
             LabPanel {
                 LabSlider(
-                    "Speed", String.format("%.2f×", playback.speed), log10(playback.speed),
+                    "Tốc độ", String.format("%.2f×", playback.speed), log10(playback.speed),
                     { v -> viewModel.updatePlayback { it.copy(speed = (10f.pow(v) * 100).roundToInt() / 100f) } },
                     log10(MinSpeed)..log10(MaxSpeed),
                 )
-                LabToggleRow("Preserve pitch", "Keep the original key when changing speed", playback.preservePitch,
+                LabToggleRow("Giữ cao độ", "Giữ nguyên tông khi thay đổi tốc độ", playback.preservePitch,
                     { on -> viewModel.updatePlayback { it.copy(preservePitch = on) } })
                 LabCollapsible(playback.preservePitch) {
                     LabSlider(
-                        "Pitch",
-                        (if (playback.pitchSemitones > 0) "+" else "") + "${playback.pitchSemitones.roundToInt()} semitones",
+                        "Cao độ",
+                        (if (playback.pitchSemitones > 0) "+" else "") + "${playback.pitchSemitones.roundToInt()} nửa cung",
                         playback.pitchSemitones,
                         { v -> viewModel.updatePlayback { it.copy(pitchSemitones = v.roundToInt().toFloat()) } },
                         -12f..12f,
@@ -431,7 +431,7 @@ private fun SpeedCard(viewModel: AudioLabViewModel) {
             }
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                LabTextAction("Reset", R.drawable.refresh, enabled = !playback.isNormal) {
+                LabTextAction("Đặt lại", R.drawable.refresh, enabled = !playback.isNormal) {
                     viewModel.updatePlayback { com.mochyy.mochymusic.eq.PlaybackSettings() }
                 }
             }
@@ -454,9 +454,9 @@ private fun StepButton(label: String, onClick: () -> Unit) {
 private class CurveShape(val key: String, val label: String, val exponent: Float)
 
 private val CurveShapes = listOf(
-    CurveShape("gentle", "Gentle", 1.6f),
-    CurveShape("exponential", "Exponential", 2.2f),
-    CurveShape("steep", "Steep", 3.2f),
+    CurveShape("gentle", "Nhẹ", 1.6f),
+    CurveShape("exponential", "Lũy thừa", 2.2f),
+    CurveShape("steep", "Dốc", 3.2f),
 )
 
 @Composable
@@ -466,7 +466,7 @@ private fun VolumeCard(viewModel: AudioLabViewModel) {
     EffectCard(
         picture = { VolumeCurvePicture(volume, playerVolume?.value ?: 0.6f) },
         header = {
-            LabToggleRow("Exponential volume", "A logarithmic curve, for finer control at low volume", volume.enabled,
+            LabToggleRow("Âm lượng lũy thừa", "Đường cong logarithm giúp điều chỉnh âm lượng nhỏ chính xác hơn", volume.enabled,
                 { on -> viewModel.updateVolume { it.copy(enabled = on) } })
         },
         expanded = volume.enabled,
@@ -478,12 +478,12 @@ private fun VolumeCard(viewModel: AudioLabViewModel) {
             )
             Spacer(Modifier.height(10.dp))
             LabPanel {
-                LabSlider("Curve", String.format("x^%.1f", volume.exponent), volume.exponent,
+                LabSlider("Đường cong", String.format("x^%.1f", volume.exponent), volume.exponent,
                     { v -> viewModel.updateVolume { it.copy(exponent = (v * 10).roundToInt() / 10f) } }, 1f..4f)
-                LabSlider("Volume limit", pct(volume.limit), volume.limit,
+                LabSlider("Giới hạn âm lượng", pct(volume.limit), volume.limit,
                     { v -> viewModel.updateVolume { it.copy(limit = (v * 100).roundToInt() / 100f) } }, 0.2f..1f)
                 Text(
-                    "Shapes Mochy's own volume (the player's slider, fades and ducking). The limit caps how loud the app ever plays.",
+                    "Điều chỉnh âm lượng của Mochy (thanh trượt của trình phát, hiệu ứng tăng giảm và giảm âm lượng tạm thời). Giới hạn sẽ khống chế mức âm lượng tối đa của ứng dụng.",
                     fontFamily = InterFontFamily, fontSize = 12.sp, lineHeight = 16.sp, color = LabColors.Secondary,
                     modifier = Modifier.padding(top = 4.dp),
                 )

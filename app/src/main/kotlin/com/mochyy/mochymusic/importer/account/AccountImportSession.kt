@@ -215,13 +215,13 @@ class AccountImportSession(
         } catch (e: CancellationException) {
             currentCoroutineContext().ensureActive()
             Timber.w(e, "${service.label} library read was cut short")
-            _state.value = AccountImportState.Failed("Couldn't read your ${service.label} library.", signedOut = false)
+            _state.value = AccountImportState.Failed("Không thể đọc thư viện ${service.label} của bạn.", signedOut = false)
         } catch (e: AccountImportException) {
             if (e.signedOut) library = null
-            _state.value = AccountImportState.Failed(e.message ?: "Couldn't read your library.", e.signedOut)
+            _state.value = AccountImportState.Failed(e.message ?: "Không thể đọc thư viện của bạn.", e.signedOut)
         } catch (e: Exception) {
             Timber.e(e, "${service.label} library read failed")
-            _state.value = AccountImportState.Failed("Couldn't read your ${service.label} library.", signedOut = false)
+            _state.value = AccountImportState.Failed("Không thể đọc thư viện ${service.label} của bạn.", signedOut = false)
         }
     }
 
@@ -285,19 +285,19 @@ class AccountImportSession(
 
             if (signedOut) {
                 library = null
-                _state.value = AccountImportState.Failed("${service.label} signed you out while reading. Sign in again.", signedOut = true)
+                _state.value = AccountImportState.Failed("${service.label} đã đăng xuất bạn trong khi đọc dữ liệu. Hãy đăng nhập lại.", signedOut = true)
                 return@launch
             }
             _state.value = lastChoosing ?: choosing
             if (liked.isEmpty() && librarySongs.isEmpty() && playlists.isEmpty()) {
-                _notice.value = "Couldn't read ${failed.joinToString(", ").ifEmpty { "those playlists" }}."
+                _notice.value = "Không thể đọc ${failed.joinToString(", ").ifEmpty { "các danh sách phát đó" }}."
                 return@launch
             }
             _ready.value = ParsedImport(
                 likedSongs = liked,
                 librarySongs = librarySongs,
                 playlists = playlists,
-                warnings = if (failed.isEmpty()) emptyList() else listOf("Couldn't read: ${failed.joinToString(", ")}. The rest imports fine."),
+                warnings = if (failed.isEmpty()) emptyList() else listOf("Không thể đọc: ${failed.joinToString(", ")}. Các nội dung còn lại vẫn được nhập."),
                 provider = ImportSource.fromKey(service.route),
                 playlistCovers = covers,
                 playlistOrigins = origins,
@@ -341,13 +341,13 @@ class AccountImportSession(
         } catch (e: CancellationException) {
             currentCoroutineContext().ensureActive()
             Timber.w(e, "${service.label} re-sync read was cut short")
-            _state.value = AccountImportState.Failed("Couldn't read your playlists on ${service.label}.", signedOut = false)
+            _state.value = AccountImportState.Failed("Không thể đọc danh sách phát trên ${service.label}.", signedOut = false)
         } catch (e: AccountImportException) {
             if (e.signedOut) library = null
-            _state.value = AccountImportState.Failed(e.message ?: "Couldn't read your playlists.", e.signedOut)
+            _state.value = AccountImportState.Failed(e.message ?: "Không thể đọc danh sách phát của bạn.", e.signedOut)
         } catch (e: Exception) {
             Timber.e(e, "${service.label} re-sync read failed")
-            _state.value = AccountImportState.Failed("Couldn't read your playlists on ${service.label}.", signedOut = false)
+            _state.value = AccountImportState.Failed("Không thể đọc danh sách phát trên ${service.label}.", signedOut = false)
         }
     }
 
@@ -376,10 +376,10 @@ class AccountImportSession(
                 throw e
             } catch (e: AccountImportException) {
                 if (e.signedOut) library = null
-                _state.value = AccountImportState.Failed(e.message ?: "Couldn't read \"${picked.name}\".", e.signedOut)
+                _state.value = AccountImportState.Failed(e.message ?: "Không thể đọc \"${picked.name}\".", e.signedOut)
             } catch (e: Exception) {
                 Timber.e(e, "Reading ${picked.name} failed")
-                _state.value = AccountImportState.Failed("Couldn't read \"${picked.name}\" on ${service.label}.", signedOut = false)
+                _state.value = AccountImportState.Failed("Không thể đọc \"${picked.name}\" trên ${service.label}.", signedOut = false)
             }
         }
     }

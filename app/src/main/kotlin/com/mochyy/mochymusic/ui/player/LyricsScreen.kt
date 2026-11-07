@@ -226,7 +226,7 @@ fun LyricsScreen(
 
     morph: CardMorphState? = null,
 
-    /** Opens the source picker from the footer's "Switch" button. Without it the button is hidden. */
+    /** Opens the source picker from the footer's "Chuyển đổi" button. Without it the button is hidden. */
     onSwitchSource: (() -> Unit)? = null,
 
     modifier: Modifier = Modifier,
@@ -595,7 +595,7 @@ fun LyricsScreen(
                     LyricsLoadingDots(modifier = Modifier.align(Alignment.Center))
                 } else {
                     Text(
-                        text = "No lyrics found",
+                        text = "Không tìm thấy lời bài hát",
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color.White.copy(alpha = 0.5f),
                         modifier = Modifier.align(Alignment.Center)

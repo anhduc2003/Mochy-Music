@@ -65,10 +65,10 @@ import kotlin.math.sin
 private class QualityOption(val quality: AudioQuality, val title: String, val description: String, val format: String)
 
 private val YouTubeOptions = listOf(
-    QualityOption(AudioQuality.AUTO, "Auto", "High on Wi-Fi, Medium on mobile data", "Adaptive"),
-    QualityOption(AudioQuality.HIGH, "High", "The best the streamer has: less compression, more data", "~160 kbps · Opus"),
-    QualityOption(AudioQuality.MEDIUM, "Medium", "Around 128 kbps, easy on data", "~128 kbps · AAC"),
-    QualityOption(AudioQuality.LOW, "Low", "The smallest streams, for slow connections", "~50–70 kbps · Opus"),
+    QualityOption(AudioQuality.AUTO, "Tự động", "Chất lượng cao khi dùng Wi-Fi, trung bình khi dùng dữ liệu di động", "Thích ứng"),
+    QualityOption(AudioQuality.HIGH, "Cao", "Chất lượng tốt nhất dịch vụ cung cấp: ít nén hơn, tốn nhiều dữ liệu hơn", "~160 kbps · Opus"),
+    QualityOption(AudioQuality.MEDIUM, "Trung bình", "Khoảng 128 kbps, tiết kiệm dữ liệu", "~128 kbps · AAC"),
+    QualityOption(AudioQuality.LOW, "Thấp", "Luồng nhẹ nhất, phù hợp với kết nối chậm", "~50–70 kbps · Opus"),
 )
 
 /** what the picture shows: the quality of whichever provider plays first */
@@ -102,7 +102,7 @@ fun AudioQualityScreen(navController: NavController, modules: ModulesViewModel =
     val first = order.firstOrNull(usable)
     val effective = when (first) {
         null -> Effective(AudioQuality.LOW, stringResource(R.string.quality_nothing_on), stringResource(R.string.quality_turn_provider_on))
-        MonochromeModule.Id -> Effective(AudioQuality.LOSSLESS, "Monochrome", "FLAC · lossless")
+        MonochromeModule.Id -> Effective(AudioQuality.LOSSLESS, "Monochrome", "FLAC · không mất dữ liệu")
         AppleMusicModule.Id -> {
             val pick = entries.firstOrNull { it.module.info.id == first }?.picks?.get(AppleMusicModule.ChoiceQuality)
             if (pick == AppleMusicModule.OptionHe64) Effective(AudioQuality.MEDIUM, "Apple Music", "HE-AAC 64")
@@ -163,9 +163,9 @@ fun AudioQualityScreen(navController: NavController, modules: ModulesViewModel =
                         }
                     }
                 } else if (id == MonochromeModule.Id) {
-                    QualityRow("Lossless", "FLAC, as Monochrome has it: CD quality or better", selected = true, enabled = active) {}
+                    QualityRow("Không mất dữ liệu", "FLAC như trên Monochrome: chất lượng CD trở lên", selected = true, enabled = active) {}
                 }
-                LabTextAction("${entry.module.info.name} settings", R.drawable.navigate_next) {
+                LabTextAction("Cài đặt ${entry.module.info.name}", R.drawable.navigate_next) {
                     navController.navigate(com.mochyy.mochymusic.ui.screens.settings.modules.moduleRoute(id))
                 }
             }
@@ -221,7 +221,7 @@ fun AudioQualityScreen(navController: NavController, modules: ModulesViewModel =
                 if (id == SourceModules.YouTubeId) {
                     youTubeForDownloads
                 } else {
-                    entries.firstOrNull { it.module.info.id == id }?.let(::moduleStatus) ?: "Not installed"
+                    entries.firstOrNull { it.module.info.id == id }?.let(::moduleStatus) ?: "Chưa cài đặt"
                 }
             },
             // youtube is always there for downloads, so only a module's row has somewhere to go
@@ -235,10 +235,10 @@ fun AudioQualityScreen(navController: NavController, modules: ModulesViewModel =
 }
 
 private fun moduleStatus(entry: com.mochyy.mochymusic.modules.ModuleEntry): String = when {
-    entry.account is AccountState.SignedOut -> "Sign in to play from it"
-    entry.account is AccountState.Expired -> "Sign in again"
-    entry.enabled -> "On"
-    else -> "Off, tap to turn on"
+    entry.account is AccountState.SignedOut -> "Đăng nhập để phát nhạc từ dịch vụ này"
+    entry.account is AccountState.Expired -> "Đăng nhập lại"
+    entry.enabled -> "Bật"
+    else -> "Tắt, chạm để bật"
 }
 
 @Composable

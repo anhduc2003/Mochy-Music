@@ -125,7 +125,7 @@ internal object RecapRepository {
             val stats = load(db, range)
             if (stats.songCount > 0) return RecapAvailability.Ready(stats, progressOf(range, today))
         }
-        return RecapAvailability.NotYet("once you've played a song")
+        return RecapAvailability.NotYet("khi bạn nghe một bài hát")
     }
 
     private fun progressOf(range: StatsRange, today: LocalDate): Int = when {
@@ -144,8 +144,8 @@ internal object RecapRepository {
             if (stats.songCount >= RecapMinSongs) return RecapAvailability.Ready(stats, 100)
             val unlock = today.withDayOfMonth(RecapFirstDay)
             return RecapAvailability.NotYet(
-                "on ${unlock.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} $RecapFirstDay, " +
-                    "once you've played $RecapMinSongs songs",
+                "vào ngày $RecapFirstDay tháng ${unlock.month.getDisplayName(TextStyle.FULL, Locale("vi"))}, " +
+                    "khi bạn nghe đủ $RecapMinSongs bài hát",
             )
         }
         val stats = load(db, thisMonth)
@@ -155,7 +155,7 @@ internal object RecapRepository {
         }
         val missing = RecapMinSongs - stats.songCount
         return RecapAvailability.NotYet(
-            "when you've played $missing more ${if (missing == 1) "song" else "songs"} this month",
+            "khi bạn nghe thêm $missing ${if (missing == 1) "bài hát" else "bài hát"} trong tháng này",
         )
     }
 
@@ -191,7 +191,7 @@ internal object RecapRepository {
             return RecapSong(
                 id = id,
                 title = song.song.title,
-                artistName = song.artists.joinToString(", ") { it.name }.ifBlank { song.song.albumName ?: "Unknown artist" },
+                artistName = song.artists.joinToString(", ") { it.name }.ifBlank { song.song.albumName ?: "Nghệ sĩ không xác định" },
                 artistThumbnailUrl = song.artists.firstNotNullOfOrNull { it.thumbnailUrl },
                 thumbnailUrl = song.song.thumbnailUrl,
                 playTimeMs = acc.ms,
@@ -279,8 +279,8 @@ internal fun formatHoursDecimal(ms: Long): String {
 
 /** Morning / afternoon / evening / night, for the hour a peak falls in. */
 internal fun timeOfDayName(hour: Int): String = when (hour) {
-    in 5..11 -> "mornings"
-    in 12..16 -> "afternoons"
-    in 17..21 -> "evenings"
-    else -> "nights"
+    in 5..11 -> "buổi sáng"
+    in 12..16 -> "buổi chiều"
+    in 17..21 -> "buổi tối"
+    else -> "đêm khuya"
 }

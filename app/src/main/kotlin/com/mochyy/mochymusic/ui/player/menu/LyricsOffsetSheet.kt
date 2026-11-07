@@ -117,7 +117,7 @@ fun LyricsOffsetSheet(onDismiss: () -> Unit) {
                 .padding(top = 16.dp, bottom = 24.dp)
         ) {
             Text(
-                text = "Lyrics offset",
+                text = "Độ lệch lời bài hát",
                 color = Color.White,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
@@ -165,8 +165,8 @@ fun LyricsOffsetSheet(onDismiss: () -> Unit) {
 
             PillButton(
                 label = when (autoHere) {
-                    is LyricsAutoSync.State.Listening -> "listening… ${(autoHere.progress * 100).roundToInt()}%"
-                    is LyricsAutoSync.State.Matching -> "matching…"
+                    is LyricsAutoSync.State.Listening -> "Đang nghe… ${(autoHere.progress * 100).roundToInt()}%"
+                    is LyricsAutoSync.State.Matching -> "Đang đồng bộ…"
                     else -> "auto offset"
                 },
                 enabled = timedLines != null && !autoRunning,
@@ -177,7 +177,7 @@ fun LyricsOffsetSheet(onDismiss: () -> Unit) {
                 },
             )
             Spacer(modifier = Modifier.height(8.dp))
-            PillButton(label = "done", onClick = closeSheet)
+            PillButton(label = "Xong", onClick = closeSheet)
         }
     }
 }
@@ -190,8 +190,8 @@ fun LyricsOffsetSheet(onDismiss: () -> Unit) {
 private fun AutoSyncStatus(state: LyricsAutoSync.State?, timed: Boolean, onUndo: (Int) -> Unit) {
     val text = when {
         !timed -> "Auto offset needs lyrics timed by line or by word. Plain lyrics have no timing to move."
-        state is LyricsAutoSync.State.Listening -> "Listening for where the singing starts and stops…"
-        state is LyricsAutoSync.State.Matching -> "Lining each line up with its singing…"
+        state is LyricsAutoSync.State.Listening -> "Đang nghe để xác định điểm bắt đầu và kết thúc câu hát…"
+        state is LyricsAutoSync.State.Matching -> "Đang đồng bộ từng dòng lời với câu hát…"
         state is LyricsAutoSync.State.Synced -> syncedText(state)
         state is LyricsAutoSync.State.Failed -> state.message
         else -> "Listens to the song and lines the lyrics up with the singing."
@@ -204,7 +204,7 @@ private fun AutoSyncStatus(state: LyricsAutoSync.State?, timed: Boolean, onUndo:
     )
     if (state is LyricsAutoSync.State.Synced && state.previousOffsetMs != state.offsetMs) {
         Text(
-            text = "Undo",
+            text = "Hoàn tác",
             color = Color.White,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
@@ -226,7 +226,7 @@ private fun syncedText(state: LyricsAutoSync.State.Synced): String {
         moved > 0 -> "Lyrics moved ${moved} ms earlier to meet the singing."
         else -> "Lyrics moved ${-moved} ms later to meet the singing."
     }
-    val guess = if (state.sure) "" else " It's a best guess, so check it by ear."
+    val guess = if (state.sure) "" else " Đây là kết quả ước tính, hãy nghe lại để kiểm tra."
     val drift = state.driftMs?.let {
         " The timing also drifts by ${"%.1f".format(abs(it) / 1_000f)} s over the song, so it's set to fit the middle best."
     }.orEmpty()

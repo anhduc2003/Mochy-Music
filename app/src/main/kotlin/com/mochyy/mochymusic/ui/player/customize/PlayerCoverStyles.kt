@@ -72,24 +72,24 @@ sealed interface CoverOption {
 }
 
 private val AnimatedCanvasOption = CoverOption.Switch(
-    title = "Animated canvas",
-    description = "Animated canvas ( not from youtube )",
+    title = "Khung hình động",
+    description = "Khung hình động (không phải từ YouTube)",
     icon = R.drawable.sparks,
     key = CanvasThumbnailAnimationKey,
     default = true,
 )
 
 private val YtVideoOption = CoverOption.Switch(
-    title = "Yt video background",
-    description = "Plays yt videos on canvas",
+    title = "Video YouTube làm nền",
+    description = "Phát video YouTube trên khung hình",
     icon = R.drawable.slow_motion_video,
     key = PlayVideoBackgroundKey,
     default = false,
 )
 
 private val TimestampMatchingOption = CoverOption.Switch(
-    title = "Timestamp matching",
-    description = "Based on subtitle",
+    title = "Đồng bộ theo mốc thời gian",
+    description = "Dựa trên phụ đề",
     icon = R.drawable.lyrics,
     key = YtVideoBackgroundLyricsSyncKey,
     default = true,
@@ -97,27 +97,27 @@ private val TimestampMatchingOption = CoverOption.Switch(
 )
 
 private val RotatingAnimationOption = CoverOption.Switch(
-    title = "Rotating animation",
-    description = "For the disc",
+    title = "Hiệu ứng xoay",
+    description = "Dành cho đĩa nhạc",
     icon = R.drawable.refresh,
     key = DiscRotatingAnimationKey,
     default = true,
 )
 
 private val RealisticModeOption = CoverOption.Switch(
-    title = "Realistic mode",
-    description = "For the disc",
+    title = "Chế độ chân thực",
+    description = "Dành cho đĩa nhạc",
     icon = R.drawable.palette,
     key = DiscRealisticModeKey,
     default = true,
 )
 
 private val DiscNameOption = CoverOption.Text(
-    title = "Disc name",
-    description = "Printed on the platter",
+    title = "Tên đĩa",
+    description = "In trên mâm đĩa",
     icon = R.drawable.edit,
     key = DiscNameKey,
-    placeholder = "Leave empty to hide",
+    placeholder = "Để trống để ẩn",
 )
 
 private val DiscOptions = listOf(RotatingAnimationOption, RealisticModeOption, DiscNameOption)

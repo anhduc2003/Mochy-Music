@@ -132,7 +132,7 @@ internal class RecapStoryData(
     val joinedDate: LocalDate,
     val allTimeMs: Long,
 ) {
-    val name: String get() = username.trim().ifEmpty { "you" }
+    val name: String get() = username.trim().ifEmpty { "bạn" }
     /** "October" - or "2026" when a forced recap had to fall back to the whole year. */
     val monthName: String get() = stats.range.label
     val artists: List<RecapArtist> = stats.topArtists.take(10)

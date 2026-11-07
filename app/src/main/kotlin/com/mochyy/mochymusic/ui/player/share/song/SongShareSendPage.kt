@@ -85,7 +85,7 @@ import kotlinx.coroutines.withContext
 import java.io.FileNotFoundException
 import java.io.IOException
 
-// "Share to": the finished picture, the three apps, and export and share for everything else
+// "Chia sẻ lên": the finished picture, the three apps, and export and share for everything else
 internal fun PopupSheetState.showSendPage(session: SongShareSession) {
     val popup = this
     val send = SendState(session)
@@ -138,7 +138,7 @@ private class SendState(val session: SongShareSession) {
                 throw e
             } catch (e: Throwable) {
                 // kept in release builds, where timber logs nothing
-                Log.e("SongShare", "Share export failed", e)
+                Log.e("SongShare", "Không thể xuất nội dung chia sẻ", e)
                 note = if (e.isConnectionProblem()) R.string.song_share_failed else R.string.song_share_failed_retry
             } finally {
                 job = null

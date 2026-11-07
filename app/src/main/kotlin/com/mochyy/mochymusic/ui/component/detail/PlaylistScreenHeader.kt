@@ -213,14 +213,14 @@ fun PlaylistScreenHeader(
                     AnimatedContent(targetState = isPlaying, label = "PlayPause") { playing ->
                         Icon(
                             painter = painterResource(if (playing) R.drawable.ic_untitled_pause else R.drawable.ic_untitled_play),
-                            contentDescription = if (playing) "Pause" else "Play",
+                            contentDescription = if (playing) "Tạm dừng" else "Phát",
                             tint = contentColor,
                             modifier = Modifier.size(16.dp)
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (isPlaying) "Pause" else "Play",
+                        text = if (isPlaying) "Tạm dừng" else "Phát",
                         style = MaterialTheme.typography.titleMedium,
                         color = contentColor,
                         fontWeight = FontWeight.Bold
@@ -239,7 +239,7 @@ fun PlaylistScreenHeader(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.shuffle),
-                        contentDescription = "Shuffle",
+                        contentDescription = "Phát ngẫu nhiên",
                         tint = contentColor,
                         modifier = Modifier.size(22.dp)
                     )
@@ -257,7 +257,7 @@ fun PlaylistScreenHeader(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.more_vert),
-                        contentDescription = "Options",
+                        contentDescription = "Tùy chọn",
                         tint = contentColor,
                         modifier = Modifier.size(22.dp)
                     )

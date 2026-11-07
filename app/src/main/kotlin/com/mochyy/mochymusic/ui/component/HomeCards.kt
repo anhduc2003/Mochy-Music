@@ -498,7 +498,7 @@ fun HomeTrackRow(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.more_horiz),
-                    contentDescription = "More",
+                    contentDescription = "Tùy chọn khác",
                     tint = Color.White.copy(alpha = 0.85f),
                     modifier = Modifier.size(17.dp),
                 )

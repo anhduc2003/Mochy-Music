@@ -186,7 +186,7 @@ fun WelcomeStep(isHiding: Boolean = false) {
                 .padding(start = 32.dp, bottom = 175.dp, end = 32.dp)
         ) {
             Text(
-                text = "Welcome to\nmochy!",
+                text = "Chào mừng đến với\nmochy!",
                 fontSize = 42.sp,
                 lineHeight = 44.sp,
                 fontWeight = FontWeight.ExtraBold,
@@ -195,7 +195,7 @@ fun WelcomeStep(isHiding: Boolean = false) {
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "A way to listen and own your\nmusic, differently.",
+                text = "Cách nghe và làm chủ âm nhạc của bạn\ntheo một cách khác biệt.",
                 fontSize = 16.sp,
                 color = Color(0xFFB3B3B3),
                 lineHeight = 22.sp,

@@ -98,13 +98,13 @@ fun AboutSongSheet(
             ) {
                 // a tablet or a phone on its side keeps the column readable instead of stretching it
                 InfoColumn(modifier = Modifier.widthIn(max = 600.dp)) {
-                    InfoSheetTitle("About song")
+                    InfoSheetTitle("Thông tin bài hát")
                     Spacer(Modifier.height(16.dp))
                     SongHeader(song)
                     InfoDivider()
                     GeneralInformation(about)
                     InfoDivider()
-                    InfoSectionTitle("About") {
+                    InfoSectionTitle("Giới thiệu") {
                         SourceChip(source) { showSources = true }
                     }
                     Spacer(Modifier.height(12.dp))
@@ -117,7 +117,7 @@ fun AboutSongSheet(
                     }
                     if (about.links.isNotEmpty()) {
                         InfoDivider()
-                        InfoSectionTitle("Also available on")
+                        InfoSectionTitle("Cũng có trên")
                         Spacer(Modifier.height(14.dp))
                         StoreRow(about.links)
                     }
@@ -138,7 +138,7 @@ fun AboutSongSheet(
 
 @Composable
 private fun GeneralInformation(about: SongAbout) {
-    InfoSectionTitle("General Information")
+    InfoSectionTitle("Thông tin chung")
     Spacer(Modifier.height(8.dp))
     // a fact still on its way gets a placeholder; one nobody had is left out rather than shown as "-"
     val waiting = !about.factsDone
@@ -147,10 +147,10 @@ private fun GeneralInformation(about: SongAbout) {
     val released = about.released
     if (released != null) InfoBullet("Date released", released) else if (waiting) LoadingBullet("Date released")
     about.album?.let { InfoBullet("Album", it) }
-    about.artist?.let { InfoBullet("Artist", it) }
+    about.artist?.let { InfoBullet("Nghệ sĩ", it) }
     about.writtenBy?.let { InfoBullet("Written by", it) }
     about.producedBy?.let { InfoBullet("Produced by", it) }
-    about.label?.let { InfoBullet("Label", it) }
+    about.label?.let { InfoBullet("Hãng phát hành", it) }
     about.lengthSeconds?.let { InfoBullet("Length", makeTimeString(it * 1000L)) }
 }
 
@@ -183,7 +183,7 @@ private fun SourceChip(source: AboutSource, onClick: () -> Unit) {
     ) {
         Text(text = source.label, color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.width(6.dp))
-        Icon(Icons.Rounded.SwapVert, contentDescription = "Change source", tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(14.dp))
+        Icon(Icons.Rounded.SwapVert, contentDescription = "Đổi nguồn", tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(14.dp))
     }
 }
 
@@ -228,7 +228,7 @@ private fun AboutCard(about: SongAbout, source: AboutSource, onSwitch: (AboutSou
                             val other = AboutSource.entries.firstOrNull { it != shownSource && textFor(about, it) != null }
                             if (other != null) {
                                 Spacer(Modifier.height(12.dp))
-                                InfoPill(text = "Read it on ${other.label}", filled = true, onClick = { onSwitch(other) })
+                                InfoPill(text = "Đọc trên ${other.label}", filled = true, onClick = { onSwitch(other) })
                             }
                         }
                     }

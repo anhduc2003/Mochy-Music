@@ -78,7 +78,7 @@ internal fun CrossfadeBanner(modifier: Modifier = Modifier) {
             modifier = Modifier.align(Alignment.TopEnd).padding(top = 10.dp, end = 40.dp),
         )
         Text(
-            "i miss you",
+            "em nhớ anh",
             color = Color(0xFF9A9A9A),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,

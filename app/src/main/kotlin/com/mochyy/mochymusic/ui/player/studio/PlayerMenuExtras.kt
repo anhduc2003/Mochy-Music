@@ -56,7 +56,7 @@ class PlayerMenuExtras internal constructor(
         when (action) {
             PlayerMenuAction.KEEP_AWAKE -> {
                 setKeepScreenOn(!keepScreenOn)
-                toast(if (keepScreenOn) "The screen can sleep again" else "The screen stays on while Mochy is open")
+                toast(if (keepScreenOn) "Màn hình có thể tự tắt lại" else "Màn hình sẽ luôn bật khi Mochy đang mở")
             }
             PlayerMenuAction.TRANSLATE_LYRICS -> {
                 if (translating) {
@@ -78,7 +78,7 @@ class PlayerMenuExtras internal constructor(
         val song = song ?: return
         if (isActive(PlayerMenuAction.DOWNLOAD)) {
             DownloadService.sendRemoveDownload(context, ExoDownloadService::class.java, song.id, false)
-            toast(if (downloadState == Download.STATE_COMPLETED) "Removed the download" else "Download stopped")
+            toast(if (downloadState == Download.STATE_COMPLETED) "Đã xóa nội dung đã tải xuống" else "Đã dừng tải xuống")
             return
         }
         // the song has to be in the database for its download to be listed and played from there
