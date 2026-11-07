@@ -56,7 +56,7 @@ fun AboutSourceSheet(
             modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
         ) {
             InfoColumn(modifier = Modifier.widthIn(max = 600.dp)) {
-                InfoSheetTitle("About from")
+                InfoSheetTitle("Thông tin từ")
                 Spacer(Modifier.height(16.dp))
                 AboutSource.entries.forEach { source ->
                     SourceRow(
@@ -77,7 +77,7 @@ fun AboutSourceSheet(
 
 private fun previewOf(about: SongAbout, source: AboutSource): String = when {
     !doneFor(about, source) -> "Looking…"
-    else -> textFor(about, source)?.lineSequence()?.firstOrNull { it.isNotBlank() }?.trim() ?: "Nothing about this song yet"
+    else -> textFor(about, source)?.lineSequence()?.firstOrNull { it.isNotBlank() }?.trim() ?: "Chưa có thông tin về bài hát này"
 }
 
 @Composable

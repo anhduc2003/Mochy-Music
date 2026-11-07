@@ -48,15 +48,15 @@ fun TuneMyMusicImportScreen(
     ) {
         ImportInfoCard {
             Text(
-                "Works with any service TuneMyMusic supports, including private playlists and liked songs.",
+                "Tương thích với mọi dịch vụ TuneMyMusic hỗ trợ, bao gồm danh sách phát riêng tư và bài hát đã thích.",
                 style = MaterialTheme.typography.bodyLarge,
             )
             Spacer(Modifier.height(16.dp))
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Step(1, "Open TuneMyMusic and pick the service you're coming from (Spotify, Apple Music, Tidal, Amazon Music…).")
-                Step(2, "Sign in there and choose the playlists and liked songs to move.")
-                Step(3, "For the destination, choose \"Export to file\", then CSV.")
-                Step(4, "Come back here and choose the downloaded .csv file.")
+                Step(1, "Mở TuneMyMusic và chọn dịch vụ nguồn (Spotify, Apple Music, Tidal, Amazon Music…).")
+                Step(2, "Đăng nhập tại đó rồi chọn danh sách phát và bài hát đã thích cần chuyển.")
+                Step(3, "Ở bước chọn đích, hãy chọn \"Xuất ra tệp\", sau đó chọn CSV.")
+                Step(4, "Quay lại đây và chọn tệp .csv đã tải xuống.")
             }
         }
 
@@ -66,21 +66,21 @@ fun TuneMyMusicImportScreen(
             style = SettingsGroupStyle.Grouped,
             items = listOf(
                 SettingsItem(
-                    title = { Text("Open TuneMyMusic") },
-                    descriptionText = "tunemymusic.com in your browser",
+                    title = { Text("Mở TuneMyMusic") },
+                    descriptionText = "tunemymusic.com trong trình duyệt",
                     icon = painterResource(R.drawable.web_link),
                     iconShape = CircleShape,
                     onClick = {
                         try {
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(TUNEMYMUSIC_URL)))
                         } catch (_: ActivityNotFoundException) {
-                            Toast.makeText(context, "No browser found", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Không tìm thấy trình duyệt", Toast.LENGTH_SHORT).show()
                         }
                     },
                 ),
                 SettingsItem(
-                    title = { Text("Choose CSV file") },
-                    descriptionText = "Exportify and other playlist CSVs work too",
+                    title = { Text("Chọn tệp CSV") },
+                    descriptionText = "Cũng hỗ trợ CSV danh sách phát từ Exportify và các nguồn khác",
                     icon = painterResource(R.drawable.playlist_add),
                     iconShape = CircleShape,
                     onClick = { csvPicker.launch(arrayOf("text/*", "application/csv", "application/vnd.ms-excel", "application/octet-stream")) },

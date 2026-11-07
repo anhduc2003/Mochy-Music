@@ -34,25 +34,25 @@ fun ImportProvidersScreen(
 
     // some file managers label .csv as text/plain or octet-stream, so don't filter too hard
     val backupPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) viewModel.loadFile(uri, sourceLabel = "Mochy backup")
+        if (uri != null) viewModel.loadFile(uri, sourceLabel = "Bản sao lưu Mochy")
     }
 
     SubSettingsScaffold(
-        title = "Import",
+        title = "Nhập",
         onBack = { navController.navigateUp() },
     ) {
         SettingsGroup(
-            title = "Sign in and choose",
+            title = "Đăng nhập và chọn",
             style = SettingsGroupStyle.Grouped,
             items = listOf(
-                AccountService.SPOTIFY to "Liked Songs and your playlists",
-                AccountService.APPLE_MUSIC to "Library playlists, Favorite Songs and your whole library",
-                AccountService.YOUTUBE_MUSIC to "Liked music and your playlists, exact songs · also supports sync",
-                AccountService.TIDAL to "My Tracks and your playlists",
+                AccountService.SPOTIFY to "Bài hát đã thích và danh sách phát của bạn",
+                AccountService.APPLE_MUSIC to "Danh sách phát trong thư viện, Bài hát yêu thích và toàn bộ thư viện",
+                AccountService.YOUTUBE_MUSIC to "Nhạc đã thích và danh sách phát của bạn, khớp chính xác bài hát · cũng hỗ trợ đồng bộ",
+                AccountService.TIDAL to "Bản nhạc của tôi và danh sách phát của bạn",
             ).map { (service, description) ->
                 SettingsItem(
                     title = { Text(service.label) },
-                    highlightKey = "${service.label} account",
+                    highlightKey = "Tài khoản ${service.label}",
                     descriptionText = description,
                     icon = painterResource(R.drawable.login),
                     iconShape = CircleShape,
@@ -64,17 +64,17 @@ fun ImportProvidersScreen(
         Spacer(Modifier.height(16.dp))
 
         SettingsGroup(
-            title = "Or paste a public link",
+            title = "Hoặc dán liên kết công khai",
             style = SettingsGroupStyle.Grouped,
             items = LinkSource.entries.map { source ->
                 SettingsItem(
                     title = { Text(source.label) },
                     highlightKey = source.label,
                     descriptionText = when (source) {
-                        LinkSource.SPOTIFY -> "Public playlists (first 100 songs) and albums"
-                        LinkSource.APPLE_MUSIC -> "Public playlists and albums"
-                        LinkSource.DEEZER -> "Public playlists and albums, any length"
-                        LinkSource.YOUTUBE -> "Playlists and albums, exact songs, no searching"
+                        LinkSource.SPOTIFY -> "Danh sách phát công khai (100 bài đầu tiên) và album"
+                        LinkSource.APPLE_MUSIC -> "Danh sách phát công khai và album"
+                        LinkSource.DEEZER -> "Danh sách phát công khai và album, any length"
+                        LinkSource.YOUTUBE -> "Danh sách phát và album, khớp chính xác bài hát, không cần tìm kiếm"
                     },
                     icon = painterResource(R.drawable.link),
                     iconShape = CircleShape,
@@ -87,13 +87,13 @@ fun ImportProvidersScreen(
         Spacer(Modifier.height(16.dp))
 
         SettingsGroup(
-            title = "From a file",
+            title = "Từ tệp",
             style = SettingsGroupStyle.Grouped,
             items = listOf(
                 SettingsItem(
-                    title = { Text("Mochy backup") },
-                    highlightKey = "Mochy backup",
-                    descriptionText = "A CSV from Export to Mochy CSV. Restores exact songs",
+                    title = { Text("Bản sao lưu Mochy") },
+                    highlightKey = "Bản sao lưu Mochy",
+                    descriptionText = "Tệp CSV xuất từ Mochy CSV. Khôi phục đúng bài hát",
                     icon = painterResource(R.drawable.backup),
                     iconShape = CircleShape,
                     onClick = { backupPicker.launch(arrayOf("text/*", "application/csv", "application/vnd.ms-excel", "application/octet-stream")) },
@@ -101,7 +101,7 @@ fun ImportProvidersScreen(
                 SettingsItem(
                     title = { Text("TuneMyMusic CSV") },
                     highlightKey = "TuneMyMusic CSV",
-                    descriptionText = "Private playlists, liked songs, and every other service",
+                    descriptionText = "Danh sách phát riêng tư, bài hát đã thích và các dịch vụ khác",
                     icon = painterResource(R.drawable.web_link),
                     iconShape = CircleShape,
                     onClick = { navController.navigate(ImportTuneMyMusicRoute) },
@@ -112,13 +112,13 @@ fun ImportProvidersScreen(
         Spacer(Modifier.height(16.dp))
 
         SettingsGroup(
-            title = "Other services",
+            title = "Dịch vụ khác",
             style = SettingsGroupStyle.Grouped,
             items = listOf(
                 SettingsItem(
                     title = { Text("Amazon Music, SoundCloud, Pandora…") },
-                    descriptionText = "Goes through TuneMyMusic",
-                    detail = "These go through TuneMyMusic, which can sign in to them for you",
+                    descriptionText = "Thực hiện qua TuneMyMusic",
+                    detail = "Các dịch vụ này được xử lý qua TuneMyMusic, nơi có thể đăng nhập giúp bạn",
                     icon = painterResource(R.drawable.library_music),
                     iconShape = CircleShape,
                     onClick = { navController.navigate(ImportTuneMyMusicRoute) },

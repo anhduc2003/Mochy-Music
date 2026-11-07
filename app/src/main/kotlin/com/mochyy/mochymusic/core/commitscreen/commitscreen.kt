@@ -122,7 +122,7 @@ fun CommitScreen(
                     val message = fullMessage.lines().firstOrNull { it.isNotBlank() } ?: fullMessage
 
                     val authorObj = commitObj.getJSONObject("author")
-                    val authorName = authorObj.optString("name", "Unknown")
+                    val authorName = authorObj.optString("name", "Không rõ")
                     val rawDate = authorObj.optString("date", "")
                     val formattedDate = try {
                         ZonedDateTime.parse(rawDate).format(outputFormatter)

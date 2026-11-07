@@ -193,9 +193,9 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 private object MochyGreeting {
-    private fun pick() = listOf("Hello again", "Hey", "Welcome back", "Good to see you").random()
+    private fun pick() = listOf("Xin chào", "Chào bạn", "Mừng bạn quay lại", "Rất vui được gặp lại").random()
 
-    private val greetingState = mutableStateOf("Hello again")
+    private val greetingState = mutableStateOf("Xin chào")
     private var wasBackgrounded = false
 
     val current: String get() = greetingState.value
@@ -641,7 +641,7 @@ fun ProfileScreen(navController: NavController) {
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.expand_more),
-                                contentDescription = "Pull down",
+                                contentDescription = "Kéo xuống",
                                 tint = Color.White.copy(alpha = 0.35f),
                                 modifier = Modifier
                                     .size(30.dp)
@@ -655,7 +655,7 @@ fun ProfileScreen(navController: NavController) {
                             )
                             if (recapWaiting) {
                                 Text(
-                                    text = "swipe down here!!",
+                                    text = "vuốt xuống ở đây!!",
                                     style = MonoSmall.copy(color = Color.White.copy(alpha = 0.6f)),
                                     maxLines = 1,
                                     modifier = Modifier.graphicsLayer {
@@ -683,7 +683,7 @@ fun ProfileScreen(navController: NavController) {
                         ) {
                             val invalid = stage == HeaderStage.Invalid
                             Text(
-                                text = if (invalid) "come back later" else "scratch!",
+                                text = if (invalid) "hãy quay lại sau" else "cào đi!",
                                 style = PageTitle.copy(fontSize = 20.sp, textAlign = TextAlign.Center),
                                 modifier = Modifier.graphicsLayer { alpha = if (invalid) 1f else 1f - scratch.dissolve.value },
                             )
@@ -694,7 +694,7 @@ fun ProfileScreen(navController: NavController) {
                                     modifier = Modifier.padding(top = 6.dp),
                                 )
                                 Text(
-                                    text = "swipe up to close",
+                                    text = "vuốt lên để đóng",
                                     style = MonoSmall.copy(color = Color.White.copy(alpha = 0.35f)),
                                     modifier = Modifier.padding(top = 26.dp),
                                 )
@@ -735,7 +735,7 @@ fun ProfileScreen(navController: NavController) {
                         Spacer(Modifier.height(16.dp))
                         DiscordCard(onClick = { context.openDevUrl(DiscordUrl) })
                         Spacer(Modifier.height(28.dp))
-                        Text("Settings", style = PageTitle.copy(fontSize = 15.sp), modifier = Modifier.padding(start = 2.dp, bottom = 10.dp))
+                        Text("Cài đặt", style = PageTitle.copy(fontSize = 15.sp), modifier = Modifier.padding(start = 2.dp, bottom = 10.dp))
                         OpenSettingsRow(onClick = { navController.navigate("mochy_settings") })
                         Spacer(Modifier.height(180.dp))
                     }
@@ -940,7 +940,7 @@ private fun ListeningTimeCard(totalMs: Long, onViewStats: () -> Unit) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF474747)))
         Spacer(Modifier.height(12.dp))
         Text(
-            "View Stats  >",
+            "Xem thống kê  >",
             style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF8A8A8A)),
         )
     }
@@ -983,7 +983,7 @@ private fun VersionCard(
                 .padding(CardPadding),
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Version & about app", style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF9A9A9A)))
+                Text("Phiên bản và thông tin ứng dụng", style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF9A9A9A)))
                 Text(
                     // "7.1.1 build#1093" -> "7.1.1"
                     BuildConfig.VERSION_NAME.substringBefore(' '),
@@ -1008,7 +1008,7 @@ private fun VersionCard(
  */
 @Composable
 private fun VersionCapsule(update: Boolean, onAbout: () -> Unit) {
-    val shown = if (update) "Update" else "About app"
+    val shown = if (update) "Cập nhật" else "Thông tin ứng dụng"
 
     // the pop: a quick squash, then a spring that carries past full size and settles
     val pop = remember { Animatable(1f) }
@@ -1102,7 +1102,7 @@ private fun DeveloperCard(onClick: () -> Unit) {
         }
         Spacer(Modifier.width(12.dp))
         Text(
-            "meet da dev and contributors :3",
+            "Gặp gỡ nhà phát triển và những người đóng góp :3",
             style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, letterSpacing = (-0.6).sp, color = Color(0xFF9A9A9A)),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -1134,7 +1134,7 @@ private fun DiscordCard(onClick: () -> Unit) {
         )
         Spacer(Modifier.width(12.dp))
         Text(
-            "Join mochy’s discord server!",
+            "Tham gia máy chủ Discord của Mochy!",
             style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, letterSpacing = (-0.6).sp, color = Color.White),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

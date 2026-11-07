@@ -57,7 +57,7 @@ fun PopupSheetState.showDonateSheet() {
     val popup = this
     show(
         fullBleed = true,
-        buttonBar = { DonatePillButton(text = "what no i dont want to", onClick = popup::dismiss, quiet = true) },
+        buttonBar = { DonatePillButton(text = "Không, tôi không muốn đâu", onClick = popup::dismiss, quiet = true) },
     ) {
         DonateSheetContent()
     }
@@ -96,7 +96,7 @@ private fun DonateSheetContent() {
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             )
             Text(
-                text = "Arigatou! :3",
+                text = "Cảm ơn nhé! :3",
                 fontSize = 36.sp,
                 lineHeight = 40.sp,
                 fontWeight = FontWeight.Bold,
@@ -105,7 +105,7 @@ private fun DonateSheetContent() {
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "Here’s a way to support and donate to us!",
+                text = "Bạn có thể ủng hộ và quyên góp cho chúng tôi tại đây!",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.3).sp,
@@ -115,21 +115,21 @@ private fun DonateSheetContent() {
             Spacer(Modifier.height(24.dp))
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 DonateLinkRow(
-                    title = "Support us on Ko-fi",
+                    title = "Ủng hộ chúng tôi trên Ko-fi",
                     icon = R.drawable.ic_kofi,
                     iconSize = 22.dp,
                     onClick = { context.openUrl(KofiUrl) },
                 )
                 DonateLinkRow(
-                    title = "Support us on SociaBuzz",
-                    subtitle = "Recommended for some SEA and LATAM countries",
+                    title = "Ủng hộ chúng tôi trên SociaBuzz",
+                    subtitle = "Được đề xuất tại một số quốc gia Đông Nam Á và Mỹ Latinh",
                     icon = R.drawable.link,
                     iconSize = 16.dp,
                     iconTint = Color.Black,
                     onClick = { context.openUrl(SocialBuzzUrl) },
                 )
                 DonateLinkRow(
-                    title = "Support us on Buy Me a Coffee",
+                    title = "Ủng hộ chúng tôi trên Buy Me a Coffee",
                     icon = R.drawable.ic_bmc_logo,
                     iconSize = 20.dp,
                     onClick = { context.openUrl(BuyMeACoffeeUrl) },
@@ -138,7 +138,7 @@ private fun DonateSheetContent() {
 
             Spacer(Modifier.height(22.dp))
             Text(
-                text = "your donation, no matter how small it is, will always be very very useful for us :3",
+                text = "Mọi khoản đóng góp của bạn, dù nhỏ đến đâu, cũng luôn vô cùng hữu ích với chúng tôi :3",
                 fontSize = 14.sp,
                 lineHeight = 19.sp,
                 fontWeight = FontWeight.Bold,

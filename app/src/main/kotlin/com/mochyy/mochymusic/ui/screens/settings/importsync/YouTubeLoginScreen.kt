@@ -98,13 +98,13 @@ fun YouTubeLoginScreen(navController: NavController) {
                 .padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
             IconButton(onClick = { navController.navigateUp() }) {
-                Icon(painterResource(R.drawable.arrow_back), contentDescription = "Back", tint = Color.White)
+                Icon(painterResource(R.drawable.arrow_back), contentDescription = "Quay lại", tint = Color.White)
             }
             Spacer(Modifier.width(4.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text("Sign in to YouTube", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                Text("Đăng nhập vào YouTube", style = MaterialTheme.typography.titleLarge, color = Color.White)
                 Text(
-                    "Google's own sign-in page. Mochy never sees your password.",
+                    "Trang đăng nhập chính thức của Google. Mochy không bao giờ thấy mật khẩu của bạn.",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.6f),
                 )
@@ -115,7 +115,7 @@ fun YouTubeLoginScreen(navController: NavController) {
         }
         YouTubeLoginWebContent(
             onSignedIn = { info ->
-                Toast.makeText(context, info?.name?.let { "Signed in as $it" } ?: "Signed in to YouTube", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, info?.name?.let { "Đã đăng nhập với tên $it" } ?: "Đã đăng nhập vào YouTube", Toast.LENGTH_SHORT).show()
                 navController.navigateUp()
             },
             onExit = { navController.navigateUp() },
@@ -177,10 +177,10 @@ fun YouTubeLoginWebContent(
                         currentOnSignedIn(info)
                     }
                 } catch (e: Exception) {
-                    Timber.e(e, "Saving YouTube login failed")
+                    Timber.e(e, "Không thể lưu thông tin đăng nhập YouTube")
                     withContext(Dispatchers.Main) {
                         saving = false
-                        Toast.makeText(context, "Couldn't finish signing in. Try again.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "Không thể hoàn tất đăng nhập. Hãy thử lại.", Toast.LENGTH_LONG).show()
                     }
                 }
             }

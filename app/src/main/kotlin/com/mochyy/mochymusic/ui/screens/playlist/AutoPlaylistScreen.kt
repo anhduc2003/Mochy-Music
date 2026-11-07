@@ -150,12 +150,12 @@ fun AutoPlaylistScreen(
         "liked" -> stringResource(R.string.liked)
         "uploaded" -> stringResource(R.string.uploaded_playlist)
         "downloaded" -> stringResource(R.string.offline)
-        "local" -> "Local"
-        "local_liked" -> "Local liked songs"
-        "cached" -> "Cached"
-        "cached_liked" -> "Cached liked songs"
-        "songs" -> "All Songs"
-        "recently_added" -> "Recently Added"
+        "local" -> "Trên thiết bị"
+        "local_liked" -> "Bài hát đã thích trên thiết bị"
+        "cached" -> "Trong bộ nhớ đệm"
+        "cached_liked" -> "Bài hát đã thích trong bộ nhớ đệm"
+        "songs" -> "Tất cả bài hát"
+        "recently_added" -> "Mới thêm gần đây"
         else -> viewModel.playlist
     }
 
@@ -490,7 +490,7 @@ fun AutoPlaylistScreen(
                                 label = { type ->
                                     when (type) {
                                         LikedSongSortType.CREATE_DATE -> stringResource(R.string.sort_by_create_date)
-                                        LikedSongSortType.IMPORT_ORDER -> "Import order"
+                                        LikedSongSortType.IMPORT_ORDER -> "Thứ tự nhập"
                                         LikedSongSortType.NAME -> stringResource(R.string.sort_by_name)
                                         LikedSongSortType.ARTIST -> stringResource(R.string.sort_by_artist)
                                         LikedSongSortType.PLAY_TIME -> stringResource(R.string.sort_by_play_time)

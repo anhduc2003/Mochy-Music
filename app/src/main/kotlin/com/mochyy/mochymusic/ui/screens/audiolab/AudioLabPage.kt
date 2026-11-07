@@ -356,7 +356,7 @@ internal fun LabBackButton(onBack: () -> Unit, modifier: Modifier = Modifier) {
     ) {
         Icon(
             painter = painterResource(R.drawable.arrow_back_ios),
-            contentDescription = "Back",
+            contentDescription = "Quay lại",
             tint = Color.White,
             modifier = Modifier.size(15.dp).offset(x = 2.dp),
         )

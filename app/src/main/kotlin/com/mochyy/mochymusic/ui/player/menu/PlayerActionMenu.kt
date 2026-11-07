@@ -197,7 +197,7 @@ fun PlayerActionMenu(
                     SheetActionCardRow {
                         SheetActionCard(
                             icon = R.drawable.translate,
-                            title = "Ai translation",
+                            title = "Dịch bằng AI",
                             // Greyed out until the AI translation settings are filled in — an
                             // enabled button that silently does nothing is worse than a disabled
                             // one that says so.
@@ -207,7 +207,7 @@ fun PlayerActionMenu(
                         )
                         SheetActionCard(
                             icon = R.drawable.edit,
-                            title = "Edit lyrics",
+                            title = "Chỉnh sửa lời bài hát",
                             onClick = { showLyricsEditor = true },
                             modifier = Modifier.weight(1f),
                         )
@@ -220,7 +220,7 @@ fun PlayerActionMenu(
                     // outcome.
                     MenuRow(
                         icon = R.drawable.lyrics,
-                        title = "Lyrics provider",
+                        title = "Nguồn lời bài hát",
                         onClick = { showLyricsProvider = true },
                     )
 
@@ -228,7 +228,7 @@ fun PlayerActionMenu(
 
                     MenuRow(
                         icon = R.drawable.fast_forward,
-                        title = "Lyrics offset",
+                        title = "Độ lệch lời bài hát",
                         onClick = { showLyricsOffset = true },
                     )
 
@@ -236,7 +236,7 @@ fun PlayerActionMenu(
 
                     MenuRow(
                         icon = R.drawable.translate,
-                        title = "lyrics translation",
+                        title = "Dịch lời bài hát",
                         onClick = { showLyricsTranslation = true },
                     )
 
@@ -247,7 +247,7 @@ fun PlayerActionMenu(
                 SheetActionCardRow {
                     SheetActionCard(
                         icon = R.drawable.radio,
-                        title = "Start Radio",
+                        title = "Bắt đầu Radio",
                         enabled = currentMetadata != null,
                         onClick = {
                             currentMetadata?.let { metadata ->
@@ -259,7 +259,7 @@ fun PlayerActionMenu(
                     )
                     SheetActionCard(
                         icon = R.drawable.playlist_add,
-                        title = "Add to playlist",
+                        title = "Thêm vào danh sách phát",
                         enabled = currentMetadata != null,
                         onClick = { showChoosePlaylistDialog = true },
                         modifier = Modifier.weight(1f),
@@ -310,7 +310,7 @@ fun PlayerActionMenu(
                 Spacer(modifier = Modifier.height(8.dp))
                 MenuRow(
                     icon = R.drawable.cast,
-                    title = "Change device output",
+                    title = "Đổi thiết bị đầu ra",
                     onClick = { showAudioDevices = true },
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -320,7 +320,7 @@ fun PlayerActionMenu(
                 Spacer(modifier = Modifier.height(8.dp))
                 MenuRow(
                     icon = R.drawable.speed,
-                    title = "Playback speed and tempo",
+                    title = "Tốc độ và nhịp phát",
                     onClick = { showPlaybackSpeed = true },
                 )
                 if (onEqualizer != null) {
@@ -339,14 +339,14 @@ fun PlayerActionMenu(
 
                 MenuRow(
                     icon = if (trackInfo.liked) R.drawable.ic_untitled_heart else R.drawable.ic_untitled_heart_unfill,
-                    title = if (trackInfo.liked) "remove from liked" else "add to liked",
+                    title = if (trackInfo.liked) "Xóa khỏi bài hát đã thích" else "Thêm vào bài hát đã thích",
                     onClick = { playerConnection.toggleLike() },
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 val inLibrary = librarySong?.song?.inLibrary != null
                 MenuRow(
                     icon = if (inLibrary) R.drawable.library_add_check else R.drawable.library_add,
-                    title = if (inLibrary) "remove from library" else "add to library",
+                    title = if (inLibrary) "Xóa khỏi thư viện" else "Thêm vào thư viện",
                     enabled = currentMetadata != null,
                     onClick = { playerConnection.toggleLibrary() },
                 )
@@ -379,7 +379,7 @@ fun PlayerActionMenu(
 
                 MenuRow(
                     icon = R.drawable.edit,
-                    title = "edit player",
+                    title = "Chỉnh sửa trình phát",
                     onClick = {
                         onDismiss()
                         onEditPlayer()
@@ -475,7 +475,7 @@ private fun KeepScreenOnRow() {
     val (keepScreenOn, setKeepScreenOn) = rememberPreference(KeepScreenOn, defaultValue = false)
     MenuRow(
         icon = R.drawable.lock_open,
-        title = "Keep screen on",
+        title = "Giữ màn hình luôn bật",
         onClick = { setKeepScreenOn(!keepScreenOn) },
         trailing = { AppSwitch(checked = keepScreenOn, onCheckedChange = setKeepScreenOn) },
     )
@@ -490,7 +490,7 @@ private fun SleepTimerRow(onClick: () -> Unit) {
     LaunchedEffect(sleepTimer.triggerTime, sleepTimer.pauseWhenSongEnd) {
         while (true) {
             remainingLabel = when {
-                sleepTimer.pauseWhenSongEnd -> "ends with song"
+                sleepTimer.pauseWhenSongEnd -> "kết thúc cùng bài hát"
                 sleepTimer.triggerTime > 0L -> {
                     val left = sleepTimer.triggerTime - System.currentTimeMillis()
                     if (left <= 0L) "" else formatRemaining(left)
@@ -504,12 +504,12 @@ private fun SleepTimerRow(onClick: () -> Unit) {
 
     MenuRow(
         icon = R.drawable.sleep_timer,
-        title = "Sleep timer",
+        title = "Hẹn giờ ngủ",
         onClick = onClick,
         trailing = {
             if (remainingLabel.isNotEmpty()) {
                 Text(
-                    text = "$remainingLabel remaining",
+                    text = "còn $remainingLabel",
                     color = Color(0xFF9A9A9A),
                     fontSize = 12.sp,
                 )
@@ -556,7 +556,7 @@ private fun DeviceVolumeRow() {
             SheetIcon(R.drawable.volume_up)
             Spacer(modifier = Modifier.width(14.dp))
             Text(
-                text = android.os.Build.MODEL ?: "this device",
+                text = android.os.Build.MODEL ?: "thiết bị này",
                 color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,

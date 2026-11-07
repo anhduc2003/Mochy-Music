@@ -120,9 +120,9 @@ fun CipherSettingsScreen(navController: NavController) {
     }
 
     val statusLabel = when {
-        !status.hasCache -> "Not loaded"
-        status.isExpired -> "Stale — refreshes on next playback"
-        else -> "Ready"
+        !status.hasCache -> "Chưa tải"
+        status.isExpired -> "Đã cũ — sẽ làm mới khi phát lần tiếp theo"
+        else -> "Sẵn sàng"
     }
 
     SubSettingsScaffold(
@@ -159,20 +159,20 @@ fun CipherSettingsScreen(navController: NavController) {
 
                 Spacer(Modifier.height(16.dp))
 
-                CipherInfoRow("Player ID", status.playerHash ?: "—")
+                CipherInfoRow("ID trình phát", status.playerHash ?: "—")
                 CipherInfoRow(
-                    "Last updated",
+                    "Cập nhật lần cuối",
                     status.lastUpdatedMs?.let {
                         DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(it))
                     } ?: "—",
                 )
                 CipherInfoRow(
-                    "Script size",
+                    "Dung lượng tập lệnh",
                     if (status.sizeBytes > 0) "${status.sizeBytes / 1024} KB" else "—",
                 )
                 CipherInfoRow(
-                    "Next refresh",
-                    if (!status.hasCache) "—" else if (remainingMs <= 0L) "Due now" else "in ${formatDuration(remainingMs)}",
+                    "Lần làm mới tiếp theo",
+                    if (!status.hasCache) "—" else if (remainingMs <= 0L) "Đến hạn" else "in ${formatDuration(remainingMs)}",
                 )
 
                 Spacer(Modifier.height(12.dp))
@@ -197,9 +197,9 @@ fun CipherSettingsScreen(navController: NavController) {
             style = SettingsGroupStyle.Grouped,
             items = listOf(
                 SettingsItem(
-                    title = { Text(if (isRefreshing) "Refreshing…" else "Refresh now") },
+                    title = { Text(if (isRefreshing) "Đang làm mới…" else "Làm mới ngay") },
                     descriptionText = when {
-                        isRefreshing -> "Downloading the latest player script"
+                        isRefreshing -> "Đang tải tập lệnh trình phát mới nhất"
                         cooldownMs > 0L -> "Rate limited — try again in ${formatDuration(cooldownMs)}"
                         else -> "$remainingRefreshes manual refresh${if (remainingRefreshes == 1) "" else "es"} left"
                     },
@@ -217,24 +217,24 @@ fun CipherSettingsScreen(navController: NavController) {
                             }
                             status = PlayerJsFetcher.readCacheStatus()
                             message = if (result != null) {
-                                "Updated to player ${result.second}"
+                                "Đã cập nhật trình phát lên phiên bản ${result.second}"
                             } else {
-                                "Refresh failed — check your connection and try again"
+                                "Làm mới thất bại — hãy kiểm tra kết nối rồi thử lại"
                             }
                             isRefreshing = false
                         }
                     },
                 ),
                 SettingsItem(
-                    title = { Text("Clear cached script") },
-                    descriptionText = "Forces a fresh download on the next stream",
+                    title = { Text("Xóa tập lệnh đã lưu") },
+                    descriptionText = "Buộc tải mới ở lần phát tiếp theo",
                     icon = painterResource(R.drawable.restore),
                     iconShape = CircleShape,
                     onClick = {
                         coroutineScope.launch {
                             withContext(Dispatchers.IO) { PlayerJsFetcher.invalidateCache() }
                             status = PlayerJsFetcher.readCacheStatus()
-                            message = "Cached player script cleared"
+                            message = "Đã xóa tập lệnh đã lưu"
                         }
                     },
                 ),

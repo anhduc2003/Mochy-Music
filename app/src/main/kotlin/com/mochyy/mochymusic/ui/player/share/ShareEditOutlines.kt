@@ -186,7 +186,7 @@ private fun MoveSongArrow(header: ChasingBox, pad: Float, headerBelow: Boolean, 
     ) {
         Icon(
             painterResource(R.drawable.expand_more),
-            contentDescription = if (headerBelow) "Move the song above the words" else "Move the song under the words",
+            contentDescription = if (headerBelow) "Đưa bài hát lên trên lời" else "Đưa bài hát xuống dưới lời",
             tint = Color.White.copy(alpha = 0.7f),
             modifier = Modifier
                 .size(24.dp)

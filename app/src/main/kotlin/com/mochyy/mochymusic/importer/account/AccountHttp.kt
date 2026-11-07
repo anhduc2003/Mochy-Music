@@ -40,7 +40,7 @@ internal object AccountHttp {
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
-        throw AccountImportException("Couldn't reach $service. Check your connection.")
+        throw AccountImportException("Không thể kết nối đến $service. Hãy kiểm tra kết nối mạng.")
     }
 
     suspend fun post(url: String, headers: Map<String, String>, body: String, service: String): Response = try {
@@ -52,7 +52,7 @@ internal object AccountHttp {
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
-        throw AccountImportException("Couldn't reach $service. Check your connection.")
+        throw AccountImportException("Không thể kết nối đến $service. Hãy kiểm tra kết nối mạng.")
     }
 
     fun parse(body: String): JsonObject? = runCatching { json.parseToJsonElement(body) as? JsonObject }.getOrNull()
@@ -71,20 +71,20 @@ internal object AccountHttp {
             val response = get(url, headers, service)
             when {
                 response.status in 200..299 ->
-                    return parse(response.body) ?: throw AccountImportException("$service sent something we couldn't read.")
+                    return parse(response.body) ?: throw AccountImportException("$service đã gửi dữ liệu không thể đọc được.")
                 response.status == 429 || response.status == 502 || response.status == 503 -> {
                     val waitSeconds = (response.retryAfterSeconds ?: (2L shl attempt)).coerceIn(1, 30)
                     delay(waitSeconds * 1000)
                 }
                 response.status == 401 ->
-                    throw AccountImportException("$service signed you out. Sign in again.", signedOut = true)
+                    throw AccountImportException("$service đã đăng xuất bạn. Hãy đăng nhập lại.", signedOut = true)
                 response.status == 404 && notFoundAsNull -> return null
                 response.status == 403 ->
-                    throw AccountImportException("$service won't share this one (403).")
-                else -> throw AccountImportException("$service answered with an error (${response.status}).")
+                    throw AccountImportException("$service không cho phép truy cập nội dung này (403).")
+                else -> throw AccountImportException("$service phản hồi lỗi (${response.status}).")
             }
         }
-        throw AccountImportException("$service is busy right now. Try again in a minute.")
+        throw AccountImportException("$service hiện đang bận. Hãy thử lại sau một phút.")
     }
 
     private const val MAX_ATTEMPTS = 5

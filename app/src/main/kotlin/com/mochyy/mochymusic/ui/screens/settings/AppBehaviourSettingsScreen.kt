@@ -153,7 +153,7 @@ private fun larpItems(): List<SettingsItem> {
         // the row opens the sheet to change level too, the switch only turns it off without asking
         SettingsItem(
             title = { Text(title) },
-            highlightKey = "Larp mode",
+            highlightKey = "Chế độ Larp",
             searchText = title,
             descriptionText = if (larping) stringResource(level.title) else stringResource(R.string.larp_mode_desc),
             detail = stringResource(R.string.larp_mode_detail),
@@ -186,7 +186,7 @@ private fun generalItems(navController: NavController): List<SettingsItem> {
     return listOf(
         languageItem(),
         switchItem(
-            key = "Disable App Updates notice",
+            key = "Ẩn thông báo cập nhật ứng dụng",
             title = stringResource(R.string.settings_updates_notice),
             description = stringResource(R.string.settings_updates_notice_desc),
             icon = painterResource(R.drawable.update),
@@ -194,7 +194,7 @@ private fun generalItems(navController: NavController): List<SettingsItem> {
             onCheckedChange = setNoticeHidden,
         ),
         switchItem(
-            key = "Offline mode",
+            key = "Chế độ ngoại tuyến",
             title = stringResource(R.string.settings_offline_mode),
             description = stringResource(R.string.settings_offline_mode_desc),
             icon = painterResource(R.drawable.download),
@@ -223,7 +223,7 @@ private fun generalItems(navController: NavController): List<SettingsItem> {
             },
         ),
         switchItem(
-            key = "Keep playing even when closed",
+            key = "Tiếp tục phát khi đóng ứng dụng",
             title = stringResource(R.string.playback_keep_playing),
             description = stringResource(R.string.playback_keep_playing_desc),
             detail = stringResource(R.string.playback_keep_playing_detail),
@@ -232,7 +232,7 @@ private fun generalItems(navController: NavController): List<SettingsItem> {
             onCheckedChange = { onStopOnTaskRemoved(!it) },
         ),
         switchItem(
-            key = "Play alongside other apps",
+            key = "Phát cùng ứng dụng khác",
             title = stringResource(R.string.playback_mix_other_apps),
             description = stringResource(R.string.playback_mix_other_apps_desc),
             detail = stringResource(R.string.playback_mix_other_apps_detail),
@@ -241,7 +241,7 @@ private fun generalItems(navController: NavController): List<SettingsItem> {
             onCheckedChange = onMixWithOtherAppsChange,
         ),
         switchItem(
-            key = "Save Player's last state",
+            key = "Lưu trạng thái phát gần nhất",
             title = stringResource(R.string.playback_save_state),
             description = stringResource(R.string.playback_save_state_desc),
             detail = stringResource(R.string.playback_save_state_detail),
@@ -250,7 +250,7 @@ private fun generalItems(navController: NavController): List<SettingsItem> {
             onCheckedChange = onPersistentQueueChange,
         ),
         switchItem(
-            key = "Albums from liked songs",
+            key = "Album từ bài hát đã thích",
             title = stringResource(R.string.settings_albums_from_likes),
             description = stringResource(R.string.settings_albums_from_likes_desc),
             detail = stringResource(R.string.settings_albums_from_likes_detail),
@@ -286,7 +286,7 @@ private fun languageItem(): SettingsItem {
     }
     return SettingsItem(
         title = { Text(stringResource(R.string.app_language)) },
-        highlightKey = "App language",
+        highlightKey = "Ngôn ngữ ứng dụng",
         descriptionText = languageName,
         searchText = stringResource(R.string.app_language),
         icon = painterResource(R.drawable.translate),
@@ -301,7 +301,7 @@ private fun localItems(): List<SettingsItem> {
     val (autoMetadata, onAutoMetadataChange) = rememberPreference(LocalSongAutoMetadataKey, defaultValue = true)
     return listOf(
         switchItem(
-            key = "Local song auto metadata",
+            key = "Tự động lấy thông tin bài hát trên thiết bị",
             title = stringResource(R.string.settings_local_auto_metadata),
             description = stringResource(R.string.settings_local_auto_metadata_desc),
             icon = painterResource(R.drawable.cached),
@@ -322,7 +322,7 @@ private fun playerBehaviourItems(): List<SettingsItem> {
     val (reportPlays, onReportPlaysChange) = rememberPreference(YtReportPlaysKey, defaultValue = true)
     return listOf(
         switchItem(
-            key = "Disable auto-playing YouTube video",
+            key = "Không tự phát video YouTube",
             title = stringResource(R.string.settings_disable_video_autoplay),
             description = stringResource(R.string.settings_disable_video_autoplay_desc),
             icon = painterResource(R.drawable.slow_motion_video),
@@ -330,7 +330,7 @@ private fun playerBehaviourItems(): List<SettingsItem> {
             onCheckedChange = onDisableVideoAutoplayChange,
         ),
         switchItem(
-            key = "Translations from YouTube",
+            key = "Bản dịch từ YouTube",
             title = stringResource(R.string.settings_youtube_translations),
             description = stringResource(R.string.settings_youtube_translations_desc),
             detail = stringResource(R.string.settings_youtube_translations_detail),
@@ -339,7 +339,7 @@ private fun playerBehaviourItems(): List<SettingsItem> {
             onCheckedChange = onYoutubeTranslationsChange,
         ),
         switchItem(
-            key = "Sync lyrics to music videos",
+            key = "Đồng bộ lời với video nhạc",
             title = stringResource(R.string.settings_sync_lyrics_video),
             description = stringResource(R.string.settings_sync_lyrics_video_desc),
             detail = stringResource(R.string.settings_sync_lyrics_video_detail),
@@ -348,7 +348,7 @@ private fun playerBehaviourItems(): List<SettingsItem> {
             onCheckedChange = onSyncLyricsToVideoChange,
         ),
         switchItem(
-            key = "Don't skip on failure",
+            key = "Không bỏ qua khi phát lỗi",
             title = stringResource(R.string.settings_dont_skip_failure),
             description = stringResource(R.string.settings_dont_skip_failure_desc),
             detail = stringResource(R.string.settings_dont_skip_failure_detail),
@@ -358,7 +358,7 @@ private fun playerBehaviourItems(): List<SettingsItem> {
         ),
         SettingsItem(
             title = { ValueTitle(stringResource(R.string.settings_skip_timeout), stringResource(R.string.settings_seconds_short, failureTimeout)) },
-            highlightKey = "Skip timeout failure",
+            highlightKey = "Bỏ qua khi hết thời gian chờ",
             searchText = stringResource(R.string.settings_skip_timeout),
             description = {
                 DefaultPlayerSeekBarSlider(
@@ -375,7 +375,7 @@ private fun playerBehaviourItems(): List<SettingsItem> {
             isSubOption = true,
         ),
         switchItem(
-            key = "Skip Silence",
+            key = "Bỏ qua khoảng lặng",
             title = stringResource(R.string.playback_skip_silence),
             description = stringResource(R.string.playback_skip_silence_desc),
             icon = painterResource(R.drawable.skip_next),
@@ -384,7 +384,7 @@ private fun playerBehaviourItems(): List<SettingsItem> {
         ),
         // the same switch as sync's youtube history one, signed out it still counts the play
         switchItem(
-            key = "Count plays on YouTube views",
+            key = "Tính lượt phát theo lượt xem YouTube",
             title = stringResource(R.string.settings_youtube_plays),
             description = stringResource(R.string.settings_youtube_plays_desc),
             detail = stringResource(R.string.settings_youtube_plays_detail),
@@ -407,7 +407,7 @@ private fun playerLookItems(): List<SettingsItem> {
     val (lyricsStyle) = rememberEnumPreference(LyricsMotionStyleKey, defaultValue = LyricsMotionStyle.MOTION)
     return listOf(
         switchItem(
-            key = "Audio format badge",
+            key = "Nhãn định dạng âm thanh",
             title = stringResource(R.string.appearance_format_badge),
             description = stringResource(R.string.appearance_format_badge_desc),
             icon = painterResource(R.drawable.graphic_eq),
@@ -415,7 +415,7 @@ private fun playerLookItems(): List<SettingsItem> {
             onCheckedChange = onFormatBadgeChange,
         ),
         switchItem(
-            key = "Show sample rate",
+            key = "Hiển thị tần số lấy mẫu",
             title = stringResource(R.string.appearance_sample_rate),
             description = stringResource(R.string.appearance_sample_rate_desc),
             icon = painterResource(R.drawable.speed),
@@ -424,7 +424,7 @@ private fun playerLookItems(): List<SettingsItem> {
             subOptionOf = formatBadge,
         ),
         switchItem(
-            key = "Always enable Youtube background",
+            key = "Luôn bật nền YouTube",
             title = stringResource(R.string.appearance_youtube_background),
             description = stringResource(R.string.appearance_youtube_background_desc),
             icon = painterResource(R.drawable.slow_motion_video),
@@ -433,7 +433,7 @@ private fun playerLookItems(): List<SettingsItem> {
         ),
         videoQualityItem(),
         switchItem(
-            key = "Timestamp matching",
+            key = "Khớp dấu thời gian",
             title = stringResource(R.string.appearance_timestamp_matching),
             description = stringResource(R.string.appearance_timestamp_matching_desc),
             icon = painterResource(R.drawable.lyrics),
@@ -442,7 +442,7 @@ private fun playerLookItems(): List<SettingsItem> {
             subOptionOf = playVideoBackground,
         ),
         switchItem(
-            key = "Enable animated canvas",
+            key = "Bật hình nền động",
             title = stringResource(R.string.appearance_canvas),
             description = stringResource(R.string.appearance_canvas_desc),
             icon = painterResource(R.drawable.sparks),
@@ -450,7 +450,7 @@ private fun playerLookItems(): List<SettingsItem> {
             onCheckedChange = onCanvasEnabledChange,
         ),
         switchItem(
-            key = "Canvas on Wi-Fi only",
+            key = "Chỉ dùng hình nền động khi có Wi-Fi",
             title = stringResource(R.string.appearance_canvas_wifi),
             description = stringResource(R.string.appearance_canvas_wifi_desc),
             icon = painterResource(R.drawable.wifi_proxy),
@@ -460,7 +460,7 @@ private fun playerLookItems(): List<SettingsItem> {
         ),
         // only the shaded lyric styles have a bloom to make softer
         switchItem(
-            key = "High quality bloom",
+            key = "Hiệu ứng bloom chất lượng cao",
             title = stringResource(R.string.appearance_bloom),
             description = stringResource(R.string.appearance_bloom_desc),
             icon = painterResource(R.drawable.sparks),
@@ -479,7 +479,7 @@ private fun videoQualityItem(): SettingsItem {
     val title = stringResource(R.string.video_quality)
     return SettingsItem(
         title = { Text(title) },
-        highlightKey = "Video quality",
+        highlightKey = "Chất lượng video",
         descriptionText = videoQualityName(quality),
         detail = stringResource(R.string.video_quality_settings_desc),
         searchText = title,
@@ -494,7 +494,7 @@ private fun otherItems(): List<SettingsItem> {
     val (hideDescriptions, onHideDescriptions) = rememberPreference(HideSettingsDescriptionsKey, defaultValue = true)
     return listOf(
         switchItem(
-            key = "Disable description on settings",
+            key = "Ẩn mô tả trong phần cài đặt",
             title = stringResource(R.string.settings_hide_descriptions),
             description = stringResource(R.string.settings_hide_descriptions_desc),
             icon = painterResource(R.drawable.info),
@@ -509,7 +509,7 @@ private fun otherItems(): List<SettingsItem> {
 private fun relatedItems(navController: NavController): List<SettingsItem> = listOf(
     SettingsItem(
         title = { Text(stringResource(R.string.audiopass_hub_title)) },
-        highlightKey = "Audio Pass output usb dac",
+        highlightKey = "Đầu ra Audio Pass qua USB DAC",
         descriptionText = stringResource(R.string.settings_audio_pass_desc),
         searchText = stringResource(R.string.audiopass_hub_title),
         icon = rememberVectorPainter(Icons.Rounded.GraphicEq),
@@ -526,7 +526,7 @@ private fun relatedItems(navController: NavController): List<SettingsItem> = lis
     ),
     SettingsItem(
         title = { Text(stringResource(R.string.settings_hide_top_bar)) },
-        highlightKey = "Hide Top Bar status bar player",
+        highlightKey = "Ẩn thanh trạng thái trên trình phát",
         descriptionText = stringResource(R.string.settings_hide_top_bar_desc),
         searchText = stringResource(R.string.settings_hide_top_bar),
         icon = painterResource(R.drawable.tune),
@@ -546,7 +546,7 @@ private fun relatedItems(navController: NavController): List<SettingsItem> = lis
     ),
     SettingsItem(
         title = { Text(stringResource(R.string.settings_hide_bottom_bar)) },
-        highlightKey = "Hide Bottom Bar navigation bar player",
+        highlightKey = "Ẩn thanh điều hướng trên trình phát",
         descriptionText = stringResource(R.string.settings_hide_bottom_bar_desc),
         searchText = stringResource(R.string.settings_hide_bottom_bar),
         icon = painterResource(R.drawable.tune),
@@ -567,10 +567,10 @@ private fun relatedItems(navController: NavController): List<SettingsItem> = lis
 )
 
 // what customize answers to when a search or the related row asks for its top bar card
-const val TopBarHighlightKey = "Top Bar on player"
+const val TopBarHighlightKey = "Thanh trên cùng của trình phát"
 
 // the same for its bottom bar card
-const val BottomBarHighlightKey = "Bottom Bar on player"
+const val BottomBarHighlightKey = "Thanh dưới cùng của trình phát"
 
 // a row title with its value on the right, for the rows with a slider under them
 @Composable

@@ -209,7 +209,7 @@ fun ChangelogMarkdown(
     strongColor: Color = Color.White,
     fontSize: TextUnit = 12.sp,
     lineHeight: TextUnit = 17.sp,
-    emptyText: String = "No changelog for this release.",
+    emptyText: String = "Bản phát hành này chưa có nhật ký thay đổi.",
 ) {
     val blocks = remember(markdown) { parseBlocks(markdown.trim()) }
 

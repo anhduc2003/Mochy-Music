@@ -541,7 +541,7 @@ fun SongMenu(
                         Material3MenuItemData(
                             title = {
                                 Text(
-                                    text = if (isPinned) "Unpin from library" else "Pin to library"
+                                    text = if (isPinned) "Bỏ ghim khỏi thư viện" else "Ghim vào thư viện"
                                 )
                             },
                             icon = {
@@ -692,8 +692,8 @@ fun SongMenu(
                     importMatch?.let { match ->
                         add(
                             Material3MenuItemData(
-                                title = { Text(text = "Choose different version") },
-                                description = { Text(text = "Wrong recording? Pick the right one from a list") },
+                                title = { Text(text = "Chọn phiên bản khác") },
+                                description = { Text(text = "Bản thu không đúng? Hãy chọn bản phù hợp trong danh sách") },
                                 icon = {
                                     Icon(
                                         painter = painterResource(R.drawable.tune),
@@ -711,7 +711,7 @@ fun SongMenu(
                             title = { Text(text = stringResource(R.string.refetch)) },
                             description = {
                                 Text(
-                                    text = if (importMatch != null) "Search again for the right version of this song"
+                                    text = if (importMatch != null) "Tìm lại phiên bản phù hợp của bài hát này"
                                     else stringResource(R.string.refetch_desc)
                                 )
                             },
@@ -775,10 +775,10 @@ private fun refetchImported(context: android.content.Context, database: com.moch
     ImportedVersions.scope.launch {
         val switched = ImportedVersions.refetch(context.applicationContext, database, match)
         if (switched != null) {
-            TopToaster.show(text = "Found a closer match: ${switched.title}", thumbnail = switched.thumbnail, iconRes = R.drawable.sync)
+            TopToaster.show(text = "Đã tìm thấy bản phù hợp hơn: ${switched.title}", thumbnail = switched.thumbnail, iconRes = R.drawable.sync)
         } else {
             TopToaster.show(
-                text = "This is already the closest match we can find. Try Choose different version.",
+                text = "Đây đã là bản phù hợp nhất mà chúng tôi tìm thấy. Hãy thử chọn phiên bản khác.",
                 iconRes = R.drawable.sync,
                 durationMs = 4000L,
             )

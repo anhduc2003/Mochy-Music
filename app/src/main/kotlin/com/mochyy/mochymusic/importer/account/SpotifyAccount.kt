@@ -423,21 +423,21 @@ private class WebPlayerClient(token: String, sessionHeaders: Map<String, String>
                     // a GraphQL error comes back as 200 with "errors" and no data
                     AccountHttp.parse(response.body)?.takeIf { it["data"].obj() != null }?.let { return it }
                     Timber.tag(LOG_TAG).w("%s answered without data: %s", query.name, response.body.take(300))
-                    throw AccountImportException("Spotify sent something we couldn't read.")
+                    throw AccountImportException("Spotify đã gửi dữ liệu không thể đọc được.")
                 }
                 response.status == 429 || response.status == 502 || response.status == 503 -> {
                     val waitSeconds = (response.retryAfterSeconds ?: (2L shl attempt)).coerceIn(1, 30)
                     Timber.tag(LOG_TAG).d("%s answered %d, waiting %ds", query.name, response.status, waitSeconds)
                     delay(waitSeconds * 1000)
                 }
-                response.status == 401 -> throw AccountImportException("Spotify signed you out. Sign in again.", signedOut = true)
+                response.status == 401 -> throw AccountImportException("Spotify đã đăng xuất bạn. Hãy đăng nhập lại.", signedOut = true)
                 else -> {
                     Timber.tag(LOG_TAG).w("%s answered %d: %s", query.name, response.status, response.body.take(300))
-                    throw AccountImportException("Spotify answered with an error (${response.status}).")
+                    throw AccountImportException("Spotify phản hồi lỗi (${response.status}).")
                 }
             }
         }
-        throw AccountImportException("Spotify is busy right now. Try again in a minute.")
+        throw AccountImportException("Spotify hiện đang bận. Hãy thử lại sau một phút.")
     }
 
     private fun encode(value: String): String = URLEncoder.encode(value, "UTF-8")

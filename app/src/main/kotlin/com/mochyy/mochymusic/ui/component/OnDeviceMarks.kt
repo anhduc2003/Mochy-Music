@@ -85,7 +85,7 @@ fun OnDeviceIcon(modifier: Modifier = Modifier) {
     ) {
         Icon(
             painter = painterResource(R.drawable.arrow_downward),
-            contentDescription = "On this device",
+            contentDescription = "Trên thiết bị này",
             tint = Color.Black.copy(alpha = 0.8f),
             modifier = Modifier.size(12.dp),
         )

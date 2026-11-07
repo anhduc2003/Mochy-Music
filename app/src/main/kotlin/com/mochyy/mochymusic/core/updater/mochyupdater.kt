@@ -702,7 +702,7 @@ suspend fun checkForUpdate(
 
                 val changelogList = mutableListOf<ChangelogSection>()
                 val headCommit = nightlyRunObject.optJSONObject("head_commit")
-                val commitMessage = headCommit?.optString("message") ?: "New features and bug fixes"
+                val commitMessage = headCommit?.optString("message") ?: "Tính năng mới và sửa lỗi"
 
                 val subjectLine = commitMessage.lineSequence().firstOrNull { it.isNotBlank() } ?: commitMessage
                 changelogList.add(ChangelogSection(context.getString(R.string.changelog), listOf(subjectLine)))
@@ -711,7 +711,7 @@ suspend fun checkForUpdate(
                 val apkDownloadUrl = "https://nightly.link/realidkroo/Mochy-Music/workflows/nightly.yml/main/mochy-gms-nightly.zip"
 
                 withContext(Dispatchers.Main) {
-                    onSuccess(displayTag, true, changelogList, "~30", formattedReleaseDate, "Bleeding-edge nightly build from main branch.", null, apkDownloadUrl)
+                    onSuccess(displayTag, true, changelogList, "~30", formattedReleaseDate, "Bản nightly mới nhất từ nhánh main.", null, apkDownloadUrl)
                 }
                 return@withContext
             }

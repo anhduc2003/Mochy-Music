@@ -127,13 +127,13 @@ fun SongDetailsSheet(
                         }
                     }
                     DetailRow(
-                        title = "About song",
+                        title = "Thông tin bài hát",
                         onClick = { showAbout = true },
                     ) {
                         DetailGlyph(R.drawable.info)
                     }
                     DetailRow(
-                        title = "Stream info",
+                        title = "Thông tin luồng phát",
                         enabled = streaming,
                         onClick = { showStream = true },
                     ) {
@@ -316,7 +316,7 @@ private fun DoneButton(onClick: () -> Unit) {
                 onClick = onClick,
             ),
     ) {
-        Text(text = "done", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(text = "Xong", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
 

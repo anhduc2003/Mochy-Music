@@ -36,12 +36,12 @@ internal fun ColumnScope.IpodOptions() {
     var theme by rememberEnumPreference(IpodThemeKey, IpodTheme.SILVER)
     var wheel by rememberEnumPreference(IpodWheelColorKey, IpodWheelColor.THEME)
     var tall by rememberPreference(IpodTallScreenKey, defaultValue = false)
-    OptionSheet(title = "The iPod") {
+    OptionSheet(title = "iPod") {
         IpodTheme.entries.forEachIndexed { index, option ->
             OptionRow(
                 selected = theme == option,
                 onClick = { theme = option },
-                caption = if (index == 0) "Body" else null,
+                caption = if (index == 0) "Thân máy" else null,
                 compact = true,
             ) {
                 Swatch(lookOf(option, wheel, shadow = true, tall = false), option.title, option.description)
@@ -51,17 +51,17 @@ internal fun ColumnScope.IpodOptions() {
             OptionRow(
                 selected = wheel == option,
                 onClick = { wheel = option },
-                caption = if (index == 0) "Click wheel" else null,
+                caption = if (index == 0) "Bánh xe điều khiển" else null,
                 compact = true,
             ) {
                 Swatch(lookOf(theme, option, shadow = true, tall = false), option.title, option.description)
             }
         }
-        OptionRow(selected = !tall, onClick = { tall = false }, caption = "Screen", compact = true) {
-            TwoLines("Classic", "the original shape, wheel in the middle")
+        OptionRow(selected = !tall, onClick = { tall = false }, caption = "Màn hình", compact = true) {
+            TwoLines("Cổ điển", "Kiểu dáng nguyên bản, bánh xe ở giữa")
         }
         OptionRow(selected = tall, onClick = { tall = true }, compact = true) {
-            TwoLines("Tall", "the screen stretches down to the wheel")
+            TwoLines("Cao", "Màn hình kéo dài xuống đến bánh xe")
         }
         SwitchRow(IpodShadowOption)
     }
@@ -88,39 +88,39 @@ private fun Swatch(look: IpodLook, title: String, description: String) {
 
 private val IpodTheme.title: String
     get() = when (this) {
-        IpodTheme.SILVER -> "Silver"
-        IpodTheme.BLACK -> "Black"
-        IpodTheme.U2 -> "U2 edition"
-        IpodTheme.TRUE_DARK -> "True dark"
+        IpodTheme.SILVER -> "Bạc"
+        IpodTheme.BLACK -> "Đen"
+        IpodTheme.U2 -> "Phiên bản U2"
+        IpodTheme.TRUE_DARK -> "Đen tuyền"
     }
 
 private val IpodTheme.description: String
     get() = when (this) {
-        IpodTheme.SILVER -> "the classic white and grey"
-        IpodTheme.BLACK -> "grey fading down to black"
-        IpodTheme.U2 -> "black with a red wheel"
-        IpodTheme.TRUE_DARK -> "pitch black, the screen too"
+        IpodTheme.SILVER -> "Trắng và xám cổ điển"
+        IpodTheme.BLACK -> "Xám chuyển dần sang đen"
+        IpodTheme.U2 -> "Đen với bánh xe đỏ"
+        IpodTheme.TRUE_DARK -> "Đen tuyền, kể cả màn hình"
     }
 
 private val IpodWheelColor.title: String
     get() = when (this) {
-        IpodWheelColor.THEME -> "Match the body"
-        IpodWheelColor.WHITE -> "White"
-        IpodWheelColor.BLACK -> "Black"
-        IpodWheelColor.RED -> "Red"
+        IpodWheelColor.THEME -> "Đồng màu với thân máy"
+        IpodWheelColor.WHITE -> "Trắng"
+        IpodWheelColor.BLACK -> "Đen"
+        IpodWheelColor.RED -> "Đỏ"
     }
 
 private val IpodWheelColor.description: String
     get() = when (this) {
-        IpodWheelColor.THEME -> "whichever wheel the body comes with"
-        IpodWheelColor.WHITE -> "white with grey buttons"
-        IpodWheelColor.BLACK -> "dark grey with white buttons"
-        IpodWheelColor.RED -> "red with white buttons"
+        IpodWheelColor.THEME -> "Màu bánh xe đi kèm thân máy"
+        IpodWheelColor.WHITE -> "Trắng với nút xám"
+        IpodWheelColor.BLACK -> "Xám đậm với nút trắng"
+        IpodWheelColor.RED -> "Đỏ với nút trắng"
     }
 
 private val IpodShadowOption = CoverOption.Switch(
-    title = "Shadow",
-    description = "soft shading round the edges of the body",
+    title = "Bóng đổ",
+    description = "Đổ bóng nhẹ quanh viền thân máy",
     icon = R.drawable.contrast,
     key = IpodShadowKey,
     default = true,

@@ -98,14 +98,14 @@ internal fun PlaylistModeBarRow(
                 Spacer(Modifier.width(8.dp))
                 ModeCircleButton(
                     icon = R.drawable.more_horiz,
-                    contentDescription = "Actions for the picked songs",
+                    contentDescription = "Thao tác với bài hát đã chọn",
                     enabled = mode.count > 0,
                     onClick = mode.onMore,
                 )
                 Spacer(Modifier.width(8.dp))
                 ModeCircleButton(
                     icon = R.drawable.close,
-                    contentDescription = "Stop selecting",
+                    contentDescription = "Dừng chọn",
                     onClick = mode.onClose,
                 )
             }
@@ -116,14 +116,14 @@ internal fun PlaylistModeBarRow(
                 if (mode.onMore != null) {
                     ModeCircleButton(
                         icon = R.drawable.more_horiz,
-                        contentDescription = "Options",
+                        contentDescription = "Tùy chọn",
                         onClick = mode.onMore,
                     )
                     Spacer(Modifier.width(8.dp))
                 }
                 ModeCircleButton(
                     icon = R.drawable.check,
-                    contentDescription = "Done",
+                    contentDescription = "Xong",
                     filled = true,
                     onClick = mode.onDone,
                 )
@@ -147,7 +147,7 @@ private fun SelectTitle(count: Int, modifier: Modifier = Modifier) {
         modifier = modifier,
     ) { shown ->
         Text(
-            text = if (shown == 0) "Select" else "$shown selected",
+            text = if (shown == 0) "Chọn" else "Đã chọn $shown",
             style = PlaylistTitleStyle,
             color = Color.White,
             maxLines = 1,
@@ -178,7 +178,7 @@ private fun SelectAllPill(allSelected: Boolean, onClick: () -> Unit) {
             label = "selectAllLabel",
         ) { all ->
             Text(
-                text = if (all) "Deselect all" else "Select all",
+                text = if (all) "Bỏ chọn tất cả" else "Chọn tất cả",
                 style = PillLabelStyle.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
                 color = Color.White,
                 maxLines = 1,
@@ -272,7 +272,7 @@ private fun EditOrderPill(
                 )
             }
             Text(
-                text = "Edit order",
+                text = "Sắp xếp lại",
                 style = PillLabelStyle,
                 color = Color.White,
                 maxLines = 1,
@@ -315,7 +315,7 @@ fun PlaylistSelectTick(checked: Boolean, modifier: Modifier = Modifier) {
         ) {
             Icon(
                 painter = painterResource(R.drawable.check),
-                contentDescription = if (checked) "Selected" else "Not selected",
+                contentDescription = if (checked) "Đã chọn" else "Chưa chọn",
                 tint = PillContent,
                 modifier = Modifier
                     .size(14.dp)

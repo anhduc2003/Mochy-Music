@@ -290,7 +290,7 @@ private fun LibraryCount(count: Int) {
 
 /** Centred placeholder for a screen or section with nothing in it. */
 @Composable
-fun LibraryEmptyState(modifier: Modifier = Modifier, text: String = "Nothing to show here") {
+fun LibraryEmptyState(modifier: Modifier = Modifier, text: String = "Không có nội dung nào để hiển thị") {
     Box(
         modifier = modifier.fillMaxWidth().padding(vertical = 56.dp, horizontal = SearchHorizontalPadding),
         contentAlignment = Alignment.Center,
@@ -485,7 +485,7 @@ fun LibraryPlayBar(
         Spacer(modifier = Modifier.width(9.dp))
         com.mochyy.mochymusic.ui.component.detail.CircleAction(
             icon = R.drawable.shuffle,
-            contentDescription = "Shuffle",
+            contentDescription = "Phát ngẫu nhiên",
             onClick = onMore,
             spinOnClick = true,
         )

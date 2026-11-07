@@ -83,14 +83,14 @@ internal fun PictureBackgroundControls(
 ) {
     LabCard(padding = 10.dp) {
         LabToggleRow(
-            title = "Blur",
+            title = "Làm mờ",
             subtitle = null,
             checked = picture.blur,
             onCheckedChange = { on -> onChange(picture.copy(blur = on)) },
             leadingDot = true,
         )
         LabSlider(
-            label = "Opacity",
+            label = "Độ mờ",
             valueText = "${(picture.opacity * 100).toInt()}%",
             value = picture.opacity,
             onValueChange = { v -> onChange(picture.copy(opacity = v)) },
@@ -98,7 +98,7 @@ internal fun PictureBackgroundControls(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
         )
         Text(
-            "Change picture",
+            "Đổi ảnh",
             fontFamily = InterFontFamily,
             fontWeight = FontWeight.SemiBold,
             fontSize = 14.sp,
@@ -135,7 +135,7 @@ internal fun ColourBackgroundControls(colour: Color, palette: List<Color>, onPic
         LabCard(padding = 10.dp) {
             Row(Modifier.padding(start = 6.dp, end = 6.dp, top = 2.dp, bottom = 10.dp)) {
                 Text(
-                    "Your own colour",
+                    "Màu tùy chọn",
                     fontFamily = InterFontFamily,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 13.sp,

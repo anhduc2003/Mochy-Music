@@ -416,7 +416,7 @@ private fun ItemsRetry(onRetry: () -> Unit) {
             .padding(top = 24.dp)
     ) {
         Text(
-            text = "Couldn't load this page. Tap to try again",
+            text = "Không tải được trang này. Chạm để thử lại",
             style = PlaylistStatsStyle,
             color = Color.White.copy(alpha = 0.7f),
             modifier = Modifier

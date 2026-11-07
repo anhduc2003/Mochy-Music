@@ -415,7 +415,7 @@ internal fun ArtistActions(
         if (showSubscribe) {
             CircleAction(
                 icon = if (isPlaying) R.drawable.ic_untitled_pause else R.drawable.ic_untitled_play,
-                contentDescription = if (isPlaying) "Pause" else "Play",
+                contentDescription = if (isPlaying) "Tạm dừng" else "Phát",
                 onClick = onPlay,
             )
         } else {
@@ -424,7 +424,7 @@ internal fun ArtistActions(
         Spacer(Modifier.width(if (showSubscribe) 4.dp else 9.dp))
         CircleAction(
             icon = if (liked) R.drawable.ic_untitled_heart else R.drawable.ic_untitled_heart_unfill,
-            contentDescription = if (liked) "Liked" else "Like",
+            contentDescription = if (liked) "Đã thích" else "Thích",
             onClick = onLike,
         )
         AnimatedVisibility(
@@ -469,7 +469,7 @@ private fun SubscribePill(subscribed: Boolean, onClick: () -> Unit) {
         )
         Spacer(Modifier.width(7.dp))
         Text(
-            text = if (subscribed) "Subscribed" else "Subscribe",
+            text = if (subscribed) "Đã đăng ký" else "Đăng ký",
             style = TrackTitleStyle.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold),
             color = content,
         )
@@ -606,14 +606,14 @@ private fun ReleaseCard(
                 }
                 CircleAction(
                     icon = if (isPlaying) R.drawable.ic_untitled_pause else R.drawable.ic_untitled_play,
-                    contentDescription = "Play",
+                    contentDescription = "Phát",
                     onClick = onPlay,
                 )
                 if (release.album != null) {
                     Spacer(Modifier.width(4.dp))
                     CircleAction(
                         icon = if (saved) R.drawable.library_add_check else R.drawable.add,
-                        contentDescription = if (saved) "In your library" else "Add to library",
+                        contentDescription = if (saved) "Trong thư viện của bạn" else "Thêm vào thư viện",
                         onClick = onSave,
                     )
                 }
@@ -627,7 +627,7 @@ private fun BioCard(name: String, bio: String, onClick: () -> Unit) {
     ArtistCard(onClick = onClick) {
         Column(modifier = Modifier.fillMaxSize()) {
             Text(
-                text = "About $name",
+                text = "Giới thiệu về $name",
                 style = CardLabelStyle,
                 color = Color.White,
                 maxLines = 1,
@@ -691,7 +691,7 @@ internal fun ArtistShelfTitle(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.more_horiz),
-                        contentDescription = "More",
+                        contentDescription = "Tùy chọn khác",
                         tint = Color.White.copy(alpha = 0.78f),
                         modifier = Modifier.size(18.dp),
                     )
@@ -715,7 +715,7 @@ internal fun ArtistShelfTitle(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_chevron_right),
-                        contentDescription = "See all",
+                        contentDescription = "Xem tất cả",
                         tint = Color.White.copy(alpha = 0.6f),
                         modifier = Modifier.size(18.dp),
                     )
@@ -798,7 +798,7 @@ internal fun ArtistTopBar(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.arrow_back_ios),
-                    contentDescription = "Back",
+                    contentDescription = "Quay lại",
                     tint = Color.White,
                     modifier = Modifier
                         .size(16.dp)

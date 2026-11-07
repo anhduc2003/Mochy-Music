@@ -45,11 +45,11 @@ fun PlaybackDiagnosticsScreen(navController: NavController) {
 
     val recent = remember(logs) { logs.asReversed().take(VISIBLE_ENTRIES) }
 
-    val lastValidated = remember(logs) { logs.lastOrNull { it.message == "Stream validated" } }
+    val lastValidated = remember(logs) { logs.lastOrNull { it.message == "Luồng đã được xác thực" } }
     val hasPoToken = YTPlayerUtils.hasPoToken
 
     SubSettingsScaffold(
-        title = "Playback diagnostics",
+        title = "Chẩn đoán phát nhạc",
         onBack = { navController.navigateUp() },
     ) {
         Card(
@@ -62,7 +62,7 @@ fun PlaybackDiagnosticsScreen(navController: NavController) {
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = if (hasPoToken) "PoToken ready" else "No PoToken",
+                    text = if (hasPoToken) "PoToken sẵn sàng" else "Không có PoToken",
                     style = MaterialTheme.typography.titleMedium,
                     color = if (hasPoToken) {
                         MaterialTheme.colorScheme.primary
@@ -73,7 +73,7 @@ fun PlaybackDiagnosticsScreen(navController: NavController) {
 
                 Spacer(Modifier.height(8.dp))
 
-                DiagnosticsRow("Last stream", lastValidated?.details ?: "—")
+                DiagnosticsRow("Luồng phát gần nhất", lastValidated?.details ?: "—")
             }
         }
 
@@ -81,18 +81,18 @@ fun PlaybackDiagnosticsScreen(navController: NavController) {
             style = SettingsGroupStyle.Grouped,
             items = listOf(
                 SettingsItem(
-                    title = { Text("Copy logs") },
-                    descriptionText = "Copy the full playback log to the clipboard",
+                    title = { Text("Sao chép nhật ký") },
+                    descriptionText = "Sao chép toàn bộ nhật ký phát vào bộ nhớ tạm",
                     icon = painterResource(R.drawable.key),
                     iconShape = CircleShape,
                     onClick = {
                         copyLogs(context, logs)
-                        Toast.makeText(context, "Playback log copied", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Đã sao chép nhật ký phát", Toast.LENGTH_SHORT).show()
                     },
                 ),
                 SettingsItem(
-                    title = { Text("Clear logs") },
-                    descriptionText = "Discard everything captured so far",
+                    title = { Text("Xóa nhật ký") },
+                    descriptionText = "Xóa toàn bộ dữ liệu đã thu thập",
                     icon = painterResource(R.drawable.delete),
                     iconShape = CircleShape,
                     onClick = { PlaybackLogManager.clearLogs() },
@@ -102,7 +102,7 @@ fun PlaybackDiagnosticsScreen(navController: NavController) {
 
         if (recent.isEmpty()) {
             Text(
-                text = "Nothing captured yet. Play a track and come back.",
+                text = "Chưa thu thập dữ liệu nào. Phát một bài hát rồi quay lại.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),

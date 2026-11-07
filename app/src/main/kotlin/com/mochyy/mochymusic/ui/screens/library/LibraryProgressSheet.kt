@@ -47,8 +47,8 @@ import kotlinx.coroutines.flow.StateFlow
 
 /** Which job a progress card or sheet follows. */
 enum class TransferKind(val title: String, val idleText: String) {
-    Downloads("Download progress", "Nothing is downloading right now."),
-    LocalImport("Import progress", "Nothing is being imported right now."),
+    Downloads("Tiến trình tải xuống", "Hiện không có nội dung nào đang tải xuống."),
+    LocalImport("Tiến trình nhập", "Hiện không có nội dung nào đang được nhập."),
 }
 
 internal fun LibraryImportViewModel.batchOf(kind: TransferKind): StateFlow<TransferBatch> = when (kind) {
@@ -103,7 +103,7 @@ private fun ColumnScope.TransferSheetContent(kind: TransferKind, batch: Transfer
     Spacer(Modifier.height(8.dp))
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
-            text = if (batch.isEmpty) "0" else "${batch.doneCount} of ${batch.items.size}",
+            text = if (batch.isEmpty) "0" else "${batch.doneCount}/${batch.items.size}",
             color = SearchColors.Primary,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
@@ -150,7 +150,7 @@ private fun TransferRow(item: TransferItem) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            val subtitle = if (item.state == TransferState.Failed) "Couldn't add this one" else item.subtitle
+            val subtitle = if (item.state == TransferState.Failed) "Không thể thêm mục này" else item.subtitle
             if (subtitle != null) {
                 Text(
                     text = subtitle,
@@ -171,7 +171,7 @@ private fun TransferRow(item: TransferItem) {
 private fun CancelDownloadsButton(batchFlow: StateFlow<TransferBatch>, onCancel: () -> Unit) {
     val batch by batchFlow.collectAsState()
     SheetPillButton(
-        text = "Cancel all downloads",
+        text = "Hủy tất cả lượt tải xuống",
         enabled = batch.isRunning,
         onClick = onCancel,
     )
@@ -191,7 +191,7 @@ private fun CreatePlaylistButton(
     val songIds = batch.finishedSongIds
 
     SheetPillButton(
-        text = "Create playlist",
+        text = "Tạo danh sách phát",
         enabled = !batch.isRunning && songIds.isNotEmpty(),
         onClick = { creating = true },
     )

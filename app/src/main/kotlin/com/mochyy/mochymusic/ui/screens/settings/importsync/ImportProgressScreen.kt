@@ -47,9 +47,9 @@ fun ImportProgressScreen(
     val resync = progress.resync
     SubSettingsScaffold(
         title = when {
-            resync != null -> "Re-sync"
-            progress.isRunning -> "Importing"
-            else -> "Import"
+            resync != null -> "Đồng bộ lại"
+            progress.isRunning -> "Đang nhập"
+            else -> "Nhập"
         },
         onBack = { navController.navigateUp() },
     ) {
@@ -57,11 +57,11 @@ fun ImportProgressScreen(
             val fraction = if (progress.totalTracks > 0) progress.processedTracks.toFloat() / progress.totalTracks else 0f
             Text(
                 text = when {
-                    progress.isRunning -> "${progress.processedTracks} of ${progress.totalTracks} songs"
-                    progress.cancelled -> "Stopped"
-                    progress.error != null -> if (resync != null) "Re-sync failed" else "Import failed"
-                    progress.isDone -> "Done"
-                    else -> "No import running"
+                    progress.isRunning -> "${progress.processedTracks}/${progress.totalTracks} bài hát"
+                    progress.cancelled -> "Đã dừng"
+                    progress.error != null -> if (resync != null) "Đồng bộ lại không thành công" else "Nhập không thành công"
+                    progress.isDone -> "Hoàn tất"
+                    else -> "Không có lượt nhập nào đang chạy"
                 },
                 style = MaterialTheme.typography.headlineSmall,
             )
@@ -70,7 +70,7 @@ fun ImportProgressScreen(
                 LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    text = progress.currentLabel.ifEmpty { "Starting…" },
+                    text = progress.currentLabel.ifEmpty { "Đang bắt đầu…" },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -78,7 +78,7 @@ fun ImportProgressScreen(
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "You can leave this page; the import keeps going and sends a notification when it's done.",
+                    "Bạn có thể rời trang này; quá trình nhập vẫn tiếp tục và sẽ gửi thông báo khi hoàn tất.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -86,11 +86,11 @@ fun ImportProgressScreen(
             if (progress.isDone || progress.processedTracks > 0) {
                 Spacer(Modifier.height(12.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    SummaryLine("Found on YouTube Music", "${progress.matchedTracks} of ${progress.totalTracks}")
-                    if (resync != null && progress.isDone) SummaryLine("Added to \"${resync.playlistName}\"", resync.added.toString())
-                    if (progress.playlistsCreated > 0) SummaryLine("New playlists", progress.playlistsCreated.toString())
-                    if (progress.likedAdded > 0) SummaryLine("Songs liked", progress.likedAdded.toString())
-                    if (progress.unmatched.isNotEmpty()) SummaryLine("Not found", progress.unmatched.size.toString())
+                    SummaryLine("Tìm thấy trên YouTube Music", "${progress.matchedTracks} trên ${progress.totalTracks}")
+                    if (resync != null && progress.isDone) SummaryLine("Đã thêm vào \"${resync.playlistName}\"", resync.added.toString())
+                    if (progress.playlistsCreated > 0) SummaryLine("Danh sách phát mới", progress.playlistsCreated.toString())
+                    if (progress.likedAdded > 0) SummaryLine("Bài hát đã thích", progress.likedAdded.toString())
+                    if (progress.unmatched.isNotEmpty()) SummaryLine("Không tìm thấy", progress.unmatched.size.toString())
                 }
             }
             progress.error?.let {
@@ -100,7 +100,7 @@ fun ImportProgressScreen(
             if (progress.youtubeFailures.isNotEmpty()) {
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    "Imported here but not fully on YouTube: ${progress.youtubeFailures.joinToString(", ")}",
+                    "Đã nhập vào đây nhưng chưa hoàn tất trên YouTube: ${progress.youtubeFailures.joinToString(", ")}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -115,8 +115,8 @@ fun ImportProgressScreen(
                 if (progress.isRunning) {
                     add(
                         SettingsItem(
-                            title = { Text("Stop import") },
-                            descriptionText = "Songs and playlists imported so far are kept",
+                            title = { Text("Dừng nhập") },
+                            descriptionText = "Các bài hát và danh sách phát đã nhập vẫn được giữ lại",
                             icon = painterResource(R.drawable.close),
                             iconShape = CircleShape,
                             onClick = viewModel::cancelImport,
@@ -125,7 +125,7 @@ fun ImportProgressScreen(
                 } else {
                     add(
                         SettingsItem(
-                            title = { Text("Done") },
+                            title = { Text("Hoàn tất") },
                             icon = painterResource(R.drawable.check),
                             iconShape = CircleShape,
                             onClick = {
@@ -138,8 +138,8 @@ fun ImportProgressScreen(
                 if (progress.unmatched.isNotEmpty()) {
                     add(
                         SettingsItem(
-                            title = { Text("Copy songs not found") },
-                            descriptionText = "To look them up by hand",
+                            title = { Text("Sao chép danh sách bài hát không tìm thấy") },
+                            descriptionText = "Để tự tìm các bài hát này",
                             icon = painterResource(R.drawable.share),
                             iconShape = CircleShape,
                             onClick = {
@@ -151,7 +151,7 @@ fun ImportProgressScreen(
                                     }
                                 }
                                 clipboard.setText(AnnotatedString(text))
-                                Toast.makeText(context, "Copied ${progress.unmatched.size} songs", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Đã sao chép ${progress.unmatched.size} bài hát", Toast.LENGTH_SHORT).show()
                             },
                         )
                     )
@@ -163,12 +163,12 @@ fun ImportProgressScreen(
         if (progress.unmatched.isNotEmpty() && !progress.isRunning) {
             Spacer(Modifier.height(16.dp))
             SettingsGroup(
-                title = "Not found",
+                title = "Không tìm thấy",
                 style = SettingsGroupStyle.Grouped,
                 items = progress.unmatched.take(UNMATCHED_SHOWN).map { miss ->
                     SettingsItem(
                         title = { Text(miss.track.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        descriptionText = listOfNotNull(miss.track.artist.ifEmpty { null }, miss.playlistName ?: "Liked songs")
+                        descriptionText = listOfNotNull(miss.track.artist.ifEmpty { null }, miss.playlistName ?: "Bài hát đã thích")
                             .joinToString(" · "),
                     )
                 },
@@ -176,7 +176,7 @@ fun ImportProgressScreen(
             if (progress.unmatched.size > UNMATCHED_SHOWN) {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "and ${progress.unmatched.size - UNMATCHED_SHOWN} more. Copy the list to see them all.",
+                    "và ${progress.unmatched.size - UNMATCHED_SHOWN} bài khác. Sao chép danh sách để xem tất cả.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

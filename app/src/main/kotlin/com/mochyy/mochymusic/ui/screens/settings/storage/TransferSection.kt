@@ -64,38 +64,38 @@ internal fun TransferSection(viewModel: TransferViewModel = hiltViewModel()) {
     }
 
     Text(
-        "Moving to a new phone? Take everything with you",
+        "Đổi điện thoại? Hãy mang theo mọi thứ",
         style = storageText(17f, FontWeight.SemiBold),
         modifier = Modifier.padding(horizontal = 2.dp),
     )
     Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 14.dp)) {
         StorageActionButton(
-            label = "Export everything",
+            label = "Xuất toàn bộ",
             detail = when (val step = export) {
-                is TransferStep.Working -> step.progress?.let { "Exporting… ${(it * 100).toInt()}%" } ?: "Exporting…"
-                TransferStep.Done -> "Exported! Import the .zip in Mochy on the other phone"
+                is TransferStep.Working -> step.progress?.let { "Đang xuất… ${(it * 100).toInt()}%" } ?: "Đang xuất…"
+                TransferStep.Done -> "Đã xuất! Nhập tệp .zip vào Mochy trên điện thoại khác"
                 is TransferStep.Failed -> step.message
-                TransferStep.Idle -> "Library, history, downloads and settings in one .zip, without logins"
+                TransferStep.Idle -> "Thư viện, lịch sử, nội dung tải xuống và cài đặt trong một tệp .zip, không kèm thông tin đăng nhập"
             },
             enabled = export !is TransferStep.Working && import !is TransferStep.Working,
             onClick = { exportPicker.launch(viewModel.exportFileName()) },
         )
         StorageActionButton(
-            label = "Import everything",
+            label = "Nhập toàn bộ",
             detail = when (val step = import) {
-                is TransferStep.Working -> step.progress?.let { "Importing… ${(it * 100).toInt()}%, Mochy restarts when it's done" } ?: "Importing…"
-                TransferStep.Done -> "Done, restarting…"
+                is TransferStep.Working -> step.progress?.let { "Đang nhập… ${(it * 100).toInt()}%, Mochy sẽ khởi động lại khi hoàn tất" } ?: "Đang nhập…"
+                TransferStep.Done -> "Hoàn tất, đang khởi động lại…"
                 is TransferStep.Failed -> step.message
-                TransferStep.Idle -> checkError ?: "Bring back a .zip made with Export everything"
+                TransferStep.Idle -> checkError ?: "Khôi phục tệp .zip được tạo bằng chức năng Xuất toàn bộ"
             },
             danger = true,
             enabled = export !is TransferStep.Working && import !is TransferStep.Working && import !is TransferStep.Done,
             onClick = {
                 menuState.showConfirm(
-                    title = "Replace your library?",
-                    message = "Everything in Mochy right now is replaced by what's in the export: library, history, " +
-                        "downloads and settings. Your logins stay as they are. Mochy restarts once to finish.",
-                    action = "Pick the .zip",
+                    title = "Thay thế thư viện?",
+                    message = "Toàn bộ nội dung hiện có trong Mochy sẽ được thay thế bằng dữ liệu trong tệp xuất: thư viện, lịch sử, " +
+                        "nội dung tải xuống và cài đặt. Thông tin đăng nhập vẫn được giữ nguyên. Mochy sẽ khởi động lại một lần để hoàn tất.",
+                    action = "Chọn tệp .zip",
                     onConfirm = {
                         viewModel.clearImport()
                         importPicker.launch(ZipTypes)

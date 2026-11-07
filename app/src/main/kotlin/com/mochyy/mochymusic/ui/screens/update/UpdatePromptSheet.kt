@@ -81,7 +81,7 @@ fun UpdatePromptSheet(
         } else {
             needsPermission = true
             readyToInstall = true
-            error = "Allow \"Install unknown apps\" for mochy, then tap Install here again."
+            error = "Hãy cho phép mochy “Cài đặt ứng dụng không rõ nguồn gốc”, rồi nhấn “Cài đặt tại đây” lần nữa."
         }
     }
 
@@ -121,7 +121,7 @@ fun UpdatePromptSheet(
             Spacer(modifier = Modifier.height(18.dp))
 
             Text(
-                text = if (userName.isBlank()) "Update available!" else "Update available, $userName!",
+                text = if (userName.isBlank()) "Đã có bản cập nhật!" else "Đã có bản cập nhật, $userName!",
                 color = Color.White,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
@@ -139,7 +139,7 @@ fun UpdatePromptSheet(
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "What changed on ${release.version}",
+                    text = "${release.version} có gì mới",
                     color = Color.White,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
@@ -151,7 +151,7 @@ fun UpdatePromptSheet(
             Spacer(modifier = Modifier.height(18.dp))
 
             Text(
-                text = "To Be Installed -",
+                text = "Sẵn sàng cài đặt -",
                 color = Color(0xFF8A8A8A),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -208,11 +208,11 @@ fun UpdatePromptSheet(
                 enabled = !downloading && release.apkUrl != null,
                 progress = animatedProgress,
                 label = when {
-                    downloading -> "Downloading… ${(animatedProgress * 100).toInt()}%"
-                    release.apkUrl == null -> "No APK in this release"
-                    needsPermission -> "Install here"
-                    readyToInstall -> "Install here"
-                    else -> "Install here"
+                    downloading -> "Đang tải xuống… ${(animatedProgress * 100).toInt()}%"
+                    release.apkUrl == null -> "Bản phát hành này không có APK"
+                    needsPermission -> "Cài đặt tại đây"
+                    readyToInstall -> "Cài đặt tại đây"
+                    else -> "Cài đặt tại đây"
                 },
                 dimmed = release.apkUrl == null,
                 onClick = {
@@ -229,7 +229,7 @@ fun UpdatePromptSheet(
                             downloading = false
                             result.fold(
                                 onSuccess = { startInstall(it) },
-                                onFailure = { error = it.message ?: "Download failed" },
+                                onFailure = { error = it.message ?: "Tải xuống thất bại" },
                             )
                         }
                     }
@@ -240,7 +240,7 @@ fun UpdatePromptSheet(
 
             PromptButton(
                 enabled = !downloading,
-                label = "Open the web",
+                label = "Mở trang web",
                 dimmed = downloading,
                 onClick = { context.openReleaseUrl(release.htmlUrl) },
             )
@@ -249,7 +249,7 @@ fun UpdatePromptSheet(
 
             PromptButton(
                 enabled = !downloading,
-                label = "no thanks remind me in 24 hour",
+                label = "Không, cảm ơn. Nhắc tôi sau 24 giờ",
                 dimmed = downloading,
                 onClick = onSnooze,
             )

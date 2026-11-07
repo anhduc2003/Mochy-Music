@@ -51,7 +51,7 @@ fun SuggestionRegionSheet(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "Choose Suggestions Region",
+                text = "Chọn khu vực gợi ý",
                 style = MaterialTheme.typography.labelLarge
             )
 
@@ -63,11 +63,11 @@ fun SuggestionRegionSheet(
                         onSearch = {},
                         expanded = false,
                         onExpandedChange = {},
-                        placeholder = { Text("Search regions...") },
+                        placeholder = { Text("Tìm khu vực...") },
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Search,
-                                contentDescription = "Search"
+                                contentDescription = "Tìm kiếm"
                             )
                         },
                     )
@@ -89,7 +89,7 @@ fun SuggestionRegionSheet(
 
                 item {
                     Text(
-                        text = "System",
+                        text = "Hệ thống",
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
                     )
@@ -97,7 +97,7 @@ fun SuggestionRegionSheet(
                 item {
                     val isSelected = currentRegionSlug == "system"
                     RegionListItem(
-                        headlineContent = { Text("System Default") },
+                        headlineContent = { Text("Mặc định hệ thống") },
                         selected = isSelected,
                         items = 1,
                         index = 0,
@@ -118,7 +118,7 @@ fun SuggestionRegionSheet(
 
                 item {
                     Text(
-                        text = "Countries & Regions",
+                        text = "Quốc gia và khu vực",
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.padding(
                             top = 14.dp,
@@ -197,7 +197,7 @@ fun RegionListItem(
             {
                 Icon(
                     Icons.Default.Check,
-                    contentDescription = "Selected"
+                    contentDescription = "Đã chọn"
                 )
             }
         } else null,

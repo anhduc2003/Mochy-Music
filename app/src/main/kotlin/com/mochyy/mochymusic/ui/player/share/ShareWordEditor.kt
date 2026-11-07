@@ -88,9 +88,9 @@ import kotlin.math.hypot
 
 // the three looks a word can take, each with its card and its prompt
 private enum class WordMode(val label: String, val prompt: String) {
-    GLOW("Glow", "Tap or swipe the words you want to glow!"),
-    CAPS("CAPS", "Tap or swipe the words you want in CAPS!"),
-    BIG("Bigggg", "Tap or swipe the words you want bigggg!");
+    GLOW("Phát sáng", "Chạm hoặc vuốt qua những từ bạn muốn làm phát sáng!"),
+    CAPS("CAPS", "Chạm hoặc vuốt qua những từ bạn muốn viết HOA!"),
+    BIG("Bigggg", "Chạm hoặc vuốt qua những từ bạn muốn phóng to!");
 
     fun has(look: WordLook): Boolean = when (this) {
         GLOW -> look.glow
@@ -120,7 +120,7 @@ private const val PaintStepPx = 8f
 
 internal fun PopupSheetState.showWordEditor(session: LyricsShareSession) {
     val popup = this
-    show(buttonBar = { SheetPillButton(text = "Done", onClick = popup::dismiss) }) {
+    show(buttonBar = { SheetPillButton(text = "Xong", onClick = popup::dismiss) }) {
         WordEditorContent(session)
     }
 }
@@ -158,7 +158,7 @@ private fun ColumnScope.WordEditorContent(session: LyricsShareSession) {
         "CoolfontEditor",
         beta = true,
         subtitleSlot = {
-            val line = mode?.prompt ?: if (hinting) "Pick Glow, CAPS or Bigggg below first" else null
+            val line = mode?.prompt ?: if (hinting) "Trước tiên, hãy chọn Phát sáng, CHỮ HOA hoặc Chữ lớn bên dưới" else null
             AnimatedContent(
                 targetState = line,
                 transitionSpec = {
@@ -389,7 +389,7 @@ private fun MakeItCard(
             label = "makeItCaption",
         ) { on ->
             Text(
-                if (on) "I'm done making it" else "Make it",
+                if (on) "Tôi đã chỉnh xong" else "Tạo kiểu",
                 fontFamily = InterFontFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 10.sp,

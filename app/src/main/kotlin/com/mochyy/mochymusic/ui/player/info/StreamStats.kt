@@ -74,11 +74,11 @@ private fun formatCard(input: StatsInput): StatCard {
         (fileSize * 8_000 / input.durationMs).toInt()
     } else null
     return StatCard(
-        title = codec?.let(::formatTitle) ?: "Format",
+        title = codec?.let(::formatTitle) ?: "Định dạng",
         lines = listOfNotNull(
             d.sourceBitDepth?.takeIf { lossless }?.let { "Bit depth" to "$it-bit" },
             sampleRate?.let { "Sample rate" to kHz(it) },
-            statedBitrate?.let { "Bitrate" to kbps(it) } ?: averageBitrate?.let { "Bitrate" to "~${kbps(it)} average" },
+            statedBitrate?.let { "Bitrate" to kbps(it) } ?: averageBitrate?.let { "Bitrate" to "trung bình ~${kbps(it)}" },
             d.channels?.let { "Channel type" to channelName(it) },
             containerName(d.containerMime)?.let { "Container" to it },
             "Media id" to input.mediaId,
@@ -97,7 +97,7 @@ private fun decoderCard(input: StatsInput): StatCard {
         lines = listOfNotNull(
             d.decoderName?.let { "Decoder name" to it },
             input.decoderHardware?.let { "Runs on" to if (it) "Hardware" else "Software" },
-            d.sampleMime?.let { "Format" to it },
+            d.sampleMime?.let { "Định dạng" to it },
             d.codecs?.takeIf { it.isNotBlank() }?.let { "Codec" to it },
             d.decodedEncoding?.let { "Output" to pcmName(it) },
             d.decodedSampleRate?.let { "Output rate" to kHz(it) },
@@ -130,8 +130,8 @@ private fun resamplerCard(input: StatsInput): StatCard {
             // the filter has to stop at the lower rate's nyquist, half of it
             outRate?.takeIf { resampling }?.let { "Cutoff" to "~${kHz(minOf(inRate, it) / 2)}" },
             line("Quality", "Untouched".takeIf { !resampling && outRate != null && !timeStretch }),
-            effects.speed.takeIf { it != 1f }?.let { "Speed" to String.format(Locale.US, "%.2f×", it) },
-            effects.pitch.takeIf { it != 1f }?.let { "Pitch" to String.format(Locale.US, "%+.1f semitones", 12 * log2(it)) },
+            effects.speed.takeIf { it != 1f }?.let { "Tốc độ" to String.format(Locale.US, "%.2f×", it) },
+            effects.pitch.takeIf { it != 1f }?.let { "Cao độ" to String.format(Locale.US, "%+.1f semitones", 12 * log2(it)) },
         ),
     )
 }
@@ -147,7 +147,7 @@ private fun mochyResamplerCard(d: StreamDetails, effects: EffectsSnapshot): Stat
         "Quality" to "−${SincResampler.StopbandDb.toInt()} dB stopband, 32-bit float",
         d.resamplerTaps?.let { "Taps" to "$it per sample" },
         "Android's mixer" to "Not resampling, the rates match",
-        effects.speed.takeIf { it != 1f }?.let { "Speed" to String.format(Locale.US, "%.2f×", it) },
+        effects.speed.takeIf { it != 1f }?.let { "Tốc độ" to String.format(Locale.US, "%.2f×", it) },
     ),
 )
 

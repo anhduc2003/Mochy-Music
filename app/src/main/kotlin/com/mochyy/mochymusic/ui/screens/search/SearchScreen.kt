@@ -549,8 +549,8 @@ private fun SuggestionResultRow(
         is AlbumItem -> "Album" + (item.artists?.takeIf { it.isNotEmpty() }
             ?.let { " • " + it.joinToString { a -> a.name } } ?: "")
 
-        is ArtistItem -> "Artist"
-        is PlaylistItem -> "Playlist" + (item.author?.name?.let { " • $it" } ?: "")
+        is ArtistItem -> "Nghệ sĩ"
+        is PlaylistItem -> "Danh sách phát" + (item.author?.name?.let { " • $it" } ?: "")
     }
 
     Row(

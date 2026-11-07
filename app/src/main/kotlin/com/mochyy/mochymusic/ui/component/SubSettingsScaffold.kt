@@ -341,7 +341,7 @@ fun SubSettingsScaffold(
                         } else {
                             rememberAsyncImagePainter(model = R.raw.search)
                         },
-                        contentDescription = if (searchOverlayVisible) "Hide search" else "Search",
+                        contentDescription = if (searchOverlayVisible) "Ẩn tìm kiếm" else "Tìm kiếm",
                         tint = Color.White,
                         modifier = Modifier.size(if (searchOverlayVisible) 18.dp else 16.dp)
                     )

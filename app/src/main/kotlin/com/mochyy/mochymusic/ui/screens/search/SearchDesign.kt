@@ -430,7 +430,7 @@ fun SearchAvatar(
         if (model != null) {
             AsyncImage(
                 model = model,
-                contentDescription = "Profile",
+                contentDescription = "Ảnh hồ sơ",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )

@@ -34,7 +34,7 @@ class CustomDownloadManager {
 
                 if (connection.responseCode != HttpURLConnection.HTTP_OK) {
                     withContext(Dispatchers.Main) {
-                        onError("Server returned HTTP ${connection.responseCode}")
+                        onError("Máy chủ trả về lỗi HTTP ${connection.responseCode}")
                     }
                     return@launch
                 }

@@ -510,7 +510,7 @@ fun playNextSwipeAction(mediaItem: (() -> MediaItem)?): SwipeAction {
         val target = mediaItem?.invoke() ?: return@SwipeAction
         playerConnection?.playNext(target)
         TopToaster.show(
-            text = "Playing ${target.mediaMetadata.title ?: "song"} next",
+            text = "Phát ${target.mediaMetadata.title ?: "song"} tiếp theo",
             thumbnail = target.mediaMetadata.artworkUri?.toString(),
             iconRes = R.drawable.playlist_play,
         )

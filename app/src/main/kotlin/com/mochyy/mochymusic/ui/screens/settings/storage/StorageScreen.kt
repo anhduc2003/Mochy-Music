@@ -99,7 +99,7 @@ fun StorageScreen(navController: NavController, viewModel: StorageViewModel = hi
             val downloadCount = downloads?.size ?: 0
             StorageActionButton(
                 label = stringResource(R.string.storage_remove_downloads),
-                detail = if (downloadCount > 0) "$downloadCount ${if (downloadCount == 1) "song" else "songs"} · ${formatSize(usage?.downloads ?: 0)}" else "Nothing downloaded",
+                detail = if (downloadCount > 0) "$downloadCount ${if (downloadCount == 1) "song" else "songs"} · ${formatSize(usage?.downloads ?: 0)}" else "Chưa tải nội dung nào",
                 danger = true,
                 enabled = !busy && downloadCount > 0,
                 onClick = {
@@ -127,7 +127,7 @@ fun StorageScreen(navController: NavController, viewModel: StorageViewModel = hi
             )
             StorageActionButton(
                 label = stringResource(R.string.storage_manage_downloads),
-                detail = if (downloadCount > 0) "See the biggest and the ones you barely play" else null,
+                detail = if (downloadCount > 0) "Xem nội dung chiếm nhiều dung lượng nhất và ít được phát" else null,
                 enabled = downloadCount > 0,
                 onClick = { menuState.showManageDownloadsSheet(viewModel) },
             )
@@ -207,12 +207,12 @@ private fun SmartHint(usage: StorageUsage, downloadCount: Int) {
     val nearlyFull = usage.deviceTotal > 0 && usage.deviceFree * 10 < usage.deviceTotal
     val hint = when {
         usage.cache >= usage.downloads && usage.cache > 50_000_000L ->
-            "The cache is the easy one: clearing it frees ${formatSize(usage.cache)} and songs simply stream again."
+            "Có thể dễ dàng xóa bộ nhớ đệm: thao tác này giải phóng ${formatSize(usage.cache)} và bài hát sẽ được phát trực tuyến khi cần."
         downloadCount > 0 && usage.downloads > 50_000_000L ->
-            "Downloads take the most room. Manage downloads shows the biggest ones and the ones you barely play."
+            "Nội dung tải xuống chiếm nhiều dung lượng nhất. Mục Quản lý nội dung tải xuống giúp tìm nội dung lớn nhất và ít nghe nhất."
         else -> null
     }
-    val text = listOfNotNull(if (nearlyFull) "Your phone is nearly full." else null, hint).joinToString(" ")
+    val text = listOfNotNull(if (nearlyFull) "Điện thoại của bạn sắp hết dung lượng." else null, hint).joinToString(" ")
     if (text.isEmpty()) return
     Text(
         text,
@@ -241,8 +241,8 @@ private fun CacheLimitCard(limit: Int, onLimitChange: (Int) -> Unit, appliesLate
         Spacer(Modifier.height(10.dp))
         StepSlider(steps = CacheLimitSteps, value = limit, onValueChange = onLimitChange)
         Row {
-            Text("No cache", style = storageText(10f, FontWeight.Medium, StorageMuted, 0f), modifier = Modifier.weight(1f))
-            Text("Unlimited", style = storageText(10f, FontWeight.Medium, StorageMuted, 0f))
+            Text("Không có bộ nhớ đệm", style = storageText(10f, FontWeight.Medium, StorageMuted, 0f), modifier = Modifier.weight(1f))
+            Text("Không giới hạn", style = storageText(10f, FontWeight.Medium, StorageMuted, 0f))
         }
         AnimatedVisibility(
             visible = appliesLater,
@@ -250,7 +250,7 @@ private fun CacheLimitCard(limit: Int, onLimitChange: (Int) -> Unit, appliesLate
             exit = shrinkVertically() + fadeOut(),
         ) {
             Text(
-                "The new limit starts next time you open Mochy.",
+                "Giới hạn mới có hiệu lực khi bạn mở Mochy lần tới.",
                 style = storageText(12f, FontWeight.Medium, StorageMuted, -0.1f),
                 modifier = Modifier.padding(top = 8.dp),
             )
@@ -259,8 +259,8 @@ private fun CacheLimitCard(limit: Int, onLimitChange: (Int) -> Unit, appliesLate
 }
 
 private fun cacheLimitLabel(megabytes: Int): String = when {
-    megabytes < 0 -> "Unlimited"
-    megabytes == 0 -> "Off"
+    megabytes < 0 -> "Không giới hạn"
+    megabytes == 0 -> "Tắt"
     megabytes < 1024 -> "$megabytes MB"
     else -> "${megabytes / 1024} GB"
 }

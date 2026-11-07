@@ -86,7 +86,7 @@ fun StudioSheets(
             androidx.compose.material3.LocalTextStyle provides studioText(StudioType.Body),
         ) {
         when (sheet) {
-            StudioSheet.CONTROLS -> if (transportLayout != null) OptionSheet("Controls") {
+            StudioSheet.CONTROLS -> if (transportLayout != null) OptionSheet("Điều khiển") {
                 FlagshipTransportLayout.entries.forEach { layout ->
                     OptionRow(selected = layout == transportLayout, onClick = { onTransportLayout(layout) }) {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -98,7 +98,7 @@ fun StudioSheets(
                         }
                     }
                 }
-            } else OptionSheet("Controls") {
+            } else OptionSheet("Điều khiển") {
                 ButtonStyle.entries.forEach { style ->
                     OptionRow(selected = style == buttonStyle, onClick = { onButtonStyle(style) }, caption = style.displayName) {
                         if (style == ButtonStyle.DEFAULT) {
@@ -125,7 +125,7 @@ fun StudioSheets(
                 }
             }
 
-            StudioSheet.SEEKBAR -> OptionSheet("Seek bar") {
+            StudioSheet.SEEKBAR -> OptionSheet("Thanh tua") {
                 SeekBarStyle.entries.forEach { style ->
                     OptionRow(selected = style == seekBarStyle, onClick = { onSeekBarStyle(style) }, caption = style.displayName) {
                         Box(Modifier.fillMaxWidth().height(28.dp)) {
@@ -143,12 +143,12 @@ fun StudioSheets(
 
             StudioSheet.END_TIME -> {
                 var shown by rememberEnumPreference(PlayerEndTimestampKey, PlayerEndTimestamp.END_TIME)
-                OptionSheet("End timestamp") {
+                OptionSheet("Mốc kết thúc") {
                     OptionRow(selected = shown == PlayerEndTimestamp.TIME_LEFT, onClick = { shown = PlayerEndTimestamp.TIME_LEFT }) {
-                        TwoLines("Time left", "showing the time left for this song")
+                        TwoLines("Thời gian còn lại", "Hiển thị thời gian còn lại của bài hát")
                     }
                     OptionRow(selected = shown == PlayerEndTimestamp.END_TIME, onClick = { shown = PlayerEndTimestamp.END_TIME }) {
-                        TwoLines("End time", "showing the end / total duration for this song")
+                        TwoLines("Thời điểm kết thúc", "Hiển thị thời điểm kết thúc / tổng thời lượng bài hát")
                     }
                 }
             }
@@ -157,7 +157,7 @@ fun StudioSheets(
                 val slot = studio.sheetSlot
                 val current = menuLayout.actionAt(slot)
                 val used = (menuLayout.slots + menuLayout.side).toSet()
-                OptionSheet(if (slot == PlayerMenuLayout.SideSlot) "The button by the chevron" else "Menu button ${slot + 1}") {
+                OptionSheet(if (slot == PlayerMenuLayout.SideSlot) "Nút cạnh dấu mũi tên" else "Nút menu ${slot + 1}") {
                     PlayerMenuAction.entries.forEach { action ->
                         OptionRow(
                             selected = action == current,
@@ -176,12 +176,12 @@ fun StudioSheets(
             }
 
             StudioSheet.COVER_OPTIONS -> OptionSheet(
-                title = "Options for this cover",
+                title = "Tùy chọn cho bìa này",
                 subtitle = null,
             ) {
                 val options = coverStyle.options
                 if (options.isEmpty()) {
-                    Text("This cover has nothing more to set", color = Color.White.copy(alpha = 0.6f), style = studioText(StudioType.Body, FontWeight.Normal), modifier = Modifier.padding(vertical = 8.dp))
+                    Text("Bìa này không có tùy chọn nào khác", color = Color.White.copy(alpha = 0.6f), style = studioText(StudioType.Body, FontWeight.Normal), modifier = Modifier.padding(vertical = 8.dp))
                 }
                 options.forEach { option ->
                     when (option) {
@@ -195,30 +195,30 @@ fun StudioSheets(
                 var content by rememberEnumPreference(DiscLabelContentKey, DiscLabelContent.CUSTOM)
                 val connection = LocalPlayerConnection.current
                 val track = connection?.uiState?.trackInfo?.collectAsState()?.value
-                OptionSheet("The disc label") {
+                OptionSheet("Nhãn đĩa") {
                     OptionRow(selected = content == DiscLabelContent.CUSTOM, onClick = { content = DiscLabelContent.CUSTOM }) {
                         Column {
-                            TwoLines("Custom name", "whatever you type")
+                            TwoLines("Tên tùy chỉnh", "Nội dung bạn nhập")
                             if (content == DiscLabelContent.CUSTOM) {
                                 Spacer(Modifier.height(10.dp))
-                                LabelField(DiscNameKey, "Type the label")
+                                LabelField(DiscNameKey, "Nhập nhãn")
                             }
                         }
                     }
                     OptionRow(selected = content == DiscLabelContent.MUSIC_NAME, onClick = { content = DiscLabelContent.MUSIC_NAME }) {
-                        TwoLines("Music name", track?.title.orEmpty())
+                        TwoLines("Tên bài hát", track?.title.orEmpty())
                     }
                     OptionRow(selected = content == DiscLabelContent.ARTIST_NAME, onClick = { content = DiscLabelContent.ARTIST_NAME }) {
-                        TwoLines("Artist", track?.artist.orEmpty())
+                        TwoLines("Nghệ sĩ", track?.artist.orEmpty())
                     }
                     OptionRow(selected = content == DiscLabelContent.ALBUM_NAME, onClick = { content = DiscLabelContent.ALBUM_NAME }) {
                         TwoLines("Album", track?.album.orEmpty())
                     }
                     OptionRow(selected = content == DiscLabelContent.MUSIC_AND_ARTIST, onClick = { content = DiscLabelContent.MUSIC_AND_ARTIST }) {
-                        TwoLines("Music name and artist", listOfNotNull(track?.title, track?.artist).filter { it.isNotBlank() }.joinToString(" · "))
+                        TwoLines("Tên bài hát và nghệ sĩ", listOfNotNull(track?.title, track?.artist).filter { it.isNotBlank() }.joinToString(" · "))
                     }
                     OptionRow(selected = content == DiscLabelContent.NONE, onClick = { content = DiscLabelContent.NONE }) {
-                        TwoLines("Nothing", "a plain label")
+                        TwoLines("Không có", "nhãn đơn giản")
                     }
                 }
             }
@@ -254,8 +254,8 @@ fun StyleSheets(studio: PlayerStudioState) {
 }
 
 private val PosterVisualizerOption = CoverOption.Switch(
-    title = "Visualizer",
-    description = "bars round the cover, moving with the music",
+    title = "Bộ hiển thị âm thanh",
+    description = "Các cột quanh bìa chuyển động theo nhạc",
     icon = R.drawable.graphic_eq,
     key = com.mochyy.mochymusic.constants.PosterVisualizerKey,
     default = false,
@@ -263,7 +263,7 @@ private val PosterVisualizerOption = CoverOption.Switch(
 
 @Composable
 private fun ColumnScope.PosterOptions() {
-    OptionSheet(title = "The poster") {
+    OptionSheet(title = "Áp phích") {
         SwitchRow(PosterVisualizerOption)
     }
 }
@@ -278,7 +278,7 @@ internal fun ColumnScope.OptionSheet(
     val close = LocalMenuSheetClose.current
     Column(modifier = Modifier.padding(horizontal = 24.dp).navigationBarsPadding()) {
         Spacer(Modifier.height(10.dp))
-        Text("What to change with", color = Color.White, style = studioText(StudioType.Title, FontWeight.Bold))
+        Text("Chọn nội dung cần chỉnh", color = Color.White, style = studioText(StudioType.Title, FontWeight.Bold))
         Spacer(Modifier.height(4.dp))
         Text(subtitle ?: title, color = Color.White.copy(alpha = 0.55f), style = studioText(StudioType.Subtitle, FontWeight.Medium))
         Spacer(Modifier.height(18.dp))
@@ -299,7 +299,7 @@ internal fun ColumnScope.OptionSheet(
                 .clickable { close() },
             contentAlignment = Alignment.Center,
         ) {
-            Text("Done", color = Color.White, style = studioText(StudioType.Button))
+            Text("Xong", color = Color.White, style = studioText(StudioType.Button))
         }
         Spacer(Modifier.height(16.dp))
     }

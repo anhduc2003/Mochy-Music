@@ -33,7 +33,7 @@ class TransferImporter @Inject constructor(
 
     /** unpacks and converts source, onProgress goes from 0 to 1; once it succeeds the app restarts to finish */
     suspend fun stage(source: Uri, onProgress: (Float) -> Unit): Result<TransferManifest> = withContext(Dispatchers.IO) {
-        if (!running.tryLock()) return@withContext Result.failure(TransferException("An import is already running."))
+        if (!running.tryLock()) return@withContext Result.failure(TransferException("Đang có một lượt nhập khác."))
         try {
             runCatching { unpackAndConvert(source, onProgress) }
                 .onFailure { TransferRestore.stagingDir(context).deleteRecursively() }
@@ -48,14 +48,14 @@ class TransferImporter @Inject constructor(
         // the zip's contents land next to the data, so they need about as much room as the zip itself
         val needed = manifest.bytes + SpareBytes
         if (context.dataDir.usableSpace < needed) {
-            throw TransferException("Not enough free space. Mochy needs about ${needed / 1_000_000} MB free to import this.")
+            throw TransferException("Không đủ dung lượng trống. Mochy cần khoảng ${needed / 1_000_000} MB để nhập dữ liệu này.")
         }
 
         val staging = TransferRestore.stagingDir(context).apply { deleteRecursively(); mkdirs() }
         unpack(source, staging, total = manifest.bytes, onProgress)
 
         val library = File(staging, TransferArchive.LibraryEntry)
-        if (!library.exists()) throw TransferException("That export has no library inside. Export again from your old app.")
+        if (!library.exists()) throw TransferException("Tệp xuất này không chứa thư viện nhạc. Hãy xuất lại từ ứng dụng cũ.")
 
         val moveToHere = pathMover(manifest)
         val missingLocal = convertLibrary(library, File(staging, TransferArchive.LocalSongsEntry), moveToHere)
@@ -78,7 +78,7 @@ class TransferImporter @Inject constructor(
 
     private fun readManifest(source: Uri): TransferManifest {
         val stream = context.contentResolver.openInputStream(source)
-            ?: throw TransferException("Couldn't open that file. Try picking it again.")
+            ?: throw TransferException("Không thể mở tệp đó. Hãy chọn lại tệp.")
         val json = ZipInputStream(stream.buffered()).use { zip ->
             val first = zip.nextEntry
             if (first?.name != TransferArchive.ManifestEntry) throw NotAnExport()
@@ -86,11 +86,11 @@ class TransferImporter @Inject constructor(
         }
         val manifest = TransferManifest.fromJson(json) ?: throw NotAnExport()
         if (manifest.formatVersion > TransferArchive.FormatVersion || manifest.databaseVersion > MusicDatabaseVersion) {
-            throw TransferException("This export comes from a newer Mochy. Update Mochy first, then import it again.")
+            throw TransferException("Tệp xuất này được tạo từ phiên bản Mochy mới hơn. Hãy cập nhật Mochy rồi nhập lại.")
         }
         // without a path room would fall back to an empty library, so refuse before touching anything
         if (!hasMigrationPath(manifest.databaseVersion, MusicDatabaseVersion)) {
-            throw TransferException("This export is too old for Mochy to read. Update your old app, export again and import that.")
+            throw TransferException("Tệp xuất này quá cũ để Mochy đọc. Hãy cập nhật ứng dụng cũ, xuất lại rồi nhập tệp mới.")
         }
         return manifest
     }
@@ -98,7 +98,7 @@ class TransferImporter @Inject constructor(
     // copies the known entries into staging, everything else in the zip is ignored
     private fun unpack(source: Uri, staging: File, total: Long, onProgress: (Float) -> Unit) {
         val stream = context.contentResolver.openInputStream(source)
-            ?: throw TransferException("Couldn't open that file. Try picking it again.")
+            ?: throw TransferException("Không thể mở tệp đó. Hãy chọn lại tệp.")
         val root = staging.canonicalPath + File.separator
         var copied = 0L
         val buffer = ByteArray(128 * 1024)
@@ -160,7 +160,7 @@ class TransferImporter @Inject constructor(
             foldIntoOneFile(db)
             db.rawQuery("PRAGMA quick_check", null).use { cursor ->
                 if (!cursor.moveToFirst() || !cursor.getString(0).equals("ok", ignoreCase = true)) {
-                    throw TransferException("The library in that export is damaged. Export again from your old app.")
+                    throw TransferException("Thư viện trong tệp xuất bị hỏng. Hãy xuất lại từ ứng dụng cũ.")
                 }
             }
         }
@@ -241,8 +241,8 @@ class TransferImporter @Inject constructor(
     private fun Result<TransferManifest>.friendly(): Result<TransferManifest> = recoverCatching { error ->
         throw when (error) {
             is TransferException -> error
-            is NotAnExport -> TransferException("That isn't a Mochy export. Pick the .zip you exported from your old app.")
-            else -> TransferException("Couldn't import that file. Make sure there's free space and try again.", error)
+            is NotAnExport -> TransferException("Đây không phải tệp xuất của Mochy. Hãy chọn tệp .zip đã xuất từ ứng dụng cũ.")
+            else -> TransferException("Không thể nhập tệp đó. Hãy kiểm tra dung lượng trống rồi thử lại.", error)
         }
     }
 

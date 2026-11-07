@@ -85,7 +85,7 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
                 .animateContentSize(animationSpec = tween(420, easing = SheetEasing))
         ) {
             Text(
-                text = "Sleep timer",
+                text = "Hẹn giờ ngủ",
                 color = Color.White,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -115,7 +115,7 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
                     Spacer(modifier = Modifier.width(14.dp))
                     Icon(
                         painter = painterResource(R.drawable.arrow_forward),
-                        contentDescription = "Edit duration",
+                        contentDescription = "Chỉnh thời lượng",
                         tint = Color.White.copy(alpha = 0.8f),
                         modifier = Modifier.size(20.dp),
                     )
@@ -143,7 +143,7 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 SheetButton(
-                    label = "SET TIMER",
+                    label = "ĐẶT HẸN GIỜ",
                     enabled = timeState.hour > 0 || timeState.minute > 0,
                     onClick = {
                         sleepTimer.start((timeState.hour * 60 + timeState.minute).coerceAtLeast(1))
@@ -153,7 +153,7 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
             }
 
             Spacer(modifier = Modifier.height(18.dp))
-            Text(text = "or", color = Color(0xFF8A8A8A), fontSize = 13.sp)
+            Text(text = "hoặc", color = Color(0xFF8A8A8A), fontSize = 13.sp)
             Spacer(modifier = Modifier.height(10.dp))
 
             Row(
@@ -167,7 +167,7 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
                 SheetIcon(R.drawable.music_note)
                 Spacer(modifier = Modifier.width(14.dp))
                 Text(
-                    text = "end after this music ends",
+                    text = "Kết thúc sau khi bài hát này phát xong",
                     color = Color.White,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -183,11 +183,11 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
             }
 
             Spacer(modifier = Modifier.height(18.dp))
-            Text(text = "or", color = Color(0xFF8A8A8A), fontSize = 13.sp)
+            Text(text = "hoặc", color = Color(0xFF8A8A8A), fontSize = 13.sp)
             Spacer(modifier = Modifier.height(10.dp))
 
             SheetButton(
-                label = "CANCEL TIMER",
+                label = "HỦY HẸN GIỜ",
                 enabled = sleepTimer.isActive,
                 onClick = {
                     sleepTimer.clear()
