@@ -279,6 +279,22 @@ fun LyricsGlowLine(
     val subLineColor = remember(lineColor) { ColorProducer { lineColor.value.copy(alpha = 0.6f) } }
     val translationColor = remember(lineColor) { ColorProducer { lineColor.value.copy(alpha = 0.5f) } }
 
+    // The sung letters of the accent styles take the cover's colour. Lifted toward white when the
+    // cover is dark, so the karaoke stays readable on the dark page instead of sinking into it.
+    val sungAccent = remember(accentColor) {
+        val r = accentColor.red
+        val g = accentColor.green
+        val b = accentColor.blue
+        val luma = 0.299f * r + 0.587f * g + 0.114f * b
+        val lift = if (luma < 0.55f) 0.55f - luma else 0f
+        Color(
+            red = r + (1f - r) * lift,
+            green = g + (1f - g) * lift,
+            blue = b + (1f - b) * lift,
+            alpha = 1f,
+        )
+    }
+
     // the side on screen, not the text's own start: Start on an arabic line is its right edge
     val onLeft = (alignment == LyricsAlignment.START) !=
         (androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl)
@@ -405,7 +421,7 @@ fun LyricsGlowLine(
                 motionStyle = motionStyle,
                 baseColor = unsungColor,
 
-                highlightColor = Color.White,
+                highlightColor = if (motionStyle.accentFill) sungAccent else Color.White,
                 // The reading is drawn below, in one place for both paths. It used to move into
                 // the karaoke block when the line went active (above any backing vocal, and at a
                 // dimmer colour) and back out when it ended, so it jumped every line change.
