@@ -1,6 +1,9 @@
 package com.mochyy.mochymusic.ui.player.studio
-
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.BackHandler
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -43,6 +46,9 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -77,6 +83,7 @@ import androidx.compose.ui.unit.sp
 import com.mochyy.mochymusic.LocalPlayerConnection
 import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.constants.PlayerBackgroundStyle
+import com.mochyy.mochymusic.constants.PlayerCustomBackgroundUriKey
 import com.mochyy.mochymusic.constants.PlayerBottomBarStyle
 import com.mochyy.mochymusic.constants.PlayerCoverStyle
 import com.mochyy.mochymusic.constants.PlayerEndTimestamp
@@ -91,8 +98,10 @@ import com.mochyy.mochymusic.ui.player.customize.displayName
 import com.mochyy.mochymusic.ui.player.customize.isDisc
 import com.mochyy.mochymusic.ui.player.styles.Responsive
 import com.mochyy.mochymusic.ui.player.styles.rememberResponsive
+import com.mochyy.mochymusic.ui.screens.setup.PhotoCropperContainer
 import com.mochyy.mochymusic.ui.theme.InterFontFamily
 import com.mochyy.mochymusic.utils.makeTimeString
+import com.mochyy.mochymusic.utils.rememberPreference
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import com.mochyy.mochymusic.ui.utils.stableStatusBars
@@ -105,6 +114,7 @@ internal val PlayerBackgroundStyle.studioName: String
         PlayerBackgroundStyle.DARK_GRADIENT -> "Chuyển sắc tối"
         PlayerBackgroundStyle.APPLE_MUSIC -> "Apple Music"
         PlayerBackgroundStyle.AMBIENT -> "Ánh sáng môi trường"
+        PlayerBackgroundStyle.CUSTOM_IMAGE -> "Ảnh từ thiết bị"
     }
 
 private fun inter(size: TextUnit, weight: FontWeight = FontWeight.Bold) = studioText(size, weight)
@@ -168,6 +178,7 @@ fun StudioEditOverlay(
                 coverStyle = coverStyle,
                 onCoverStyle = onCoverStyle,
                 backgroundStyles = backgroundStyles,
+                backgroundStyle = backgroundStyle,
                 onBackgroundStyle = onBackgroundStyle,
                 w = w,
                 h = h,
@@ -296,6 +307,7 @@ private fun CoverEditor(
     coverStyle: PlayerCoverStyle,
     onCoverStyle: (PlayerCoverStyle) -> Unit,
     backgroundStyles: List<PlayerBackgroundStyle>,
+    backgroundStyle: PlayerBackgroundStyle,
     onBackgroundStyle: (PlayerBackgroundStyle) -> Unit,
     w: Float,
     h: Float,
@@ -313,6 +325,18 @@ private fun CoverEditor(
     val currentBackgrounds by rememberUpdatedState(backgroundStyles)
     val currentOnCover by rememberUpdatedState(onCoverStyle)
     val currentOnBackground by rememberUpdatedState(onBackgroundStyle)
+    var uncroppedBackgroundUri by remember { mutableStateOf<Uri?>(null) }
+    var customBackgroundUri by rememberPreference(PlayerCustomBackgroundUriKey, "")
+    val backgroundPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uncroppedBackgroundUri = uri
+    }
+    fun selectBackground(style: PlayerBackgroundStyle) {
+        if (style == PlayerBackgroundStyle.CUSTOM_IMAGE) {
+            backgroundPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        } else {
+            currentOnBackground(style)
+        }
+    }
     val active = studio.stage == StudioStage.COVER && studio.sheet == null
     val gapPx = with(density) { CardGap.toPx() }
     val maxW = with(density) { w.toDp() }
@@ -375,7 +399,7 @@ private fun CoverEditor(
                                 // then just carries on from wherever it is
                                 page.animateTo(target.toFloat(), velocity = flick) {
                                     if (backdrop) {
-                                        currentBackgrounds.getOrNull(target)?.let(currentOnBackground)
+                                        currentBackgrounds.getOrNull(target)?.let(::selectBackground)
                                     } else {
                                         currentCovers.getOrNull(target)?.let(currentOnCover)
                                     }
@@ -575,6 +599,21 @@ private fun CoverEditor(
                 .clip(CircleShape)
                 .clickable(enabled = active) { studio.backdrop.animateTo(if (inBackdrop) 0f else 1f) },
         )
+    }
+    if (uncroppedBackgroundUri != null) {
+        PhotoCropperContainer(
+            uri = uncroppedBackgroundUri,
+            onDone = { croppedUri ->
+                customBackgroundUri = croppedUri.toString()
+                uncroppedBackgroundUri = null
+                currentOnBackground(PlayerBackgroundStyle.CUSTOM_IMAGE)
+            },
+            onCancel = { uncroppedBackgroundUri = null },
+            onSelectNewImage = {
+                backgroundPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            },
+            title = "Điều chỉnh ảnh nền ứng dụng",
+        ) {}
     }
 }
 

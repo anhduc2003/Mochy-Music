@@ -25,6 +25,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.palette.graphics.Palette
@@ -33,7 +34,9 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
 import com.mochyy.mochymusic.constants.PlayerBackgroundStyle
+import com.mochyy.mochymusic.constants.PlayerCustomBackgroundUriKey
 import com.mochyy.mochymusic.ui.utils.resize
+import com.mochyy.mochymusic.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -56,6 +59,19 @@ fun PlayerBackgroundContent(
             thumbnailUrl = thumbnailUrl,
             modifier = modifier,
         )
+        PlayerBackgroundStyle.CUSTOM_IMAGE -> {
+            val (uri) = rememberPreference(PlayerCustomBackgroundUriKey, "")
+            if (uri.isBlank()) {
+                Box(modifier = modifier.background(Color(0xFF121212)))
+            } else {
+                coil3.compose.AsyncImage(
+                    model = uri,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = modifier,
+                )
+            }
+        }
     }
 }
 

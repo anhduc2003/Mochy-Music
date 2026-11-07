@@ -597,17 +597,13 @@ enum class PlayerButtonsStyle {
 }
 
 enum class PlayerBackgroundStyle {
-
     COVER_GRADIENT,
-
     SOLID,
-
     DARK_GRADIENT,
-
     APPLE_MUSIC,
-
     // the cover's colours drifting slowly, following a playing video or animated cover as it changes
     AMBIENT,
+    CUSTOM_IMAGE,
 }
 
 enum class PlayerCoverStyle {
@@ -831,6 +827,7 @@ val HistoryDuration = floatPreferencesKey("historyDuration")
 
 val PlayerButtonsStyleKey = stringPreferencesKey("player_buttons_style")
 val PlayerBackgroundStyleKey = stringPreferencesKey("playerBackgroundStyle")
+val PlayerCustomBackgroundUriKey = stringPreferencesKey("playerCustomBackgroundUri")
 val MiniPlayerBackgroundStyleKey = stringPreferencesKey("miniPlayerBackgroundStyle")
 val ShowLyricsKey = booleanPreferencesKey("showLyrics")
 val SwipeLyricsKey = booleanPreferencesKey("swipeLyrics")
