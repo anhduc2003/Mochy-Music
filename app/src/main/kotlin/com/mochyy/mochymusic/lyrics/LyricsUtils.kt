@@ -742,11 +742,11 @@ object LyricsUtils {
     }
 
     /**
-     * How early a line lights up before its own timestamp. Singers anticipate the beat and the
-     * scroll needs a head start, but this is also why a line can look "wrong" at the boundary, so
-     * it is a named constant rather than a literal buried in the loop.
+     * How early a line lights up before its own timestamp. A lead-in made the highlight read as
+     * off-beat at every line boundary, so the line now lights up on its own timestamp; the value
+     * stays a named constant so it can be tuned again without hunting for a literal.
      */
-    const val LineLeadInMs = 300L
+    const val LineLeadInMs = 0L
 
     /**
      * Index of the line that should read as ACTIVE at [position], or -1 before the first line.
