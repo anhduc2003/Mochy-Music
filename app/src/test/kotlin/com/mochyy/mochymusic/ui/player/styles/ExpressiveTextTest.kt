@@ -1,18 +1,24 @@
 package com.mochyy.mochymusic.ui.player.styles
 
 import com.mochyy.mochymusic.constants.LyricsMotionStyle
+import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ExpressiveTextTest {
     @Test
-    fun `neon glows and mask does not while both use accent fill`() {
+    fun `neon and mask sweep with bright white while only neon glows`() {
+        val base = Color(0xFFF1ECEC)
         assertTrue(LyricsMotionStyle.NEON.accentFill)
         assertTrue(LyricsMotionStyle.NEON.shaded)
         assertTrue(LyricsMotionStyle.MASK.accentFill)
         assertFalse(LyricsMotionStyle.MASK.shaded)
+        assertEquals(Color.White, lyricFillColor(LyricsMotionStyle.NEON, base))
+        assertEquals(Color.White, lyricFillColor(LyricsMotionStyle.MASK, base))
+        assertEquals(base, lyricFillColor(LyricsMotionStyle.MOTION, base))
     }
 
     @Test
