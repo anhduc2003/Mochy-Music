@@ -67,6 +67,7 @@ import com.mochyy.mochymusic.ui.player.share.ShareHint
 import com.mochyy.mochymusic.ui.player.share.backgroundPageCard
 import com.mochyy.mochymusic.ui.screens.audiolab.LabCard
 import com.mochyy.mochymusic.ui.screens.audiolab.LabSlider
+import com.mochyy.mochymusic.ui.screens.setup.PhotoCropperContainer
 import com.mochyy.mochymusic.ui.theme.InterFontFamily
 import com.mochyy.mochymusic.ui.utils.resize
 import kotlinx.coroutines.Dispatchers
@@ -125,6 +126,7 @@ private fun SongBackgroundContent(session: SongShareSession, popup: PopupSheetSt
     }
     // the last picture, colour and video are kept while you swipe, so coming back to a page finds it as you left it
     var picture by remember { mutableStateOf(session.lastStill as? ShareBackground.Picture) }
+    var uncroppedPictureUri by remember { mutableStateOf<Uri?>(null) }
     var colour by remember { mutableStateOf((session.lastStill as? ShareBackground.Solid)?.color ?: session.palette.firstOrNull() ?: ShareBasicColours[0]) }
     var dim by remember { mutableFloatStateOf((session.background as? SongBackground.Video)?.dim ?: session.lastVideo?.dim ?: 0.85f) }
     // opens on what's up now, or on the last of this kind that was
@@ -151,9 +153,8 @@ private fun SongBackgroundContent(session: SongShareSession, popup: PopupSheetSt
 
     val pictureLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
         if (uri != null) {
-            val next = ShareBackground.Picture(uri, blur = picture?.blur ?: true, opacity = picture?.opacity ?: 0.85f)
-            picture = next
-            session.setStill(next)
+            // Do not apply the source URI directly: let the user choose the visible region first.
+            uncroppedPictureUri = uri
         }
     }
     val videoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
@@ -177,6 +178,22 @@ private fun SongBackgroundContent(session: SongShareSession, popup: PopupSheetSt
     }
     val cardHeight = (LocalConfiguration.current.screenHeightDp * 0.4f).dp
 
+    PhotoCropperContainer(
+        uri = uncroppedPictureUri,
+        onDone = { croppedUri ->
+            val next = ShareBackground.Picture(
+                croppedUri,
+                blur = picture?.blur ?: true,
+                opacity = picture?.opacity ?: 0.85f,
+            )
+            picture = next
+            session.setStill(next)
+            uncroppedPictureUri = null
+        },
+        onCancel = { uncroppedPictureUri = null },
+        onSelectNewImage = pickPicture,
+        title = "Điều chỉnh vùng ảnh nền",
+    ) {
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
         Spacer(Modifier.height(10.dp))
         HorizontalPager(
@@ -272,6 +289,7 @@ private fun SongBackgroundContent(session: SongShareSession, popup: PopupSheetSt
             }
         }
     }
+}
 }
 
 @Composable

@@ -54,6 +54,7 @@ fun PhotoCropperContainer(
     onDone: (Uri) -> Unit,
     onCancel: () -> Unit,
     onSelectNewImage: () -> Unit,
+    title: String = "Điều chỉnh ảnh hồ sơ của bạn",
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
@@ -79,18 +80,11 @@ fun PhotoCropperContainer(
                         MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
                     }
 
-                    val maxDim = 2048
-                    val finalBmp = if (bmp.width > maxDim || bmp.height > maxDim) {
-                        val ratio = (maxDim.toFloat() / maxOf(bmp.width, bmp.height))
-                        val newWidth = (bmp.width * ratio).toInt()
-                        val newHeight = (bmp.height * ratio).toInt()
-                        Bitmap.createScaledBitmap(bmp, newWidth, newHeight, true)
-                    } else {
-                        bmp
-                    }
-
-                    androidBitmap = finalBmp
-                    bitmap = finalBmp.asImageBitmap()
+                    // Keep the decoded source at its native dimensions. The crop coordinates
+                    // are mapped back to this bitmap, so downscaling here would permanently
+                    // throw away detail before the user even saves the image.
+                    androidBitmap = bmp
+                    bitmap = bmp.asImageBitmap()
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
@@ -259,7 +253,7 @@ fun PhotoCropperContainer(
         }
 
         Text(
-            text = "Điều chỉnh ảnh hồ sơ của bạn",
+            text = title,
             color = Color.White,
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp,
@@ -316,9 +310,13 @@ fun PhotoCropperContainer(
 
                     val croppedBmp = Bitmap.createBitmap(origBmp, left, top, cropSize, cropSize)
 
-                    val file = File(context.cacheDir, "cropped_profile_${UUID.randomUUID()}.jpg")
+                    // PNG is lossless. The quality argument is ignored for PNG, but passing 100
+                    // documents the intent and keeps this safe if the encoder changes later.
+                    val file = File(context.cacheDir, "cropped_profile_${UUID.randomUUID()}.png")
                     val out = FileOutputStream(file)
-                    croppedBmp.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                    check(croppedBmp.compress(Bitmap.CompressFormat.PNG, 100, out)) {
+                        "Unable to encode cropped image"
+                    }
                     out.flush()
                     out.close()
 
