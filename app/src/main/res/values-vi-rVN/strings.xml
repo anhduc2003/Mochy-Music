@@ -262,7 +262,10 @@
     <string name="proxy_url">URL máy chủ proxy</string>
     <string name="restart_to_take_effect">Khởi động lại để áp dụng thay đổi</string>
     <string name="player_and_audio">Trình phát và âm thanh</string>
+    <string name="audio">Âm thanh</string>
     <string name="audio_quality">Chất lượng âm thanh</string>
+    <string name="audio_effect">Hiệu ứng âm thanh</string>
+    <string name="open_settings">Mở cài đặt</string>
     <string name="network_ip_version">Phiên bản IP mạng</string>
     <string name="ip_version_auto">Tự động</string>
     <string name="ip_version_ipv4">Bắt buộc dùng IPv4</string>

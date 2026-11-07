@@ -101,7 +101,7 @@ fun AudioQualityScreen(navController: NavController, modules: ModulesViewModel =
     // the first provider in the order that's on plays everything it has
     val first = order.firstOrNull(usable)
     val effective = when (first) {
-        null -> Effective(AudioQuality.LOW, "Nothing is on", "Turn a provider on")
+        null -> Effective(AudioQuality.LOW, stringResource(R.string.quality_nothing_on), stringResource(R.string.quality_turn_provider_on))
         MonochromeModule.Id -> Effective(AudioQuality.LOSSLESS, "Monochrome", "FLAC · lossless")
         AppleMusicModule.Id -> {
             val pick = entries.firstOrNull { it.module.info.id == first }?.picks?.get(AppleMusicModule.ChoiceQuality)
@@ -127,19 +127,19 @@ fun AudioQualityScreen(navController: NavController, modules: ModulesViewModel =
     }
 
     AudioLabPage(
-        title = LabTitle("Audio", "Quality", firstSize = 40.sp, secondSize = 64.sp),
+        title = LabTitle(stringResource(R.string.audio), stringResource(R.string.audio_quality), firstSize = 40.sp, secondSize = 64.sp),
         onBack = { navController.navigateUp() },
         subtitle = "${effective.title} · ${effective.format}",
     ) {
-        LabSheetTitle("Streaming")
+        LabSheetTitle(stringResource(R.string.quality_streaming))
         LabGroup {
             ProviderCaption(
                 logo = R.drawable.provider_youtube_music,
                 name = "YouTube Music",
                 status = when {
-                    youTubeOn -> "Plays what the others don't have"
-                    order.none(usable) -> "Off, and nothing else is on, so songs won't play"
-                    else -> "Off: songs the others don't have are skipped"
+                    youTubeOn -> stringResource(R.string.quality_youtube_on_desc)
+                    order.none(usable) -> stringResource(R.string.quality_youtube_off_empty_desc)
+                    else -> stringResource(R.string.quality_youtube_off_desc)
                 },
                 on = youTubeOn,
             )
@@ -173,7 +173,7 @@ fun AudioQualityScreen(navController: NavController, modules: ModulesViewModel =
 
         // what a download from youtube is saved as; the download order below picks where each download comes from
         Spacer(Modifier.height(24.dp))
-        LabSheetTitle("Download")
+        LabSheetTitle(stringResource(R.string.quality_download))
         LabGroup {
             com.mochyy.mochymusic.constants.DownloadQuality.entries.forEach { option ->
                 QualityRow(option.title, option.description, selected = downloadQuality == option, enabled = true) {
@@ -184,7 +184,7 @@ fun AudioQualityScreen(navController: NavController, modules: ModulesViewModel =
         Footnote(stringResource(R.string.quality_download_footnote))
 
         Spacer(Modifier.height(24.dp))
-        LabSheetTitle("Provider")
+        LabSheetTitle(stringResource(R.string.quality_provider))
         ProviderOrder(
             order = shownOrder,
             name = modules::nameOf,
@@ -192,9 +192,9 @@ fun AudioQualityScreen(navController: NavController, modules: ModulesViewModel =
             usable = usable,
             status = { id ->
                 if (id == SourceModules.YouTubeId) {
-                    if (youTubeOn) "On" else "Off, tap to turn on"
+                    if (youTubeOn) context.getString(R.string.quality_on) else context.getString(R.string.quality_off_tap)
                 } else {
-                    entries.firstOrNull { it.module.info.id == id }?.let(::moduleStatus) ?: "Not installed"
+                    entries.firstOrNull { it.module.info.id == id }?.let(::moduleStatus) ?: context.getString(R.string.quality_not_installed)
                 }
             },
             onTap = { id ->

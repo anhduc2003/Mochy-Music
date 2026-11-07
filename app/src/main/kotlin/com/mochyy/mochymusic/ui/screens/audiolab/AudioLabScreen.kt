@@ -111,7 +111,7 @@ fun AudioLabScreen(
     ) {
         val equalizer: @Composable (Modifier) -> Unit = { modifier ->
             BigHubCard(
-                title = "Equalizer",
+                title = stringResource(R.string.equalizer),
                 status = equalizerStatus(eq, presets.associate { it.id to it.name }),
                 on = eq.enabled,
                 onClick = { navController.navigate("equalizer") },
@@ -120,7 +120,7 @@ fun AudioLabScreen(
         }
         val effect: @Composable (Modifier) -> Unit = { modifier ->
             BigHubCard(
-                title = "Audio Effect",
+                title = stringResource(R.string.audio_effect),
                 status = effectsStatus(effects),
                 on = effects.isNotEmpty(),
                 onClick = { navController.navigate("audio_fx") },
@@ -129,7 +129,7 @@ fun AudioLabScreen(
         }
         val qualityCard: @Composable (Modifier) -> Unit = { modifier ->
             SmallHubCard(
-                title = "Audio Quality",
+                title = stringResource(R.string.audio_quality),
                 status = qualityName(quality, firstProvider),
                 onClick = { navController.navigate("audio_quality") },
                 modifier = modifier,

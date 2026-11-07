@@ -24,6 +24,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -48,7 +49,7 @@ import com.mochyy.mochymusic.viewmodels.AudioLabViewModel
 import com.mochyy.mochymusic.viewmodels.isFlat
 import kotlin.math.roundToInt
 
-private val Tabs = listOf("Graph", "Bands", "AutoEQ")
+private val Tabs = listOf(R.string.eq_graph, R.string.eq_bands, R.string.eq_autoeq)
 
 @Composable
 fun EqualizerScreen(
@@ -66,13 +67,13 @@ fun EqualizerScreen(
     ListenToAudio()
 
     SubSettingsScaffold(
-        title = "Equalizer",
-        backLabel = "Audio Lab",
+        title = stringResource(R.string.equalizer),
+        backLabel = stringResource(R.string.audio_lab),
         onBack = { navController.navigateUp() },
     ) {
         LabCard(padding = 10.dp) {
             LabToggleRow(
-                title = "Equalizer",
+                title = stringResource(R.string.equalizer),
                 subtitle = statusLine(eq, presets),
                 checked = eq.enabled,
                 onCheckedChange = viewModel::setEnabled,
@@ -80,7 +81,7 @@ fun EqualizerScreen(
             )
         }
         Spacer(Modifier.height(14.dp))
-        LabSegmented(options = Tabs, selectedIndex = tab, onSelect = { tab = it })
+        LabSegmented(options = Tabs.map { stringResource(it) }, selectedIndex = tab, onSelect = { tab = it })
         Spacer(Modifier.height(18.dp))
 
         val dim = animatedDim(!eq.enabled)
@@ -138,15 +139,15 @@ fun EqualizerScreen(
 
     if (savingPreset) {
         TextFieldDialog(
-            title = { Text("Save preset") },
-            placeholder = { Text("My earbuds") },
+            title = { Text(stringResource(R.string.eq_save_preset)) },
+            placeholder = { Text(stringResource(R.string.eq_preset_placeholder)) },
             onDone = viewModel::savePreset,
             onDismiss = { savingPreset = false },
         )
     }
     deleting?.let { preset ->
         ActionPromptDialog(
-            title = "Delete “${preset.name}”?",
+            title = stringResource(R.string.eq_delete_preset, preset.name),
             onDismiss = { deleting = null },
             onCancel = { deleting = null },
             onConfirm = {
@@ -180,12 +181,12 @@ private fun Presets(
     onSave: () -> Unit,
     onLongPress: (String) -> Unit,
 ) {
-    LabSectionLabel("Presets") {
-        LabTextAction("Reset", R.drawable.refresh, onClick = onReset)
-        LabTextAction("Save", R.drawable.add, onClick = onSave)
+    LabSectionLabel(stringResource(R.string.eq_presets)) {
+        LabTextAction(stringResource(R.string.reset), R.drawable.refresh, onClick = onReset)
+        LabTextAction(stringResource(R.string.save), R.drawable.add, onClick = onSave)
     }
     val chips = buildList {
-        if (eq.presetId == null) add(LabChip("custom", "Custom"))
+        if (eq.presetId == null) add(LabChip("custom", stringResource(R.string.eq_custom)))
         presets.forEach { add(LabChip(it.id, it.name, dot = androidx.compose.ui.graphics.Color.White)) }
         EqPresets.BuiltIn.forEach { add(LabChip(it.id, it.name)) }
     }
@@ -199,10 +200,10 @@ private fun Presets(
 
 @Composable
 private fun Output(eq: EqSettings, headroom: Double, viewModel: AudioLabViewModel) {
-    LabSectionLabel("Output")
+    LabSectionLabel(stringResource(R.string.eq_output))
     LabCard(padding = 16.dp) {
         LabSlider(
-            label = "Preamp",
+            label = stringResource(R.string.eq_preamp),
             valueText = (if (eq.preamp > 0) "+" else "") + String.format("%.1f dB", eq.preamp),
             value = eq.preamp.toFloat(),
             onValueChange = { viewModel.setPreamp((it * 2).roundToInt() / 2.0) },
@@ -210,11 +211,11 @@ private fun Output(eq: EqSettings, headroom: Double, viewModel: AudioLabViewMode
         )
         Spacer(Modifier.height(6.dp))
         LabToggleRow(
-            title = "Auto preamp",
+            title = stringResource(R.string.eq_auto_preamp),
             subtitle = if (eq.autoPreamp) {
-                if (headroom < -0.05) "Lowering by ${String.format("%.1f", -headroom)} dB, the limiter catches the rest"
-                else "Nothing to lower, the limiter catches any peaks"
-            } else "Off: louder, but big boosts get squashed on loud songs",
+                if (headroom < -0.05) stringResource(R.string.eq_lowering, String.format("%.1f", -headroom))
+                else stringResource(R.string.eq_nothing_to_lower)
+            } else stringResource(R.string.eq_auto_preamp_off),
             checked = eq.autoPreamp,
             onCheckedChange = viewModel::setAutoPreamp,
         )

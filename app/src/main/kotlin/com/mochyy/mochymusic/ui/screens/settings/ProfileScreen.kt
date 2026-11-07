@@ -105,6 +105,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -1164,6 +1165,6 @@ private fun OpenSettingsRow(onClick: () -> Unit) {
         ) {
             Icon(painterResource(R.drawable.settings), contentDescription = null, tint = Color(0xFF232323), modifier = Modifier.size(18.dp))
         }
-        Text("Open settings", style = PageTitle.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold))
+        Text(stringResource(R.string.open_settings), style = PageTitle.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold))
     }
 }

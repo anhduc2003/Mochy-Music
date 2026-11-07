@@ -30,7 +30,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -58,17 +60,18 @@ fun StorageScreen(navController: NavController, viewModel: StorageViewModel = hi
     // the player picked its limit when the app started; a new one only applies from the next start
     val startingLimit = remember { cacheLimit }
     val menuState = LocalMenuState.current
+    val context = LocalContext.current
 
     // songs removed from the Manage downloads sheet change the numbers here too
     LaunchedEffect(downloads?.size) { viewModel.measure() }
 
-    SubSettingsScaffold(title = "Storage", onBack = { navController.navigateUp() }) {
+    SubSettingsScaffold(title = stringResource(R.string.storage), onBack = { navController.navigateUp() }) {
         OverallCard(usage)
 
         Spacer(Modifier.height(22.dp))
         Text(
-            usage?.let { "Mochy uses ${percentOf(it.mochy, it.deviceTotal)} of your storage (${formatSize(it.mochy)}), which is split into" }
-                ?: "Working out how much room Mochy takes…",
+            usage?.let { stringResource(R.string.storage_usage, percentOf(it.mochy, it.deviceTotal), formatSize(it.mochy)) }
+                ?: stringResource(R.string.storage_calculating),
             style = storageText(17f, FontWeight.SemiBold),
             modifier = Modifier.padding(horizontal = 2.dp),
         )
@@ -78,7 +81,7 @@ fun StorageScreen(navController: NavController, viewModel: StorageViewModel = hi
 
         Spacer(Modifier.height(26.dp))
         Text(
-            "So, here's a list of things you can do to cut the junk",
+            stringResource(R.string.storage_cleanup_title),
             style = storageText(17f, FontWeight.SemiBold),
             modifier = Modifier.padding(horizontal = 2.dp),
         )
@@ -95,37 +98,35 @@ fun StorageScreen(navController: NavController, viewModel: StorageViewModel = hi
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             val downloadCount = downloads?.size ?: 0
             StorageActionButton(
-                label = "Remove all downloads",
+                label = stringResource(R.string.storage_remove_downloads),
                 detail = if (downloadCount > 0) "$downloadCount ${if (downloadCount == 1) "song" else "songs"} · ${formatSize(usage?.downloads ?: 0)}" else "Nothing downloaded",
                 danger = true,
                 enabled = !busy && downloadCount > 0,
                 onClick = {
                     menuState.showConfirm(
-                        title = "Remove all downloads?",
-                        message = "Every downloaded song is deleted from this phone. They stay in your library " +
-                            "and stream again when you play them, so they'll need a connection.",
-                        action = "Remove all downloads",
+                        title = context.getString(R.string.storage_remove_downloads_confirm),
+                        message = context.getString(R.string.storage_remove_downloads_message),
+                        action = context.getString(R.string.storage_remove_downloads),
                         onConfirm = viewModel::removeAllDownloads,
                     )
                 },
             )
             StorageActionButton(
-                label = "Remove all music & cover cache",
+                label = stringResource(R.string.storage_clear_cache),
                 detail = usage?.let { formatSize(it.cache) },
                 danger = true,
                 enabled = !busy,
                 onClick = {
                     menuState.showConfirm(
-                        title = "Clear the cache?",
-                        message = "Songs kept from streaming and saved cover pictures are deleted. They come back " +
-                            "as you play and browse. Your library and your downloads stay as they are.",
-                        action = "Clear cache",
+                        title = context.getString(R.string.storage_clear_cache_confirm),
+                        message = context.getString(R.string.storage_clear_cache_message),
+                        action = context.getString(R.string.storage_clear_cache),
                         onConfirm = viewModel::clearCaches,
                     )
                 },
             )
             StorageActionButton(
-                label = "Manage downloads",
+                label = stringResource(R.string.storage_manage_downloads),
                 detail = if (downloadCount > 0) "See the biggest and the ones you barely play" else null,
                 enabled = downloadCount > 0,
                 onClick = { menuState.showManageDownloadsSheet(viewModel) },
@@ -151,7 +152,7 @@ private fun percentOf(part: Long, total: Long): String {
 @Composable
 private fun OverallCard(usage: StorageUsage?) {
     StorageCardColumn {
-        Text("Overall", style = storageText(17f))
+        Text(stringResource(R.string.storage_overall), style = storageText(17f))
         Spacer(Modifier.height(14.dp))
         UsageBar(
             parts = listOf(
@@ -168,9 +169,9 @@ private fun OverallCard(usage: StorageUsage?) {
             Spacer(Modifier.width(16.dp))
             LegendSwatch(OthersGrey)
             Spacer(Modifier.width(8.dp))
-            Text("Your storage", style = storageText(16f, FontWeight.SemiBold), modifier = Modifier.weight(1f), maxLines = 1)
+            Text(stringResource(R.string.storage_your_storage), style = storageText(16f, FontWeight.SemiBold), modifier = Modifier.weight(1f), maxLines = 1)
             if (usage != null) {
-                Text("${formatSize(usage.deviceFree)} free", style = storageText(12f, FontWeight.Medium, StorageMuted, 0f))
+                Text(stringResource(R.string.storage_free, formatSize(usage.deviceFree)), style = storageText(12f, FontWeight.Medium, StorageMuted, 0f))
             }
         }
     }
@@ -179,7 +180,7 @@ private fun OverallCard(usage: StorageUsage?) {
 @Composable
 private fun BreakdownCard(usage: StorageUsage?) {
     StorageCardColumn {
-        Text("Mochy app data usage", style = storageText(17f))
+        Text(stringResource(R.string.storage_app_data_usage), style = storageText(17f))
         Spacer(Modifier.height(14.dp))
         UsageBar(
             parts = listOf(
@@ -192,10 +193,10 @@ private fun BreakdownCard(usage: StorageUsage?) {
         )
         Spacer(Modifier.height(16.dp))
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            LegendRow(CacheOrange, "Cache", usage?.let { formatSize(it.cache) })
-            LegendRow(MochyGreen, "Downloaded music & local", usage?.let { formatSize(it.downloads) })
-            LegendRow(DatabaseRed, "Database", usage?.let { formatSize(it.database) })
-            LegendRow(AppDataBlue, "App data", usage?.let { formatSize(it.appData) })
+            LegendRow(CacheOrange, stringResource(R.string.storage_cache), usage?.let { formatSize(it.cache) })
+            LegendRow(MochyGreen, stringResource(R.string.storage_downloaded_music), usage?.let { formatSize(it.downloads) })
+            LegendRow(DatabaseRed, stringResource(R.string.storage_database), usage?.let { formatSize(it.database) })
+            LegendRow(AppDataBlue, stringResource(R.string.storage_app_data), usage?.let { formatSize(it.appData) })
         }
     }
 }
@@ -234,7 +235,7 @@ private fun CacheLimitCard(limit: Int, onLimitChange: (Int) -> Unit, appliesLate
                 Icon(painterResource(R.drawable.cached), contentDescription = null, tint = StorageCard, modifier = Modifier.size(16.dp))
             }
             Spacer(Modifier.width(12.dp))
-            Text("Set music cache limit", style = storageText(15f, FontWeight.SemiBold), modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.storage_cache_limit), style = storageText(15f, FontWeight.SemiBold), modifier = Modifier.weight(1f))
             Text(cacheLimitLabel(limit), style = storageText(15f, FontWeight.Bold))
         }
         Spacer(Modifier.height(10.dp))
