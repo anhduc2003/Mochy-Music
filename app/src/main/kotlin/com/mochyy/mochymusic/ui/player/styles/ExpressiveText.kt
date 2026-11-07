@@ -363,6 +363,13 @@ private fun letterBounds(word: String, graphemes: java.text.BreakIterator): IntA
 }
 
 /**
+ * Coordinates of the pieces within a word. If joined glyphs must stay together, the word's local
+ * origin is zero; the caret at logical offset zero is its right edge in RTL and is not an origin.
+ */
+internal fun wordLetterOffsets(pieceCount: Int, offsetAt: (Int) -> Float): FloatArray =
+    FloatArray(pieceCount) { index -> if (pieceCount == 1) 0f else offsetAt(index) }
+
+/**
  * The order a line's words sit in from left to right, row by row, as indexes into [words]. A
  * right-to-left line puts its first word on the right; a run in the other direction inside it (a
  * Latin name in an Arabic line, say) still reads its own way.
@@ -629,7 +636,7 @@ private fun measureLine(
                     measurer.measure(w.text.substring(bounds[k], bounds[k + 1]), st, maxLines = 1, softWrap = false, constraints = Constraints())
                 }
                 // a whole word starts at its own left edge, whichever way it reads
-                val letterX = if (pieces == 1) FloatArray(1) else FloatArray(pieces) { k ->
+                val letterX = wordLetterOffsets(pieces) { k ->
                     whole.getHorizontalPosition(bounds[k], usePrimaryDirection = true)
                 }
                 val sizePx = base * scales[i]
@@ -911,6 +918,7 @@ fun ExpressiveLyrics(
                             position = position,
                             color = color,
                             sungColor = sungColor,
+                            glowEnabled = motionStyleNow.shaded,
                             dimAlpha = dimAlpha,
                             offsetY = { t ->
                                 var y = 0f
@@ -990,6 +998,7 @@ private fun LyricLine(
     position: LivePosition,
     color: Color,
     sungColor: Color,
+    glowEnabled: Boolean,
     dimAlpha: Float,
     /** how far down the overlapping lines above push this one, this frame */
     offsetY: (Long) -> Float = { 0f },
@@ -1037,7 +1046,7 @@ private fun LyricLine(
             val stage = remember(cells, w, position) { derivedStateOf { cells.stageAt(w, position.positionMs()) } }
             // a word coming in or going is drawn again each frame of its blur, and stays a still picture otherwise
             val blurring = remember(cells, w, position) { derivedStateOf { blurOf(w, position.positionMs()) > BlurShownPx } }
-            val glowLayer = if (gpuGlow) rememberGraphicsLayer() else null
+            val glowLayer = if (gpuGlow && glowEnabled) rememberGraphicsLayer() else null
             val blurLayer = if (gpuGlow) rememberGraphicsLayer() else null
             androidx.compose.foundation.layout.Spacer(
                 modifier = Modifier
@@ -1063,9 +1072,9 @@ private fun LyricLine(
                         val t = cells.drawTimeOf(w, now, clock)
                         cells.frameAt(t)
                         if (moving && blurLayer != null) {
-                            drawBlurred(blurLayer, blurOf(w, clock)) { drawWord(cell, cells.scale[w], cells.headAt(t), t, sungColor, dim, glowLayer) }
+                            drawBlurred(blurLayer, blurOf(w, clock)) { drawWord(cell, cells.scale[w], cells.headAt(t), t, sungColor, dim, glowEnabled, glowLayer) }
                         } else {
-                            drawWord(cell, cells.scale[w], cells.headAt(t), t, sungColor, dim, glowLayer)
+                            drawWord(cell, cells.scale[w], cells.headAt(t), t, sungColor, dim, glowEnabled, glowLayer)
                         }
                     },
             )
@@ -1120,7 +1129,16 @@ private fun DrawScope.drawBlurred(layer: GraphicsLayer, radius: Float, content: 
 }
 
 /** one word this frame: its glow in a blurred layer under it ([glowLayer], android 12+), then its letters */
-private fun DrawScope.drawWord(cell: WordCell, scale: Float, head: Float, t: Long, color: Color, dim: Color, glowLayer: GraphicsLayer?) {
+private fun DrawScope.drawWord(
+    cell: WordCell,
+    scale: Float,
+    head: Float,
+    t: Long,
+    color: Color,
+    dim: Color,
+    glowEnabled: Boolean,
+    glowLayer: GraphicsLayer?,
+) {
     val word = cell.word
     val n = cell.letters.size
     if (n == 0) return
@@ -1159,7 +1177,7 @@ private fun DrawScope.drawWord(cell: WordCell, scale: Float, head: Float, t: Lon
         val since = k - (c + 0.5f)
         val trail = if (since <= 0f) 1f else 1f - smootherstep(since / GlowTrailChars)
         // a letter still to be sung never glows; a held note lights the whole word
-        val glow = if (lx >= front) 0f else (active * lit * (GlowRest + (1f - GlowRest) * trail) + swell * 0.6f).coerceIn(0f, 1f)
+        val glow = if (!glowEnabled || lx >= front) 0f else (active * lit * (GlowRest + (1f - GlowRest) * trail) + swell * 0.6f).coerceIn(0f, 1f)
         cell.glow[i] = if (glow > GlowCutoff) glow else 0f
         if (glow > GlowCutoff) glowing = true
     }
@@ -1173,7 +1191,12 @@ private fun DrawScope.drawWord(cell: WordCell, scale: Float, head: Float, t: Lon
         }
         scale(1f / GlowRes, 1f / GlowRes, pivot = Offset.Zero) { drawLayer(glowLayer) }
     }
-    drawLetters(cell, scale, litFrom, front, color, dim, if (glowLayer == null) LetterPass.Shadowed else LetterPass.Plain)
+    val letterPass = when {
+        !glowEnabled -> LetterPass.Plain
+        glowLayer == null -> LetterPass.Shadowed
+        else -> LetterPass.Plain
+    }
+    drawLetters(cell, scale, litFrom, front, color, dim, letterPass)
 }
 
 /** which copy of a word's letters is drawn */
