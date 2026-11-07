@@ -72,6 +72,7 @@ import kotlinx.coroutines.flow.map
 import com.mochyy.mochymusic.ui.player.flagship.AnimatedPlayGlyph
 import com.mochyy.mochymusic.ui.player.flagship.AnimatedSkipGlyph
 import com.mochyy.mochymusic.ui.player.flagship.SkipCycleState
+import com.mochyy.mochymusic.ui.theme.ArtworkPalette
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -115,6 +116,8 @@ data class StyleTones(
     val ink: Color,
     val inkSoft: Color,
     val chip: Color,
+    /** More saturated cover-derived colour for the moving karaoke fill, not the muted progress tone. */
+    val lyricAccent: Color,
 )
 
 @Composable
@@ -131,6 +134,7 @@ fun rememberStyleTones(): StyleTones {
             ink = Color(0xFFF1ECEC),
             inkSoft = Color(0xFFF1ECEC).copy(alpha = 0.62f),
             chip = Color.White.copy(alpha = 0.22f),
+            lyricAccent = ArtworkPalette.from(seed).accent,
         )
     }
 }
