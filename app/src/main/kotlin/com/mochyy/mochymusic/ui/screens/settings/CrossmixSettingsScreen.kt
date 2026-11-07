@@ -34,7 +34,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
+import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.constants.CrossfadeDurationKey
 import com.mochyy.mochymusic.constants.CrossfadeEnabledKey
 import com.mochyy.mochymusic.constants.CrossfadeGaplessKey
@@ -115,14 +117,14 @@ fun CrossmixSettingsScreen(navController: NavController) {
     ListenToAudio()
 
     SubSettingsScaffold(
-        title = "Crossfade",
-        backLabel = "Audio Lab",
+        title = stringResource(R.string.crossfade),
+        backLabel = stringResource(R.string.audio_lab),
         onBack = { navController.navigateUp() },
     ) {
         LabCard(padding = 10.dp) {
             LabToggleRow(
-                title = "Off",
-                subtitle = "Boring boring boring",
+                title = stringResource(R.string.crossfade_off),
+                subtitle = stringResource(R.string.crossfade_off_desc),
                 checked = selectedMode == CrossmixMode.OFF,
                 onCheckedChange = { selectMode(CrossmixMode.OFF) },
                 leadingDot = true,
@@ -136,8 +138,8 @@ fun CrossmixSettingsScreen(navController: NavController) {
             }
             Spacer(Modifier.height(10.dp))
             LabToggleRow(
-                title = "Auto Crossfade",
-                subtitle = "A smooth ${AutoCrossfadeDurationSeconds.toInt()}-second blend from every song into the next",
+                title = stringResource(R.string.crossfade_auto),
+                subtitle = stringResource(R.string.crossfade_auto_desc, AutoCrossfadeDurationSeconds.toInt()),
                 checked = selectedMode == CrossmixMode.AUTO_CROSSFADE,
                 onCheckedChange = { toggle(CrossmixMode.AUTO_CROSSFADE, it) },
             )
@@ -154,14 +156,14 @@ fun CrossmixSettingsScreen(navController: NavController) {
             }
             Spacer(Modifier.height(10.dp))
             LabToggleRow(
-                title = "Manual Crossfade",
-                subtitle = "Set custom crossfade",
+                title = stringResource(R.string.crossfade_manual),
+                subtitle = stringResource(R.string.crossfade_manual_desc),
                 checked = selectedMode == CrossmixMode.MANUAL_CROSSFADE,
                 onCheckedChange = { toggle(CrossmixMode.MANUAL_CROSSFADE, it) },
             )
             Box(Modifier.padding(horizontal = 6.dp)) {
                 LabSlider(
-                    label = "Length",
+                    label = stringResource(R.string.crossfade_length),
                     valueText = "${manualSeconds.roundToInt()}s",
                     value = manualSeconds,
                     onValueChange = { v ->
@@ -194,11 +196,11 @@ fun CrossmixSettingsScreen(navController: NavController) {
             }
             Spacer(Modifier.height(10.dp))
             LabToggleRow(
-                title = "CrossMix",
+                title = stringResource(R.string.crossmix),
                 subtitle = if (CrossmixAvailable) {
-                    "DJ-style: reads each song's tempo, beats, key, energy and where its voice is, then picks the one of 27 transitions that fits, so two voices never sing over each other"
+                    stringResource(R.string.crossmix_desc)
                 } else {
-                    "Still being tuned, so it can't be turned on yet. DJ-style mixes that read each song's tempo, beats, key and voice"
+                    stringResource(R.string.crossmix_unavailable_desc)
                 },
                 checked = selectedMode == CrossmixMode.CROSSMIX,
                 onCheckedChange = { toggle(CrossmixMode.CROSSMIX, it) },
@@ -214,8 +216,8 @@ fun CrossmixSettingsScreen(navController: NavController) {
         LabCollapsible(selectedMode != CrossmixMode.OFF) {
             LabCard(padding = 10.dp) {
                 LabToggleRow(
-                    title = "Keep gapless albums intact",
-                    subtitle = "Album tracks that run straight into each other play through unmixed",
+                    title = stringResource(R.string.crossfade_keep_gapless),
+                    subtitle = stringResource(R.string.crossfade_keep_gapless_desc),
                     checked = disableForGapless,
                     onCheckedChange = onDisableForGaplessChange,
                 )

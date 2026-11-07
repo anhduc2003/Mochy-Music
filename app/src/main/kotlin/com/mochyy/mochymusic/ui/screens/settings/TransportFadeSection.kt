@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -71,6 +72,17 @@ import kotlin.math.sin
 private val EffectRed = LabColors.Nodes[9]
 private val PickerColor = Color(0xFF141416)
 
+private val TransportEffect.labelRes: Int
+    get() = when (this) {
+        TransportEffect.OFF -> R.string.transport_effect_none
+        TransportEffect.ECHO -> R.string.transport_effect_echo
+        TransportEffect.REWIND -> R.string.transport_effect_rewind
+        TransportEffect.TAPE_STOP -> R.string.transport_effect_tape_stop
+        TransportEffect.FAR_AWAY -> R.string.transport_effect_far_away
+        TransportEffect.REVERB -> R.string.transport_effect_reverb
+        TransportEffect.FILTER -> R.string.transport_effect_filter
+    }
+
 // the pause, play, forward and backward fades: a picture of the curve, the switch, its length and the layered effect
 @Composable
 fun TransportFadeSection() {
@@ -80,7 +92,7 @@ fun TransportFadeSection() {
     val seconds = storedSeconds.coerceIn(TransportFadeMinSeconds, TransportFadeMaxSeconds)
 
     Text(
-        text = "Pause, play, forward and backward transition",
+        text = stringResource(R.string.transport_fade_title),
         fontFamily = InterFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 26.sp,
@@ -96,15 +108,15 @@ fun TransportFadeSection() {
         }
         Spacer(Modifier.height(10.dp))
         LabToggleRow(
-            title = "Enable fade",
-            subtitle = "Eases the music out when you pause or skip, and back in when you play",
+            title = stringResource(R.string.transport_fade_enable),
+            subtitle = stringResource(R.string.transport_fade_enable_desc),
             checked = enabled,
             onCheckedChange = onEnabledChange,
         )
         LabCollapsible(enabled) {
             Box(Modifier.padding(horizontal = 6.dp)) {
                 LabSlider(
-                    label = "Length",
+                    label = stringResource(R.string.crossfade_length),
                     valueText = secondsText(seconds),
                     value = seconds,
                     onValueChange = { onSecondsChange((it * 2f).roundToInt() / 2f) },
@@ -118,9 +130,9 @@ fun TransportFadeSection() {
             }
             Spacer(Modifier.height(14.dp))
             Column(Modifier.padding(horizontal = 6.dp)) {
-                Text("Layered effect", fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = LabColors.Primary)
+                Text(stringResource(R.string.transport_fade_layered), fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = LabColors.Primary)
                 Text(
-                    "A CrossMix effect over the fade, like an echo trail or the record spinning back",
+                    stringResource(R.string.transport_fade_layered_desc),
                     fontFamily = InterFontFamily,
                     fontSize = 12.sp,
                     lineHeight = 15.sp,
@@ -155,7 +167,7 @@ private fun EffectPicker(selected: TransportEffect, onSelect: (TransportEffect) 
         ) {
             Spacer(Modifier.size(24.dp))
             Text(
-                text = selected.label,
+                text = stringResource(selected.labelRes),
                 fontFamily = InterFontFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 17.sp,
@@ -165,7 +177,7 @@ private fun EffectPicker(selected: TransportEffect, onSelect: (TransportEffect) 
             )
             Icon(
                 painter = painterResource(R.drawable.expand_more),
-                contentDescription = "Choose an effect",
+                contentDescription = stringResource(R.string.transport_fade_choose_effect),
                 tint = Color.White,
                 modifier = Modifier.size(24.dp).graphicsLayer { rotationZ = chevron },
             )
@@ -180,7 +192,7 @@ private fun EffectPicker(selected: TransportEffect, onSelect: (TransportEffect) 
                 DropdownMenuItem(
                     text = {
                         Text(
-                            option.label,
+                            stringResource(option.labelRes),
                             fontFamily = InterFontFamily,
                             fontWeight = if (option == selected) FontWeight.SemiBold else FontWeight.Normal,
                             fontSize = 15.sp,
