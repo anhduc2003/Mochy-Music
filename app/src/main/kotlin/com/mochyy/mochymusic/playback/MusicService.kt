@@ -241,7 +241,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.conflate
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.first
@@ -4134,7 +4133,7 @@ class MusicService :
         runwayRetryJob?.cancel()
         silenceSkipJob?.cancel()
         failedSongsClearJob?.cancel()
-        scope.cancel()
+        scope.coroutineContext[Job]?.cancel()
 
         audioManager.unregisterAudioDeviceCallback(audioDeviceCallback)
         audioOutputs.release()
