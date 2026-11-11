@@ -256,8 +256,8 @@ enum class CrossmixMode {
     CROSSMIX,
 }
 
-// crossmix is still being tuned, so it's greyed out and plays as auto crossfade; flip this to bring it back
-const val CrossmixAvailable = false
+// Crossmix is available: the settings screen can enable it and playback keeps the selected mode.
+const val CrossmixAvailable = true
 
 /** the mode that actually plays, a saved crossmix falls back to auto crossfade while crossmix is in progress */
 fun CrossmixMode.playable(): CrossmixMode =
