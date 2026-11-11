@@ -511,10 +511,14 @@ constructor(
             providers.forEach { provider ->
                 if (provider.isEnabled(context)) {
                     try {
-                        provider.getAllLyrics(mediaId, songTitle, songArtists, duration, album) { lyrics ->
-                            val result = LyricsResult(provider.name, lyrics)
-                            allResult += result
-                            callback(result)
+                        // Was: no timeout - one hung provider stalled the whole
+                        // lyrics source picker until manually cancelled.
+                        kotlinx.coroutines.withTimeoutOrNull(35_000L) {
+                            provider.getAllLyrics(mediaId, songTitle, songArtists, duration, album) { lyrics ->
+                                val result = LyricsResult(provider.name, lyrics)
+                                allResult += result
+                                callback(result)
+                            }
                         }
                     } catch (e: Exception) {
 

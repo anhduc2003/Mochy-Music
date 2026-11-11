@@ -7,6 +7,7 @@ import com.music.kugou.models.SearchSongResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.compression.ContentEncoding
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
@@ -38,6 +39,13 @@ private val client = HttpClient {
     install(ContentEncoding) {
         gzip()
         deflate()
+    }
+
+    // Was: no timeout at all - one hung KuGou request stalled lyrics indefinitely.
+    install(HttpTimeout) {
+        requestTimeoutMillis = 30_000
+        connectTimeoutMillis = 15_000
+        socketTimeoutMillis = 30_000
     }
 }
 

@@ -4122,6 +4122,19 @@ class MusicService :
     override fun onDestroy() {
         isRunning = false
 
+        // Stability: cancel every delayed job first. Without this, failure/retry/
+        // crossfade jobs fired after player.release() and crashed on a released
+        // ExoPlayer (failStream delays 5-20s, network retry up to 30s, runway up to 80s).
+        failureJob?.cancel()
+        retryJob?.cancel()
+        crossfadeJob?.cancel()
+        crossfadeTriggerJob?.cancel()
+        runwayJob?.cancel()
+        runwayRetryJob?.cancel()
+        silenceSkipJob?.cancel()
+        failedSongsClearJob?.cancel()
+        scope.cancel()
+
         audioManager.unregisterAudioDeviceCallback(audioDeviceCallback)
         audioOutputs.release()
         audioPass.release()
@@ -4393,7 +4406,12 @@ class MusicService :
 
     private fun performCrossfadeSwap() {
         isCrossfading = true
-        val nextPlayer = secondaryPlayer ?: return
+        val nextPlayer = secondaryPlayer ?: run {
+            // Secondary player already errored/released: don't leave isCrossfading
+            // stuck true, or every later crossfade is blocked forever.
+            isCrossfading = false
+            return
+        }
         val currentPlayer = player
 
         fadingPlayer = currentPlayer
@@ -4447,8 +4465,13 @@ class MusicService :
             for (i in 0..steps) {
                 if (!isActive) break
 
-                while (!player.isPlaying && isActive) {
+                // Was: waited forever if the new track never started (network/
+                // decoder error), leaking the old player + its decoders.
+                // Now: give up after 10s so cleanupCrossfade() always runs.
+                var waitedMs = 0L
+                while (!player.isPlaying && isActive && waitedMs < 10_000L) {
                     delay(100)
+                    waitedMs += 100
                 }
 
                 val progress = i / steps.toFloat()

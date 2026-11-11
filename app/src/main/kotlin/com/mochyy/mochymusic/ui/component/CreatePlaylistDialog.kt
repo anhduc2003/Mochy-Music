@@ -90,7 +90,7 @@ fun CreatePlaylistDialog(
                                 val browseId = when {
                                     form.sync && signedIn ->
                                         // a failed YouTube create still leaves the user a local playlist
-                                        runCatching { YouTube.createPlaylist(name) }.getOrNull()
+                                        try { YouTube.createPlaylist(name) } catch (e: Exception) { null }
                                     form.sync -> {
                                         Timber.tag("CreatePlaylistDialog").w("Not signed in")
                                         form.busy = false

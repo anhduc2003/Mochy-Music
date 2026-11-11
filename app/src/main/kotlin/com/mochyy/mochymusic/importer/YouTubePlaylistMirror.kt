@@ -13,7 +13,7 @@ object YouTubePlaylistMirror {
 
     /** true when the playlist exists on youtube with all its (youtube) songs added */
     suspend fun mirror(database: MusicDatabase, playlistId: String, name: String): Boolean {
-        val newBrowseId = runCatching { YouTube.createPlaylist(name) }.getOrNull() ?: return false
+        val newBrowseId = try { YouTube.createPlaylist(name) } catch (e: Exception) { null } ?: return false
         val current = database.playlist(playlistId).first()?.playlist ?: return false
         database.update(current.copy(browseId = newBrowseId))
 

@@ -6,6 +6,7 @@ import com.music.lrclib.models.bestMatchingForRelaxed
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.UserAgent
 import io.ktor.client.plugins.defaultRequest
@@ -35,6 +36,13 @@ object LrcLib {
 
             // says who's asking so the server owner can reach us instead of blocking us
             install(UserAgent) { agent = "Mochy (+https://github.com/realidkroo/Mochy-Music)" }
+
+            // Was: no timeout at all - up to 5 sequential /api/search calls could hang.
+            install(HttpTimeout) {
+                requestTimeoutMillis = 30_000
+                connectTimeoutMillis = 15_000
+                socketTimeoutMillis = 30_000
+            }
 
             expectSuccess = true
         }
