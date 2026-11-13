@@ -148,6 +148,7 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 import com.mochyy.mochymusic.ui.utils.stableStatusBars
 import com.mochyy.mochymusic.ui.utils.stableStatusBarsPadding
+import com.mochyy.mochymusic.ui.component.RemoteFocus
 
 // geometry and type from the Figma playlist frames (16:1162 open, 16:1354 scrolled). internal so
 // the album, artist and generated pages line up on the same inset and type
@@ -253,7 +254,7 @@ fun <A> featuredArtistsOf(
         .map { (artistId, names) -> FeaturedArtistUi(id = artistId, name = names.first()) }
 
 // passes the scaffold's cover composable down to PlaylistHeader when classic or minimal style draws a framed cover
-private val LocalPlaylistFramedCover = staticCompositionLocalOf<(@Composable (Modifier) -> Unit)?> { null }
+internal val LocalPlaylistFramedCover = staticCompositionLocalOf<(@Composable (Modifier) -> Unit)?> { null }
 
 /** the cover band at the top of a playlist, shared by the header item and the backdrop behind it */
 @Composable
@@ -321,6 +322,12 @@ fun PlaylistDetailScaffold(
     LaunchedEffect(searchBarUp) {
         if (searchBarUp) lazyListState.scrollToItem(0)
     }
+    // the cover stays up behind the search, gone soft as if scrolled part way, so the results read over it
+    val searchSoftness by animateFloatAsState(
+        targetValue = if (searchBarUp) SearchCoverSoftness else 0f,
+        animationSpec = tween(420),
+        label = "playlistSearchCover",
+    )
 
     // the tapped card's cover comes first: the screen grows out of that image, so it has to be
     // there from the first frame, and keeping it means the cover never swaps mid-way
@@ -394,6 +401,28 @@ fun PlaylistDetailScaffold(
     // before the bar collapses
     val pillNeedsGlass = rememberUpdatedState(modeBar is PlaylistModeBar.EditOrder)
 
+    // on its side the cover stays at the left with the title on it, and the songs take the right
+    if (com.mochyy.mochymusic.ui.utils.isLandscapeLayout()) {
+        PlaylistSideBySide(
+            sharedElementKey = sharedElementKey,
+            coverUrl = coverUrl,
+            cover = cover,
+            framedCover = framedCover,
+            background = background,
+            lazyListState = lazyListState,
+            contentPadding = contentPadding,
+            onBackClick = onBackClick,
+            onBackLongClick = onBackLongClick,
+            onMoreClick = onMoreClick,
+            topBarOverride = topBarOverride,
+            modeBar = modeBar,
+            modifier = modifier,
+            overlay = overlay,
+            content = content,
+        )
+        return
+    }
+
     CompositionLocalProvider(LocalPlaylistFramedCover provides framedCover) {
     Box(
         modifier = Modifier
@@ -432,7 +461,7 @@ fun PlaylistDetailScaffold(
                     coverUrl = coverUrl,
                     cover = cover,
                     coverHeight = coverHeight,
-                    scrollProgress = { scrollProgress.value },
+                    scrollProgress = { maxOf(scrollProgress.value, searchSoftness) },
                     background = background,
                 )
             } else if (classicBackdrop) {
@@ -440,7 +469,7 @@ fun PlaylistDetailScaffold(
                     coverUrl = coverUrl,
                     cover = cover,
                     height = classicHeaderHeight,
-                    scrollProgress = { scrollProgress.value },
+                    scrollProgress = { maxOf(scrollProgress.value, searchSoftness) },
                     background = background,
                 )
             }
@@ -483,6 +512,8 @@ fun PlaylistDetailScaffold(
 
 // the backdrop is pinned behind the list, so it has to travel most of the way up on its own
 private const val CoverFollow = 0.8f
+// how far "scrolled" the cover looks behind the song search: soft and a little up, still there like the design
+private const val SearchCoverSoftness = 0.42f
 private const val CoverSoftBy = 0.55f
 
 @Composable
@@ -661,7 +692,7 @@ private fun PlaylistClassicBackdrop(
 }
 
 @Composable
-private fun PlaylistTopBar(
+internal fun PlaylistTopBar(
     glassState: GlassState,
     morph: () -> Float,
     coverUrl: String?,
@@ -939,11 +970,15 @@ fun PlaylistHeader(
     onCreatorClick: ((CreatorUi) -> Unit)? = null,
     compact: Boolean = false,
     below: (@Composable () -> Unit)? = null,
+    // opens the list's own song search, from a round button beside shuffle
+    onSearchClick: (() -> Unit)? = null,
 ) {
     val playlistStyle by rememberEnumPreference(PlaylistStyleKey, defaultValue = PlaylistStyle.FLOW)
     val framedCover = LocalPlaylistFramedCover.current
-    val useMinimal = compact || playlistStyle == PlaylistStyle.MINIMAL
-    val useClassic = !compact && playlistStyle == PlaylistStyle.CLASSIC
+    // on its side the block sits on the cover at the left, so it never draws a framed cover of its own
+    val side = LocalPlaylistSideHeader.current
+    val useMinimal = compact || (side == null && playlistStyle == PlaylistStyle.MINIMAL)
+    val useClassic = side == null && !compact && playlistStyle == PlaylistStyle.CLASSIC
 
     val body: @Composable () -> Unit = {
         Column(
@@ -1006,6 +1041,14 @@ fun PlaylistHeader(
                     onClick = onShuffleClick,
                     spinOnClick = true,
                 )
+                if (onSearchClick != null) {
+                    Spacer(Modifier.width(4.dp))
+                    CircleAction(
+                        icon = R.drawable.search_outline,
+                        contentDescription = stringResource(R.string.search_this_list),
+                        onClick = onSearchClick,
+                    )
+                }
                 if (isSaved != null) {
                     Spacer(Modifier.width(4.dp))
                     CircleAction(
@@ -1027,7 +1070,9 @@ fun PlaylistHeader(
         }
     }
 
-    if (useMinimal || useClassic) {
+    if (side != null) {
+        PublishSideHeader(side, body)
+    } else if (useMinimal || useClassic) {
         Column(
             modifier = modifier
                 .fillMaxWidth()
@@ -1093,7 +1138,7 @@ internal fun PlaylistDescription(text: String, modifier: Modifier = Modifier) {
             .clickable(
                 enabled = overflows || expanded,
                 interactionSource = null,
-                indication = null,
+                indication = RemoteFocus,
             ) { expanded = !expanded },
     )
 }
@@ -1109,7 +1154,7 @@ internal fun PlayPill(isPlaying: Boolean, onClick: () -> Unit) {
             .height(33.dp)
             .clip(RoundedCornerShape(50))
             .background(PillFill)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .clickable(interactionSource = interaction, indication = RemoteFocus, onClick = onClick)
             .animateContentSize(spring(dampingRatio = 0.7f, stiffness = 500f))
             .padding(start = 21.dp, end = 17.dp)
     ) {
@@ -1158,7 +1203,7 @@ internal fun CircleAction(
             .size(33.dp)
             .clip(CircleShape)
             .background(PillFill)
-            .clickable(interactionSource = interaction, indication = null) {
+            .clickable(interactionSource = interaction, indication = RemoteFocus) {
                 if (spinOnClick) {
                     scope.launch {
                         spin.snapTo(0f)
@@ -1270,20 +1315,6 @@ private fun CreatorAvatar(creator: CreatorUi, size: Dp, modifier: Modifier = Mod
             )
         }
     }
-}
-
-/** "search" beside the sort control, in its style: opens the list's own song search */
-@Composable
-fun PlaylistSearchControl(onClick: () -> Unit) {
-    Text(
-        text = "Tìm kiếm",
-        style = PlaylistStatsStyle.copy(fontSize = 12.sp),
-        color = Color.White.copy(alpha = 0.72f),
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .padding(vertical = 4.dp, horizontal = 2.dp),
-    )
 }
 
 /** the "last added ⌄" label under the buttons; opens a small menu of sort orders */

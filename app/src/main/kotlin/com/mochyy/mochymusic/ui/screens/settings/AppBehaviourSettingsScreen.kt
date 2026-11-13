@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DataSaverOn
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.HighQuality
+import androidx.compose.material.icons.rounded.SignalCellularAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +38,8 @@ import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.constants.AlbumsFromLikedSongsKey
 import com.mochyy.mochymusic.constants.CanvasThumbnailAnimationKey
 import com.mochyy.mochymusic.constants.CanvasWifiOnlyKey
+import com.mochyy.mochymusic.constants.DataSaverKey
+import com.mochyy.mochymusic.constants.DataSaverMobileOnlyKey
 import com.mochyy.mochymusic.constants.DisableVideoAutoplayKey
 import com.mochyy.mochymusic.constants.DontSkipOnFailureKey
 import com.mochyy.mochymusic.constants.HideSettingsDescriptionsKey
@@ -48,11 +52,15 @@ import com.mochyy.mochymusic.constants.LyricsMotionStyle
 import com.mochyy.mochymusic.constants.LyricsMotionStyleKey
 import com.mochyy.mochymusic.constants.MixWithOtherAppsKey
 import com.mochyy.mochymusic.constants.OfflineModeKey
+import com.mochyy.mochymusic.constants.PauseOnMute
+import com.mochyy.mochymusic.constants.PauseSearchHistoryKey
 import com.mochyy.mochymusic.constants.PersistentQueueKey
+import com.mochyy.mochymusic.constants.PersistentShuffleAcrossQueuesKey
 import com.mochyy.mochymusic.constants.ProxyEnabledKey
 import com.mochyy.mochymusic.constants.ProxyUrlKey
 import com.mochyy.mochymusic.constants.PlayVideoBackgroundKey
 import com.mochyy.mochymusic.constants.SYSTEM_DEFAULT
+import com.mochyy.mochymusic.constants.ResumeOnBluetoothConnectKey
 import com.mochyy.mochymusic.constants.ShowFormatBadgeKey
 import com.mochyy.mochymusic.constants.ShowFormatSampleRateKey
 import com.mochyy.mochymusic.constants.SkipSilenceKey
@@ -172,10 +180,15 @@ private fun generalItems(navController: NavController): List<SettingsItem> {
     val context = LocalContext.current
     val (noticeHidden, onNoticeHidden) = rememberPreference(HideUpdateNoticeKey, defaultValue = false)
     val (offlineMode, onOfflineModeChange) = rememberPreference(OfflineModeKey, defaultValue = false)
+    val (dataSaver, onDataSaverChange) = rememberPreference(DataSaverKey, defaultValue = false)
+    val (dataSaverMobileOnly, onDataSaverMobileOnlyChange) = rememberPreference(DataSaverMobileOnlyKey, defaultValue = true)
     val (stopOnTaskRemoved, onStopOnTaskRemoved) = rememberPreference(StopPlaybackOnTaskRemovedKey, defaultValue = false)
     val (mixWithOtherApps, onMixWithOtherAppsChange) = rememberPreference(MixWithOtherAppsKey, defaultValue = false)
+    val (resumeOnBluetooth, onResumeOnBluetoothChange) = rememberPreference(ResumeOnBluetoothConnectKey, defaultValue = false)
+    val (pauseOnMute, onPauseOnMuteChange) = rememberPreference(PauseOnMute, defaultValue = false)
     val (persistentQueue, onPersistentQueueChange) = rememberPreference(PersistentQueueKey, defaultValue = true)
     val (albumsFromLikes, onAlbumsFromLikesChange) = rememberPreference(AlbumsFromLikedSongsKey, defaultValue = false)
+    val (pauseSearchHistory, onPauseSearchHistoryChange) = rememberPreference(PauseSearchHistoryKey, defaultValue = false)
     val (proxyOn) = rememberPreference(ProxyEnabledKey, defaultValue = false)
     val (proxyAddress) = rememberPreference(ProxyUrlKey, defaultValue = "")
     // the launch check's notification reads its own switch, so it follows this one too
@@ -200,6 +213,25 @@ private fun generalItems(navController: NavController): List<SettingsItem> {
             icon = painterResource(R.drawable.download),
             checked = offlineMode,
             onCheckedChange = onOfflineModeChange,
+        ),
+        // lighter streams and still covers, for metered plans; the second switch decides whether wi-fi counts too
+        switchItem(
+            key = "Data saver",
+            title = stringResource(R.string.settings_data_saver),
+            description = stringResource(R.string.settings_data_saver_desc),
+            detail = stringResource(R.string.settings_data_saver_detail),
+            icon = rememberVectorPainter(Icons.Rounded.DataSaverOn),
+            checked = dataSaver,
+            onCheckedChange = onDataSaverChange,
+        ),
+        switchItem(
+            key = "Data saver only on mobile data",
+            title = stringResource(R.string.settings_data_saver_mobile),
+            description = stringResource(R.string.settings_data_saver_mobile_desc),
+            icon = rememberVectorPainter(Icons.Rounded.SignalCellularAlt),
+            checked = dataSaverMobileOnly,
+            onCheckedChange = onDataSaverMobileOnlyChange,
+            subOptionOf = dataSaver,
         ),
         SettingsItem(
             title = { Text(stringResource(R.string.proxy)) },
@@ -241,6 +273,22 @@ private fun generalItems(navController: NavController): List<SettingsItem> {
             onCheckedChange = onMixWithOtherAppsChange,
         ),
         switchItem(
+            key = "Tiếp tục phát khi kết nối Bluetooth",
+            title = stringResource(R.string.playback_resume_bluetooth),
+            description = stringResource(R.string.playback_resume_bluetooth_desc),
+            icon = painterResource(R.drawable.bluetooth),
+            checked = resumeOnBluetooth,
+            onCheckedChange = onResumeOnBluetoothChange,
+        ),
+        switchItem(
+            key = "Tạm dừng khi tắt tiếng",
+            title = stringResource(R.string.pause_music_when_media_is_muted),
+            description = stringResource(R.string.pause_music_when_muted_desc),
+            icon = painterResource(R.drawable.volume_off),
+            checked = pauseOnMute,
+            onCheckedChange = onPauseOnMuteChange,
+        ),
+        switchItem(
             key = "Lưu trạng thái phát gần nhất",
             title = stringResource(R.string.playback_save_state),
             description = stringResource(R.string.playback_save_state_desc),
@@ -257,6 +305,14 @@ private fun generalItems(navController: NavController): List<SettingsItem> {
             icon = painterResource(R.drawable.album),
             checked = albumsFromLikes,
             onCheckedChange = onAlbumsFromLikesChange,
+        ),
+        switchItem(
+            key = "Pause search history",
+            title = stringResource(R.string.pause_search_history),
+            description = stringResource(R.string.settings_pause_search_history_desc),
+            icon = painterResource(R.drawable.history),
+            checked = pauseSearchHistory,
+            onCheckedChange = onPauseSearchHistoryChange,
         ),
     )
 }
@@ -314,13 +370,24 @@ private fun localItems(): List<SettingsItem> {
 @Composable
 private fun playerBehaviourItems(): List<SettingsItem> {
     val (disableVideoAutoplay, onDisableVideoAutoplayChange) = rememberPreference(DisableVideoAutoplayKey, defaultValue = false)
+    val (studioForVideos, onStudioForVideosChange) = rememberPreference(com.mochyy.mochymusic.constants.StudioForVideosKey, defaultValue = false)
     val (youtubeTranslations, onYoutubeTranslationsChange) = rememberPreference(YouTubeCaptionTranslationKey, defaultValue = true)
     val (syncLyricsToVideo, onSyncLyricsToVideoChange) = rememberPreference(SyncLyricsToVideoKey, defaultValue = true)
     val (dontSkipOnFailure, onDontSkipOnFailureChange) = rememberPreference(DontSkipOnFailureKey, defaultValue = false)
     val (failureTimeout, onFailureTimeoutChange) = rememberPreference(StreamFailureTimeoutKey, defaultValue = 6)
     val (skipSilence, onSkipSilenceChange) = rememberPreference(SkipSilenceKey, defaultValue = false)
     val (reportPlays, onReportPlaysChange) = rememberPreference(YtReportPlaysKey, defaultValue = true)
+    val (persistentShuffle, onPersistentShuffleChange) = rememberPreference(PersistentShuffleAcrossQueuesKey, defaultValue = true)
     return listOf(
+        // shuffle stays on from one playlist to the next, like spotify, until it's turned off
+        switchItem(
+            key = "Keep shuffle on",
+            title = stringResource(R.string.settings_persistent_shuffle),
+            description = stringResource(R.string.settings_persistent_shuffle_desc),
+            icon = painterResource(R.drawable.shuffle),
+            checked = persistentShuffle,
+            onCheckedChange = onPersistentShuffleChange,
+        ),
         switchItem(
             key = "Không tự phát video YouTube",
             title = stringResource(R.string.settings_disable_video_autoplay),
@@ -328,6 +395,14 @@ private fun playerBehaviourItems(): List<SettingsItem> {
             icon = painterResource(R.drawable.slow_motion_video),
             checked = disableVideoAutoplay,
             onCheckedChange = onDisableVideoAutoplayChange,
+        ),
+        switchItem(
+            key = "Bản studio cho video âm nhạc",
+            title = stringResource(R.string.settings_studio_for_videos),
+            description = stringResource(R.string.settings_studio_for_videos_desc),
+            icon = painterResource(R.drawable.music_note),
+            checked = studioForVideos,
+            onCheckedChange = onStudioForVideosChange,
         ),
         switchItem(
             key = "Bản dịch từ YouTube",

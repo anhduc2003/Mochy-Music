@@ -51,12 +51,14 @@ import com.mochyy.mochymusic.db.entities.SetVideoIdEntity
 import com.mochyy.mochymusic.db.entities.Song
 import com.mochyy.mochymusic.db.entities.SongAlbumMap
 import com.mochyy.mochymusic.db.entities.SongArtistMap
+import com.mochyy.mochymusic.db.entities.SongEdit
 import com.mochyy.mochymusic.db.entities.SongEntity
 import com.mochyy.mochymusic.db.entities.SongWithStats
 import com.mochyy.mochymusic.extensions.reversed
 import com.mochyy.mochymusic.extensions.toSQLiteQuery
 import com.mochyy.mochymusic.models.MediaMetadata
 import com.mochyy.mochymusic.models.toMediaMetadata
+import com.mochyy.mochymusic.playlistcover.PlaylistCoverStore
 import com.mochyy.mochymusic.ui.utils.resize
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -1164,6 +1166,25 @@ interface DatabaseDao {
     @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE id = :playlistId")
     fun playlist(playlistId: String): Flow<Playlist?>
 
+    @Query("SELECT * FROM playlist WHERE id = :playlistId")
+    fun playlistEntity(playlistId: String): PlaylistEntity?
+
+    // the newest entry in a playlist, where "download new songs" starts counting from
+    @Query("SELECT MAX(id) FROM playlist_song_map WHERE playlistId = :playlistId")
+    fun lastPlaylistEntryId(playlistId: String): Long?
+
+    // songs added to a playlist after its entry [afterEntryId]; entry ids only ever grow, so these are the ones added since
+    @Query("SELECT songId FROM playlist_song_map WHERE playlistId = :playlistId AND id > :afterEntryId")
+    fun playlistSongIdsAfter(playlistId: String, afterEntryId: Long): Flow<List<String>>
+
+    // songs liked after [since], in the same stored form as likedDate
+    @Query("SELECT id FROM song WHERE liked = 1 AND likedDate > :since")
+    fun likedSongIdsSince(since: Long): Flow<List<String>>
+
+    // swaps only the cover, and only while it's still [expected], so a redraw that finishes late never undoes a newer edit
+    @Query("UPDATE playlist SET thumbnailUrl = :thumbnailUrl WHERE id = :playlistId AND thumbnailUrl IS :expected")
+    fun replacePlaylistCover(playlistId: String, expected: String?, thumbnailUrl: String): Int
+
     @Transaction
     @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE isEditable AND bookmarkedAt IS NOT NULL ORDER BY rowId")
     fun editablePlaylistsByCreateDateAsc(): Flow<List<Playlist>>
@@ -1192,6 +1213,18 @@ interface DatabaseDao {
     /** Takes back songs just appended to a playlist (they sit at [fromPosition] or later). */
     @Query("DELETE FROM playlist_song_map WHERE playlistId = :playlistId AND songId IN (:songIds) AND position >= :fromPosition")
     fun removeAddedSongs(playlistId: String, songIds: List<String>, fromPosition: Int)
+
+    @Query("UPDATE playlist_song_map SET position = position + :by WHERE playlistId = :playlistId")
+    fun shiftPlaylistPositions(playlistId: String, by: Int)
+
+    // songs added to a playlist that mirrors youtube go on top, where people look for what they just added
+    @Transaction
+    fun addSongsToPlaylistTop(playlist: Playlist, songIds: List<String>) {
+        shiftPlaylistPositions(playlist.id, songIds.size)
+        songIds.forEachIndexed { index, id ->
+            insert(PlaylistSongMap(songId = id, playlistId = playlist.id, position = index))
+        }
+    }
 
     @Transaction
     fun addSongToPlaylist(playlist: Playlist, songIds: List<String>) {
@@ -1619,15 +1652,18 @@ interface DatabaseDao {
     @Transaction
     fun update(
         song: Song,
-        mediaMetadata: MediaMetadata,
+        fetched: MediaMetadata,
     ) {
+        // whatever was edited by hand stays, a refetch only freshens the rest
+        val edit = songEditBlocking(song.id)
+        val mediaMetadata = edit?.applyTo(fetched) ?: fetched
         update(
             song.song.copy(
                 title = mediaMetadata.title,
                 duration = mediaMetadata.duration,
                 thumbnailUrl = mediaMetadata.thumbnailUrl,
                 albumId = mediaMetadata.album?.id,
-                albumName = mediaMetadata.album?.title,
+                albumName = edit?.album ?: mediaMetadata.album?.title,
                 libraryAddToken = mediaMetadata.libraryAddToken,
                 libraryRemoveToken = mediaMetadata.libraryRemoveToken
             ),
@@ -1658,6 +1694,20 @@ interface DatabaseDao {
 
     @Query("UPDATE song SET lyricsOffset = :offsetMs WHERE id = :songId")
     fun updateLyricsOffset(songId: String, offsetMs: Int)
+
+    // ---- hand edits from the song edit sheet ----
+
+    @Query("SELECT * FROM song_edit WHERE songId = :songId")
+    fun songEdit(songId: String?): Flow<SongEdit?>
+
+    @Query("SELECT * FROM song_edit WHERE songId = :songId")
+    fun songEditBlocking(songId: String): SongEdit?
+
+    @Query("SELECT * FROM song_edit")
+    fun songEdits(): Flow<List<SongEdit>>
+
+    @Upsert
+    fun upsert(edit: SongEdit)
 
     // ---- imported music ----
 
@@ -1945,13 +1995,16 @@ interface DatabaseDao {
         }
     }
 
-    @Update
+    @Transaction
     fun update(playlistEntity: PlaylistEntity, playlistItem: PlaylistItem) {
+        // read fresh: the sync walks every playlist slowly, and a copy from its start wrote over edits made meanwhile
+        val current = playlistEntity(playlistEntity.id) ?: playlistEntity
         update(
-            playlistEntity.copy(
+            current.copy(
                 name = playlistItem.title,
                 browseId = playlistItem.id,
-                thumbnailUrl = playlistItem.thumbnail,
+                // a cover made or picked in mochy stays, youtube's own picture went over it on every sync
+                thumbnailUrl = current.thumbnailUrl.takeIf(PlaylistCoverStore::isManaged) ?: playlistItem.thumbnail,
                 isEditable = playlistItem.isEditable,
                 remoteSongCount = playlistItem.songCountText?.let { Regex("""\d+""").find(it)?.value?.toIntOrNull() },
                 playEndpointParams = playlistItem.playEndpoint?.params,

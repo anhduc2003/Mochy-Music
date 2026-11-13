@@ -19,6 +19,11 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.unit.dp
+import com.mochyy.mochymusic.constants.ChromeGlassStyle
+import com.mochyy.mochymusic.constants.ChromeGlassStyleKey
+import com.mochyy.mochymusic.constants.DisableBlurKey
+import com.mochyy.mochymusic.utils.rememberEnumPreference
+import com.mochyy.mochymusic.utils.rememberPreference
 
 /*
  * The floating chrome, the nav bar and the mini player, drawn to the Figma: #131313 at 78% over
@@ -74,7 +79,17 @@ fun FrostedChromeGlass(
     pureBlack: Boolean,
     accentWash: (() -> Color)?,
     modifier: Modifier = Modifier,
+    // which bar this is, so a look's glass shader can draw each one its own way
+    surface: ChromeSurface = ChromeSurface.NavBar,
 ) {
+    // a look module can swap the frost for a glass shader of its own; android 13+ runs it, older phones and blur switched off keep the frost
+    val (style) = rememberEnumPreference(ChromeGlassStyleKey, defaultValue = ChromeGlassStyle.FROSTED)
+    val (blurOff) = rememberPreference(DisableBlurKey, defaultValue = false)
+    val moduleGlass = com.mochyy.mochymusic.modules.skin.ActiveSkin.glass
+    if (style == ChromeGlassStyle.MODULE && moduleGlass != null && !blurOff && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        ModuleChromeGlass(state, moduleGlass, pureBlack, accentWash, surface, modifier)
+        return
+    }
     val color = if (pureBlack) Color.Black else GlassChromeColor
     // the grain only matters on the finer, high quality glass
     val grain = LocalBlurQuality.current == com.mochyy.mochymusic.constants.BlurQuality.HIGH
@@ -97,6 +112,9 @@ fun FrostedChromeGlass(
         )
     }
 }
+
+/** the bars that share the chrome glass; [kind] is the number a look's glass shader gets for each */
+enum class ChromeSurface(val kind: Float) { NavBar(0f), MiniPlayer(1f), WideBar(2f) }
 
 /**
  * The chrome's hairline round a rounded rect, kept just inside it so the parent's clip can't

@@ -45,11 +45,9 @@ import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -363,11 +361,7 @@ fun PopupSheetHost(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = active::dismissFromOutside,
-                    )
+                    .backdropClick(active::dismissFromOutside)
             )
 
             key(active) {
@@ -381,12 +375,18 @@ fun PopupSheetHost(
 @Immutable
 private data class StackMetrics(
     val isTablet: Boolean,
+    // on its side: a card floating a little above the bottom, like the video mode's sheets
+    val floating: Boolean,
     val parentHeightPx: Float,
     val peekPx: Float,
+    val floatingMarginPx: Float,
 ) {
-    /** Where an open sheet of this height sits: bottom-anchored on phones, centered on tablets. */
-    fun layoutTop(sheetHeightPx: Float): Float =
-        if (isTablet) (parentHeightPx - sheetHeightPx) / 2f else parentHeightPx - sheetHeightPx
+    /** Where an open sheet of this height sits: bottom-anchored on phones, centered on tablets, floating just off the bottom on its side. */
+    fun layoutTop(sheetHeightPx: Float): Float = when {
+        floating -> parentHeightPx - floatingMarginPx - sheetHeightPx
+        isTablet -> (parentHeightPx - sheetHeightPx) / 2f
+        else -> parentHeightPx - sheetHeightPx
+    }
 
     /** How far that sheet slides to get from open to fully off the bottom of the screen. */
     fun travel(sheetHeightPx: Float): Float = parentHeightPx - layoutTop(sheetHeightPx)
@@ -397,8 +397,10 @@ private fun PopupSheetStack(state: PopupSheetState) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val metrics = StackMetrics(
             isTablet = maxWidth >= TabletBreakpoint,
+            floating = com.mochyy.mochymusic.ui.utils.isLandscapeLayout(),
             parentHeightPx = constraints.maxHeight.toFloat(),
             peekPx = with(LocalDensity.current) { PeekHeight.toPx() },
+            floatingMarginPx = with(LocalDensity.current) { FloatingMargin.toPx() },
         )
 
         // One keyed slot per frame, all at this one call site: pushing or popping a frame never
@@ -591,13 +593,14 @@ private fun BoxWithConstraintsScope.PopupSheetFrame(
         }
     }
 
-    val shape = remember(metrics.isTablet) { sheetSurfaceShape(metrics.isTablet) }
-    val minHeight = if (metrics.isTablet) 0.dp else with(LocalDensity.current) { frame.minHeightPx.toDp() }
+    val centred = metrics.isTablet && !metrics.floating
+    val shape = remember(centred, metrics.floating) { sheetSurfaceShape(centred, metrics.floating) }
+    val minHeight = if (centred) 0.dp else with(LocalDensity.current) { frame.minHeightPx.toDp() }
 
     Box(
         modifier = Modifier
-            .align(if (metrics.isTablet) Alignment.Center else Alignment.BottomCenter)
-            .then(sheetSizeModifier(metrics.isTablet))
+            .align(if (centred) Alignment.Center else Alignment.BottomCenter)
+            .then(sheetSizeModifier(centred, metrics.floating))
             // Lifts the sheet clear of the keyboard (and shrinks its room by the same amount), for
             // the sheets with a text field. After the size cap and before the measurement below,
             // so what is measured - and what the stack geometry works from - is the sheet itself.
@@ -634,7 +637,7 @@ private fun BoxWithConstraintsScope.PopupSheetFrame(
     ) {
         SheetBody(
             frame = frame,
-            fillHeight = metrics.isTablet,
+            fillHeight = centred,
             minHeight = minHeight,
             dragHandle = dragHandle,
             contentModifier = Modifier.nestedScroll(nestedScrollConnection),
@@ -646,27 +649,36 @@ private fun BoxWithConstraintsScope.PopupSheetFrame(
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { if (!frame.closing) state.dismissFromOutside() },
-                    )
+                    .backdropClick { if (!frame.closing) state.dismissFromOutside() }
             )
         }
     }
 }
 
-private fun sheetSurfaceShape(isTablet: Boolean): Shape =
-    RoundedCornerShape(
-        topStart = if (isTablet) 28.dp else 24.dp,
-        topEnd = if (isTablet) 28.dp else 24.dp,
-        bottomStart = if (isTablet) 28.dp else 0.dp,
-        bottomEnd = if (isTablet) 28.dp else 0.dp,
-    )
+private fun sheetSurfaceShape(isTablet: Boolean, floating: Boolean): Shape =
+    if (floating) {
+        RoundedCornerShape(FloatingCorner)
+    } else {
+        RoundedCornerShape(
+            topStart = if (isTablet) 28.dp else 24.dp,
+            topEnd = if (isTablet) 28.dp else 24.dp,
+            bottomStart = if (isTablet) 28.dp else 0.dp,
+            bottomEnd = if (isTablet) 28.dp else 0.dp,
+        )
+    }
 
 @Composable
-private fun BoxWithConstraintsScope.sheetSizeModifier(isTablet: Boolean): Modifier =
-    if (isTablet) {
+private fun BoxWithConstraintsScope.sheetSizeModifier(isTablet: Boolean, floating: Boolean): Modifier =
+    if (floating) {
+        // as tall as what's in it, up to the status bar less a margin and a peek strip, never the full width
+        val statusBar = WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding()
+        val room = maxHeight - maxOf(statusBar, FloatingMargin) - FloatingMargin * 2 - PeekHeight
+        Modifier
+            .padding(bottom = FloatingMargin)
+            .widthIn(max = FloatingMaxWidth)
+            .fillMaxWidth()
+            .heightIn(max = room.coerceAtLeast(0.dp))
+    } else if (isTablet) {
         Modifier
             .widthIn(max = 460.dp)
             .fillMaxHeight(0.84f)
@@ -682,6 +694,11 @@ private fun BoxWithConstraintsScope.sheetSizeModifier(isTablet: Boolean): Modifi
 
 /** Space kept between the status bar and the highest a sheet's peek strip can reach. */
 private val StatusBarGap = 6.dp
+
+// a floating sheet's gap to the edges, its widest and its corners, the same card the video mode's sheets are
+private val FloatingMargin = 18.dp
+private val FloatingMaxWidth = 380.dp
+private val FloatingCorner = 28.dp
 
 // how tall the handle row is, so a full-bleed sheet can paint its art up behind it
 val PopupSheetHandleHeight = 32.dp

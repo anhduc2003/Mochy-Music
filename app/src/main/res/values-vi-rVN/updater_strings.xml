@@ -78,4 +78,7 @@
     <string name="new_update">Bản cập nhật mới</string>
     <string name="release_date_v">Phát hành ngày: %1$s</string>
     <string name="update_size_v">Kích thước: %1$s MB</string>
+    <string name="channel_switch_to_nightly">Chuyển sang bản nightly</string>
+    <string name="channel_switch_to_release">Chuyển sang bản phát hành</string>
+    <string name="channel_release_waits">Cần bản phát hành mới hơn</string>
 </resources>

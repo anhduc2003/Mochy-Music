@@ -3,6 +3,7 @@
 package com.mochyy.mochymusic.constants
 
 import android.os.Build
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -155,6 +156,10 @@ val ProfileCardNumberKey = stringPreferencesKey("profileCardNumber")
 val ProfileJoinedEpochDayKey = longPreferencesKey("profileJoinedEpochDay")
 
 val AudioQualityKey = stringPreferencesKey("audioQuality")
+
+// data saver: lighter streams and no canvas or video backgrounds, on mobile data only unless the second switch is off
+val DataSaverKey = booleanPreferencesKey("dataSaver")
+val DataSaverMobileOnlyKey = booleanPreferencesKey("dataSaverMobileOnly")
 val IpVersionKey = stringPreferencesKey("ipVersion")
 
 enum class AudioQuality {
@@ -222,6 +227,9 @@ val AboutSongSourceKey = stringPreferencesKey("aboutSongSource")
 
 val PersistentQueueKey = booleanPreferencesKey("persistentQueue")
 val PersistentShuffleAcrossQueuesKey = booleanPreferencesKey("persistentShuffleAcrossQueues")
+
+// playlists whose new songs download by themselves, as json: each id with where it started counting (see AutoDownloads)
+val AutoDownloadPlaylistsKey = stringPreferencesKey("autoDownloadPlaylists")
 val RememberShuffleAndRepeatKey = booleanPreferencesKey("rememberShuffleAndRepeat")
 val ShuffleModeKey = booleanPreferencesKey("shuffleMode")
 val SkipSilenceKey = booleanPreferencesKey("skipSilence")
@@ -259,14 +267,57 @@ enum class CrossmixMode {
 // Crossmix is available: the settings screen can enable it and playback keeps the selected mode.
 const val CrossmixAvailable = true
 
-/** the mode that actually plays, a saved crossmix falls back to auto crossfade while crossmix is in progress */
-fun CrossmixMode.playable(): CrossmixMode =
-    if (this == CrossmixMode.CROSSMIX && !CrossmixAvailable) CrossmixMode.AUTO_CROSSFADE else this
+// crossmix unless someone picked otherwise: the old default was a plain 5 s crossfade that never mixed anything
+val DefaultTransitionMode = CrossmixMode.CROSSMIX
+
+// the transition that really plays: the saved pick, then the old crossfade switch for those who set it before modes existed, then crossmix
+fun transitionModeOf(prefs: Preferences): CrossmixMode =
+    prefs[CrossmixModeKey]?.let { saved -> runCatching { CrossmixMode.valueOf(saved) }.getOrNull() }
+        ?: if (prefs[CrossfadeEnabledKey] == true) CrossmixMode.MANUAL_CROSSFADE else DefaultTransitionMode
+
+// set once the old plain-crossfade default has been moved over to crossmix, so it never happens twice
+val CrossmixDefaultMovedKey = booleanPreferencesKey("crossmixDefaultMoved")
+
+// how crossmix mixes: how long the two songs overlap, how far tempos may be stretched to meet, one style or the planner's pick, and whether the stunts are in the pool
+val CrossmixLengthKey = stringPreferencesKey("crossmixLength")
+val CrossmixTempoMatchKey = stringPreferencesKey("crossmixTempoMatch")
+/** a CrossmixStyle name, or CrossmixStyleAuto for the planner's own pick */
+val CrossmixStyleKey = stringPreferencesKey("crossmixStyle")
+const val CrossmixStyleAuto = "AUTO"
+val CrossmixStuntsKey = booleanPreferencesKey("crossmixStunts")
+// every hand-over a real blend of both songs, never a drop right at the end and never a plain fade
+val CrossmixAlwaysMixKey = booleanPreferencesKey("crossmixAlwaysMix")
+/** how long play() takes to be heard on this phone, learnt from each mix's first beat-lock reading */
+val CrossmixStartLatencyKey = floatPreferencesKey("crossmixStartLatencyMs")
+
+/** how long a crossmix overlap may run: scales the planner's overlap caps */
+enum class CrossmixLength(val scale: Float) {
+    SHORT(0.6f),
+    MEDIUM(1f),
+    LONG(1.5f),
+}
+
+/** how far the slower song may be sped up to meet the other; off still locks two songs already at one tempo */
+enum class CrossmixTempoMatch(val maxSpeedUp: Float) {
+    OFF(0.006f),
+    GENTLE(0.04f),
+    FULL(0.10f),
+}
 
 // pause, play and skip fades: on by default, 2 s long, no layered effect until one is picked
 val TransportFadeEnabledKey = booleanPreferencesKey("transportFadeEnabled")
 val TransportFadeSecondsKey = floatPreferencesKey("transportFadeSeconds")
 val TransportEffectKey = stringPreferencesKey("transportEffect")
+
+// skips and backs cross over on two players, the songs either side fetched ahead so they start at once
+val SkipBlendKey = booleanPreferencesKey("skipBlend")
+
+// how many songs coming up get their start fetched for blend skips, 1 to 4; data saver keeps it at 1
+val SkipBlendAheadKey = intPreferencesKey("skipBlendAhead")
+const val SkipBlendAheadMax = 4
+
+// a music video plays its song's studio upload when there is one, without the video's skits and sound effects
+val StudioForVideosKey = booleanPreferencesKey("studioForVideos")
 
 const val TransportFadeDefaultSeconds = 2f
 const val TransportFadeMinSeconds = 0.5f
@@ -311,6 +362,9 @@ val DiscordLargeTextKey = stringPreferencesKey("discordPresenceLargeText")
 val DiscordSmallTextKey = stringPreferencesKey("discordPresenceSmallText")
 val DiscordLargeImageKey = stringPreferencesKey("discordPresenceLargeImage")
 val DiscordSmallImageKey = stringPreferencesKey("discordPresenceSmallImage")
+// the pictures picked for "your own picture", kept as files in mochy's own folder
+val DiscordLargeCustomImageKey = stringPreferencesKey("discordPresenceLargeCustomImage")
+val DiscordSmallCustomImageKey = stringPreferencesKey("discordPresenceSmallCustomImage")
 val DiscordSpinSecondsKey = intPreferencesKey("discordPresenceSpinSeconds")
 val DiscordSpinFpsKey = intPreferencesKey("discordPresenceSpinFps")
 val DiscordButton1TextKey = stringPreferencesKey("discordPresenceButton1Text")
@@ -651,14 +705,14 @@ enum class PlayerStyle(val displayName: String, val selectorName: String) {
     // the two nightstand styles share their sheet, their night look and their lock screen rules
     val isBedside: Boolean get() = this == BEDSIDE || this == BEDSIDE_TILES
 
-    // laid out sideways until someone turns it upright, the way a phone stands on a nightstand
-    val startsSideways: Boolean get() = this == BEDSIDE_TILES
-
     /** drawn by the flagship's own player (cover, controls, card), not a design of its own */
     val flagshipFamily: Boolean get() = this == FLAGSHIP || this == CLASSIC || this == TURNTABLE
 
     // the two flagships the full editor works on: cover, middle part, controls and bottom bar
     val hasFullEditor: Boolean get() = this == FLAGSHIP || this == CLASSIC
+
+    // the looks that read well across a room and stay smooth on a tv's gpu; the rest stay on phones
+    val availableOnTv: Boolean get() = this == FLAGSHIP || this == POSTER || this == VIDEO || this == TIMELINE || isBedside
 
     companion object {
         /** the styles these replaced, so a stored choice lands on its nearest successor */
@@ -686,6 +740,13 @@ enum class PlayerStyle(val displayName: String, val selectorName: String) {
 }
 
 val PlayerStyleKey = stringPreferencesKey("playerStyle")
+
+// the tv's "flagship square": the flagship with its whole cover as a rounded square
+val TvFlagshipSquareKey = booleanPreferencesKey("tvFlagshipSquare")
+// a phone on its side: the flagship's cover fills the left and melts into the controls, instead of a rounded square beside them
+val LandscapeFullCoverKey = booleanPreferencesKey("landscapeFullCover")
+// Experimental: the app may turn sideways into its wide layout; off (the default) it stays upright
+val LandscapeUnlockedKey = booleanPreferencesKey("landscapeUnlocked")
 
 // the ipod player's body colours, ipod.js's three plus a pitch black one with a dark screen
 enum class IpodTheme { SILVER, BLACK, U2, TRUE_DARK }
@@ -731,9 +792,6 @@ val BedsideLockPromptDismissedKey = booleanPreferencesKey("bedsideLockPromptDism
 // the page each bedside tile was left on, so it opens where it was
 val BedsideMusicTilePageKey = intPreferencesKey("bedsideMusicTilePage")
 val BedsideInfoTilePageKey = intPreferencesKey("bedsideInfoTilePage")
-
-/** whether [style] is shown turned sideways (its content rotated a quarter turn) */
-fun playerStyleRotatedKey(style: PlayerStyle) = booleanPreferencesKey("playerStyleRotated_${style.name}")
 
 /** what the timestamp at the right of the seek bar shows */
 enum class PlayerEndTimestamp { END_TIME, TIME_LEFT }
@@ -831,6 +889,8 @@ val PlayerCustomBackgroundUriKey = stringPreferencesKey("playerCustomBackgroundU
 val MiniPlayerBackgroundStyleKey = stringPreferencesKey("miniPlayerBackgroundStyle")
 val ShowLyricsKey = booleanPreferencesKey("showLyrics")
 val SwipeLyricsKey = booleanPreferencesKey("swipeLyrics")
+// the line being sung shown as the title and cover on android auto's player while a car is connected, on unless turned off
+val CarLyricsKey = booleanPreferencesKey("carLyrics")
 val EnableLyricsThumbnailPlayPauseKey = booleanPreferencesKey("enableLyricsThumbnailPlayPause")
 val LyricsTextPositionKey = stringPreferencesKey("lyricsTextPosition")
 val LyricsClickKey = booleanPreferencesKey("lyricsClick")
@@ -1254,6 +1314,15 @@ val DisableBlurKey = booleanPreferencesKey("disableBlur")
 val BlurQualityKey = stringPreferencesKey("blurQuality")
 
 enum class BlurQuality { LOW, HIGH }
+
+// the glass of the nav bar and the mini player; a look module can swap mochy's frost for a glass shader it brings itself
+val ChromeGlassStyleKey = stringPreferencesKey("chromeGlassStyle")
+
+enum class ChromeGlassStyle {
+    FROSTED,
+    // the agsl glass the look that's on brings in its zip
+    MODULE,
+}
 val EnableProgressiveBlurKey = booleanPreferencesKey("enableProgressiveBlur")
 // the animation switch in customize: off, nothing in the app moves (the old key name stayed so nobody's choice is lost)
 val EnableElementBlurAnimatorKey = booleanPreferencesKey("enableElementBlurAnimator")

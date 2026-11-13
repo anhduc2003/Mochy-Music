@@ -63,8 +63,11 @@ import com.mochyy.mochymusic.LocalDownloadUtil
 import com.mochyy.mochymusic.LocalPlayerConnection
 import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.constants.KeepScreenOn
+import com.mochyy.mochymusic.constants.PlayVideoBackgroundKey
+import com.mochyy.mochymusic.ui.menu.songedit.SongEditSheet
+import com.mochyy.mochymusic.ui.menu.songedit.VideoPickerSheet
+import com.mochyy.mochymusic.ui.player.hasFoundVideo
 import com.mochyy.mochymusic.playback.ExoDownloadService
-import com.mochyy.mochymusic.playback.queues.YouTubeQueue
 import com.mochyy.mochymusic.ui.component.AppSwitch
 import com.mochyy.mochymusic.ui.component.SheetActionCard
 import com.mochyy.mochymusic.ui.component.SheetActionCardRow
@@ -75,6 +78,7 @@ import com.mochyy.mochymusic.ui.menu.AddToPlaylistDialog
 import com.mochyy.mochymusic.ui.utils.resize
 import com.mochyy.mochymusic.utils.rememberPreference
 import kotlinx.coroutines.flow.flowOf
+import com.mochyy.mochymusic.ui.component.RemoteFocus
 
 /**
  * @param fromLyrics true when the menu was opened from the lyrics page. The lyrics tools are only
@@ -93,6 +97,8 @@ fun PlayerActionMenu(
     onFullVideo: (() -> Unit)? = null,
     // opens the equalizer page; no row without it
     onEqualizer: (() -> Unit)? = null,
+    // opens a page of the app for a module's row (its own page, a search)
+    onOpenRoute: ((String) -> Unit)? = null,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val trackInfo by playerConnection.uiState.trackInfo.collectAsState()
@@ -121,6 +127,11 @@ fun PlayerActionMenu(
     var showLyricsProvider by remember { mutableStateOf(false) }
     var showLyricsTranslation by remember { mutableStateOf(false) }
     var showLyricsOffset by remember { mutableStateOf(false) }
+    var showSkinCustomise by remember { mutableStateOf(false) }
+    // the song as it was when the row was tapped, so a skip doesn't swap the sheet's song under you
+    var songToEdit by remember { mutableStateOf<com.mochyy.mochymusic.models.MediaMetadata?>(null) }
+    var songForVideo by remember { mutableStateOf<com.mochyy.mochymusic.models.MediaMetadata?>(null) }
+    val videoBackgroundOn by rememberPreference(PlayVideoBackgroundKey, defaultValue = false)
 
     // Only touched by the lyrics section. hiltViewModel() itself is cheap, but the flows are
     // collected lazily so a menu opened from the player does no lyrics work at all.
@@ -243,17 +254,16 @@ fun PlayerActionMenu(
                     Spacer(modifier = Modifier.height(SectionGap))
                 }
 
-                // Saving the song somewhere is what people open this menu for most.
+                // what people open this menu for most, as a two by two grid of big cards
                 SheetActionCardRow {
+                    // the song keeps playing and everything after it becomes songs like it, as spotify and apple music do; a file on the phone has no station
                     SheetActionCard(
                         icon = R.drawable.radio,
-                        title = "Bắt đầu Radio",
-                        enabled = currentMetadata != null,
+                        title = androidx.compose.ui.res.stringResource(R.string.start_radio),
+                        enabled = currentMetadata != null && currentMetadata?.localUri == null,
                         onClick = {
-                            currentMetadata?.let { metadata ->
-                                playerConnection.playQueue(YouTubeQueue.radio(metadata))
-                                onDismiss()
-                            }
+                            playerConnection.startRadioSeamlessly()
+                            onDismiss()
                         },
                         modifier = Modifier.weight(1f),
                     )
@@ -264,6 +274,9 @@ fun PlayerActionMenu(
                         onClick = { showChoosePlaylistDialog = true },
                         modifier = Modifier.weight(1f),
                     )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                SheetActionCardRow {
                     SheetDownloadCard(
                         downloadState = download?.state,
                         onDownload = {
@@ -290,6 +303,19 @@ fun PlayerActionMenu(
                         },
                         modifier = Modifier.weight(1f),
                     )
+                    // opens the song share over everything: a card, its lyrics, a video with the song, or the link
+                    SheetActionCard(
+                        icon = R.drawable.share,
+                        title = androidx.compose.ui.res.stringResource(R.string.share),
+                        enabled = currentMetadata != null,
+                        onClick = {
+                            currentMetadata?.let { metadata ->
+                                onDismiss()
+                                com.mochyy.mochymusic.ui.player.share.song.SongShare.open(metadata)
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
                 }
 
                 if (onFullVideo != null) {
@@ -304,6 +330,18 @@ fun PlayerActionMenu(
                     )
                 }
 
+                // with videos on, the song's video can be put right: "wrong video?" once one was found, "find video" when none was
+                val videoSong = currentMetadata
+                if (videoSong != null && (videoBackgroundOn || videoSong.isVideoSong)) {
+                    val found = remember(videoSong.id) { hasFoundVideo(videoSong.id, videoSong.isVideoSong) }
+                    Spacer(modifier = Modifier.height(if (onFullVideo != null) 8.dp else SectionGap))
+                    MenuRow(
+                        icon = R.drawable.slow_motion_video,
+                        title = androidx.compose.ui.res.stringResource(if (found) R.string.video_wrong else R.string.video_find),
+                        onClick = { songForVideo = videoSong },
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(SectionGap))
 
                 DeviceVolumeRow()
@@ -313,6 +351,8 @@ fun PlayerActionMenu(
                     title = "Đổi thiết bị đầu ra",
                     onClick = { showAudioDevices = true },
                 )
+                // a linked tv with mochy open: play there, line it up there, or work it as a remote
+                DeviceMenuRows(onDismiss = onDismiss)
                 Spacer(modifier = Modifier.height(8.dp))
                 SleepTimerRow(onClick = { showSleepTimer = true })
                 Spacer(modifier = Modifier.height(8.dp))
@@ -351,17 +391,11 @@ fun PlayerActionMenu(
                     onClick = { playerConnection.toggleLibrary() },
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                // opens the song share over everything: a card, its lyrics, a video with the song, or the link
                 MenuRow(
-                    icon = R.drawable.share,
-                    title = androidx.compose.ui.res.stringResource(R.string.song_share_menu),
+                    icon = R.drawable.edit,
+                    title = androidx.compose.ui.res.stringResource(R.string.song_edit_menu),
                     enabled = currentMetadata != null,
-                    onClick = {
-                        currentMetadata?.let { metadata ->
-                            onDismiss()
-                            com.mochyy.mochymusic.ui.player.share.song.SongShare.open(metadata)
-                        }
-                    },
+                    onClick = { songToEdit = currentMetadata },
                 )
                 if (isAutoplaySong) {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -385,6 +419,8 @@ fun PlayerActionMenu(
                         onEditPlayer()
                     },
                 )
+
+                ModuleMenuRows(currentMetadata, onDismiss, onOpenRoute, onCustomise = { showSkinCustomise = true })
             }
     }
 
@@ -418,11 +454,25 @@ fun PlayerActionMenu(
     if (showLyricsProvider) {
         LyricsProviderSheet(onDismiss = { showLyricsProvider = false })
     }
+    if (showSkinCustomise) {
+        SkinCustomiseSheet(onDismiss = { showSkinCustomise = false })
+    }
     if (showLyricsOffset) {
         LyricsOffsetSheet(onDismiss = { showLyricsOffset = false })
     }
     if (showLyricsTranslation) {
         LyricsTranslationSheet(onDismiss = { showLyricsTranslation = false })
+    }
+    songToEdit?.let { song ->
+        SongEditSheet(metadata = song, onDismiss = { songToEdit = null })
+    }
+    songForVideo?.let { song ->
+        VideoPickerSheet(
+            songId = song.id,
+            title = song.title,
+            artist = song.artists.joinToString { it.name },
+            onDismiss = { songForVideo = null },
+        )
     }
     }
 }
@@ -449,7 +499,7 @@ internal fun MenuRow(
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null,
+                indication = RemoteFocus,
                 onClick = onClick,
             )
             .padding(horizontal = 14.dp, vertical = 14.dp)

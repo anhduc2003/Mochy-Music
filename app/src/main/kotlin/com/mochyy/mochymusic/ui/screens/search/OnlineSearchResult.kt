@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.WindowInsets
+import com.mochyy.mochymusic.ui.utils.stableStatusBars
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -103,6 +105,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import com.mochyy.mochymusic.ui.component.navigateToTab
+import com.mochyy.mochymusic.ui.component.RemoteFocus
 
 private val SearchCategories = listOf(
     "Tất cả" to null,
@@ -184,7 +187,10 @@ fun OnlineSearchResult(
         }
     }
 
+    val recentContext = androidx.compose.ui.platform.LocalContext.current
     val onItemClick: (YTItem) -> Unit = { item ->
+        // kept for the search page's recent searches
+        RecentSearches.add(recentContext, item)
         when (item) {
             is SongItem -> {
                 if (item.id == mediaMetadata?.id) {
@@ -217,6 +223,9 @@ fun OnlineSearchResult(
     }
 
     val bottomInset = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+    // on its side the field is in the pane at the left (SearchSidePane): only the kinds of result sit over the list
+    val landscape = com.mochyy.mochymusic.ui.utils.isLandscapeLayout()
+    val statusTop = WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding()
 
     val top = remember(summary, viewModel.query) {
         summary?.let { pickTopResult(it.summaries.flatMap { section -> section.items }, viewModel.query) }
@@ -237,7 +246,7 @@ fun OnlineSearchResult(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
-                    top = searchTopBarHeight(withTitle = true, extra = 46.dp),
+                    top = if (landscape) statusTop + SearchTopClearance + 34.dp + 18.dp else searchTopBarHeight(withTitle = true, extra = 46.dp),
                     bottom = bottomInset + 24.dp,
                 ),
             ) {
@@ -259,10 +268,11 @@ fun OnlineSearchResult(
                                 SearchSectionHeader(title = "Kết quả hàng đầu", ruleAbove = false)
                             }
                             item(key = "top_card") {
+                                val active = mediaMetadata?.id == top.id
                                 TopResultCard(
                                     item = top,
-                                    isActive = mediaMetadata?.id == top.id,
-                                    isPlaying = isPlaying,
+                                    isActive = active,
+                                    isPlaying = active && isPlaying,
                                     onClick = { onItemClick(top) },
                                     onLongClick = { onItemLongClick(top) },
                                 )
@@ -345,7 +355,26 @@ fun OnlineSearchResult(
             }
         }
 
-        SearchGlassTopBar(
+        if (landscape) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to SearchColors.page(pureBlack),
+                            0.7f to SearchColors.page(pureBlack).copy(alpha = 0.9f),
+                            1f to Color.Transparent,
+                        )
+                    )
+                    .padding(top = statusTop + SearchTopClearance - 4.dp, bottom = 14.dp),
+            ) {
+                SearchCategoryRow(
+                    categories = SearchCategories.map { it.first },
+                    selectedIndex = selectedIndex,
+                    onSelect = { index -> viewModel.filter.value = SearchCategories[index].second },
+                )
+            }
+        } else SearchGlassTopBar(
             glassState = glassState,
             progressProvider = progressProvider,
             pureBlack = pureBlack,
@@ -375,7 +404,7 @@ fun OnlineSearchResult(
                             .size(20.dp)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
+                                indication = RemoteFocus,
                             ) { navController.navigateUp() },
                     )
                 },
@@ -384,19 +413,56 @@ fun OnlineSearchResult(
     }
 }
 
+// youtube's own first pick, unless another result matches the typed words clearly better; taking the first song anywhere showed songs nobody searched for
 private fun pickTopResult(items: List<YTItem>, query: String): YTItem? {
     if (items.isEmpty()) return null
-    val normalised = query.trim().lowercase()
+    val words = searchWords(query)
+    if (words.isEmpty()) return items.first()
+    val typed = words.joinToString(" ")
 
     items.filterIsInstance<ArtistItem>()
-        .firstOrNull { it.title.trim().lowercase() == normalised }
+        .firstOrNull { searchWords(it.title).joinToString(" ") == typed }
         ?.let { return it }
 
-    val songs = items.filterIsInstance<SongItem>()
-    songs.firstOrNull { !it.isVideoSong }?.let { return it }
-
-    return songs.firstOrNull() ?: items.first()
+    // the highest score wins, and on a tie the one youtube put first
+    var best: YTItem? = null
+    var bestScore = 0
+    items.forEach { item ->
+        val score = matchScore(item, words, typed)
+        if (score > bestScore) {
+            best = item
+            bestScore = score
+        }
+    }
+    return best ?: items.first()
 }
+
+// how well an item's title and credits cover the typed words: all of them beats some, the exact title beats both, and a music video gives way to the song
+private fun matchScore(item: YTItem, words: List<String>, typed: String): Int {
+    val title = searchWords(item.title)
+    val credits = when (item) {
+        is SongItem -> item.artists.flatMap { searchWords(it.name) }
+        is AlbumItem -> item.artists.orEmpty().flatMap { searchWords(it.name) }
+        is PlaylistItem -> item.author?.name?.let(::searchWords).orEmpty()
+        else -> emptyList()
+    }
+    val known = (title + credits).toHashSet()
+    val found = words.count { it in known }
+    if (found == 0) return 0
+    var score = found * 100 / words.size
+    if (title.joinToString(" ") == typed) score += 100 else if (found == words.size) score += 40
+    if (item is SongItem && item.isVideoSong) score -= 5
+    return score.coerceAtLeast(1)
+}
+
+// lowercase words without accents, so "Beyoncé" and "beyonce" match
+private fun searchWords(text: String): List<String> =
+    AccentMarks.replace(java.text.Normalizer.normalize(text.lowercase(), java.text.Normalizer.Form.NFD), "")
+        .split(WordBreaks)
+        .filter { it.isNotEmpty() }
+
+private val AccentMarks = Regex("\\p{M}+")
+private val WordBreaks = Regex("[^\\p{L}\\p{N}]+")
 
 @Composable
 private fun TopResultCard(

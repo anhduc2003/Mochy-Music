@@ -62,6 +62,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.ui.component.pressBounce
+import com.mochyy.mochymusic.ui.component.rememberResourcePainter
 import com.mochyy.mochymusic.ui.player.findActivity
 import com.mochyy.mochymusic.ui.screens.audiolab.LabColors
 import com.mochyy.mochymusic.utils.AppIcon
@@ -70,6 +71,7 @@ import com.mochyy.mochymusic.utils.AppIconFamily
 import com.mochyy.mochymusic.utils.AppIcons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import com.mochyy.mochymusic.ui.component.RemoteFocus
 
 private val TileSize = 66.dp
 // close to a launcher's squircle, so the tile reads as the icon it will be
@@ -141,11 +143,11 @@ internal fun IconsSection() {
     }
 }
 
-// each piece of art loaded once and shared by every tile; anime mochy is a bitmap, and every tile used to decode its own
+// each piece of art loaded once and shared by every tile, through coil so the anime bitmap decodes off the main thread (it cost 20 ms on the page's first frame)
 @Composable
 private fun rememberIconArt(): Map<Int, Painter> {
     val ids = remember { AppIcon.entries.map { it.foreground }.distinct() }
-    return ids.associateWith { painterResource(it) }
+    return ids.associateWith { rememberResourcePainter(it) }
 }
 
 // the icon in use with its name and family, and the chevron that opens every other choice
@@ -156,7 +158,7 @@ private fun PickedIcon(icon: AppIcon, art: Map<Int, Painter>, expanded: Boolean,
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(interactionSource = interaction, indication = null, onClick = onToggle)
+            .clickable(interactionSource = interaction, indication = RemoteFocus, onClick = onToggle)
             .padding(horizontal = CardTextInset),
     ) {
         Text(
@@ -264,7 +266,7 @@ private fun IconTile(icon: AppIcon, art: Map<Int, Painter>, picked: Boolean, onC
             picked = picked,
             modifier = Modifier
                 .pressBounce(interaction, pressedScale = 0.94f)
-                .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+                .clickable(interactionSource = interaction, indication = RemoteFocus, onClick = onClick),
         )
         Spacer(Modifier.height(8.dp))
         label()
@@ -319,7 +321,7 @@ private fun CustomizeButton(open: Boolean, onClick: () -> Unit) {
             .pressBounce(interaction, pressedScale = 0.92f)
             .clip(CircleShape)
             .drawBehind { drawRect(fill) }
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .clickable(interactionSource = interaction, indication = RemoteFocus, onClick = onClick)
             .padding(horizontal = 9.dp, vertical = 4.dp),
     )
 }
@@ -353,7 +355,7 @@ private fun Swatch(color: AppIconColor, selected: Boolean, onClick: () -> Unit) 
             .clip(CircleShape)
             .background(colorResource(color.background))
             .border(if (selected) 2.dp else 1.dp, ring, CircleShape)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .clickable(interactionSource = interaction, indication = RemoteFocus, onClick = onClick)
             .semantics {
                 contentDescription = name
                 this.selected = selected

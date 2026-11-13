@@ -5,8 +5,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,10 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,17 +21,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,12 +37,16 @@ import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.constants.TransportEffect
 import com.mochyy.mochymusic.constants.TransportEffectKey
 import com.mochyy.mochymusic.constants.TransportFadeDefaultSeconds
+import com.mochyy.mochymusic.constants.SkipBlendKey
+import com.mochyy.mochymusic.constants.SkipBlendAheadKey
+import com.mochyy.mochymusic.constants.SkipBlendAheadMax
 import com.mochyy.mochymusic.constants.TransportFadeEnabledKey
 import com.mochyy.mochymusic.constants.TransportFadeMaxSeconds
 import com.mochyy.mochymusic.constants.TransportFadeMinSeconds
 import com.mochyy.mochymusic.constants.TransportFadeSecondsKey
 import com.mochyy.mochymusic.ui.screens.audiolab.LabCard
 import com.mochyy.mochymusic.ui.screens.audiolab.LabCollapsible
+import com.mochyy.mochymusic.ui.screens.audiolab.LabSelect
 import com.mochyy.mochymusic.ui.screens.audiolab.LabColors
 import com.mochyy.mochymusic.ui.screens.audiolab.LabSlider
 import com.mochyy.mochymusic.ui.screens.audiolab.LabStage
@@ -61,6 +56,7 @@ import com.mochyy.mochymusic.ui.screens.audiolab.rememberOnScreen
 import com.mochyy.mochymusic.ui.screens.audiolab.rememberPicturesHeld
 import com.mochyy.mochymusic.ui.screens.audiolab.trackOnScreen
 import com.mochyy.mochymusic.ui.theme.InterFontFamily
+import com.mochyy.mochymusic.utils.rememberDataSaverActive
 import com.mochyy.mochymusic.utils.rememberEnumPreference
 import com.mochyy.mochymusic.utils.rememberPreference
 import kotlin.math.PI
@@ -70,7 +66,6 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 private val EffectRed = LabColors.Nodes[9]
-private val PickerColor = Color(0xFF141416)
 
 private val TransportEffect.labelRes: Int
     get() = when (this) {
@@ -85,22 +80,19 @@ private val TransportEffect.labelRes: Int
 
 // the pause, play, forward and backward fades: a picture of the curve, the switch, its length and the layered effect
 @Composable
-fun TransportFadeSection() {
+fun TransportFadeSection(
+    // with Crossmix on nothing plays a plain crossfade, so blended skips sit out and say so
+    crossmixOn: Boolean = false,
+) {
     val (enabled, onEnabledChange) = rememberPreference(TransportFadeEnabledKey, defaultValue = true)
     val (storedSeconds, onSecondsChange) = rememberPreference(TransportFadeSecondsKey, defaultValue = TransportFadeDefaultSeconds)
     val (effect, onEffectChange) = rememberEnumPreference(TransportEffectKey, defaultValue = TransportEffect.OFF)
+    val (blendSkips, onBlendSkipsChange) = rememberPreference(SkipBlendKey, defaultValue = false)
+    val (blendAhead, onBlendAheadChange) = rememberPreference(SkipBlendAheadKey, defaultValue = 1)
+    val dataSaving = rememberDataSaverActive()
     val seconds = storedSeconds.coerceIn(TransportFadeMinSeconds, TransportFadeMaxSeconds)
 
-    Text(
-        text = stringResource(R.string.transport_fade_title),
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 26.sp,
-        lineHeight = 30.sp,
-        letterSpacing = (-0.6).sp,
-        color = LabColors.Secondary,
-        modifier = Modifier.padding(start = 4.dp, end = 24.dp, top = 28.dp, bottom = 20.dp),
-    )
+    TransitionHeading(stringResource(R.string.transition_transport_heading), Modifier.padding(top = 28.dp))
 
     LabCard(padding = 14.dp) {
         LabStage(height = 150.dp) {
@@ -108,12 +100,22 @@ fun TransportFadeSection() {
         }
         Spacer(Modifier.height(10.dp))
         LabToggleRow(
-            title = stringResource(R.string.transport_fade_enable),
-            subtitle = stringResource(R.string.transport_fade_enable_desc),
+            title = stringResource(R.string.transition_fade_title),
+            subtitle = stringResource(R.string.transition_fade_desc),
             checked = enabled,
             onCheckedChange = onEnabledChange,
         )
-        LabCollapsible(enabled) {
+        LabToggleRow(
+            title = androidx.compose.ui.res.stringResource(com.mochyy.mochymusic.R.string.settings_blend_skips),
+            subtitle = stringResource(if (crossmixOn) R.string.settings_blend_skips_crossmix else R.string.settings_blend_skips_desc),
+            checked = blendSkips,
+            onCheckedChange = onBlendSkipsChange,
+        )
+        LabCollapsible(blendSkips) {
+            BlendAheadRow(ahead = blendAhead, dataSaving = dataSaving, onAheadChange = onBlendAheadChange)
+        }
+        // blended skips cross over in this length too, so it stays out while either is on
+        LabCollapsible(enabled || blendSkips) {
             Box(Modifier.padding(horizontal = 6.dp)) {
                 LabSlider(
                     label = stringResource(R.string.crossfade_length),
@@ -128,6 +130,8 @@ fun TransportFadeSection() {
                 Text(secondsText(TransportFadeMinSeconds), fontFamily = InterFontFamily, fontSize = 11.sp, color = LabColors.Secondary, modifier = Modifier.weight(1f))
                 Text(secondsText(TransportFadeMaxSeconds), fontFamily = InterFontFamily, fontSize = 11.sp, color = LabColors.Secondary)
             }
+        }
+        LabCollapsible(enabled) {
             Spacer(Modifier.height(14.dp))
             Column(Modifier.padding(horizontal = 6.dp)) {
                 Text(stringResource(R.string.transport_fade_layered), fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = LabColors.Primary)
@@ -140,77 +144,44 @@ fun TransportFadeSection() {
                 )
             }
             Spacer(Modifier.height(12.dp))
-            EffectPicker(selected = effect, onSelect = onEffectChange)
+            LabSelect(
+                options = TransportEffect.entries.map { it.label },
+                selectedIndex = effect.ordinal,
+                onSelect = { onEffectChange(TransportEffect.entries[it]) },
+                contentDescription = "Choose an effect",
+            )
             Spacer(Modifier.height(4.dp))
         }
     }
 }
 
-private fun secondsText(seconds: Float): String =
-    if (seconds % 1f == 0f) "${seconds.toInt()}s" else "${"%.1f".format(seconds)}s"
-
-// the dark pill from the design: the chosen effect in the middle, a chevron that flips while the list is open
+// how many songs coming up are loaded for blend skips; data saver holds it at one and says so
 @Composable
-private fun EffectPicker(selected: TransportEffect, onSelect: (TransportEffect) -> Unit) {
-    var open by remember { mutableStateOf(false) }
-    val chevron by animateFloatAsState(if (open) 180f else 0f, spring(dampingRatio = 0.8f, stiffness = 400f), label = "chevron")
-    Box(Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp)
-                .clip(RoundedCornerShape(26.dp))
-                .background(PickerColor)
-                .clickable { open = true }
-                .padding(horizontal = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Spacer(Modifier.size(24.dp))
-            Text(
-                text = stringResource(selected.labelRes),
-                fontFamily = InterFontFamily,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 17.sp,
-                color = if (selected == TransportEffect.OFF) LabColors.Secondary else LabColors.Primary,
-                modifier = Modifier.weight(1f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            )
-            Icon(
-                painter = painterResource(R.drawable.expand_more),
-                contentDescription = stringResource(R.string.transport_fade_choose_effect),
-                tint = Color.White,
-                modifier = Modifier.size(24.dp).graphicsLayer { rotationZ = chevron },
-            )
-        }
-        DropdownMenu(
-            expanded = open,
-            onDismissRequest = { open = false },
-            shape = RoundedCornerShape(20.dp),
-            containerColor = LabColors.Card,
-        ) {
-            TransportEffect.entries.forEach { option ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            stringResource(option.labelRes),
-                            fontFamily = InterFontFamily,
-                            fontWeight = if (option == selected) FontWeight.SemiBold else FontWeight.Normal,
-                            fontSize = 15.sp,
-                            color = if (option == selected) LabColors.Primary else LabColors.Secondary,
-                        )
-                    },
-                    trailingIcon = if (option == selected) {
-                        { Icon(painterResource(R.drawable.check), contentDescription = null, tint = EffectRed, modifier = Modifier.size(18.dp)) }
-                    } else null,
-                    onClick = {
-                        onSelect(option)
-                        open = false
-                    },
-                )
-            }
-        }
+private fun BlendAheadRow(ahead: Int, dataSaving: Boolean, onAheadChange: (Int) -> Unit) {
+    val shown = if (dataSaving) 1 else ahead.coerceIn(1, SkipBlendAheadMax)
+    Column(Modifier.padding(horizontal = 6.dp).padding(bottom = 6.dp)) {
+        LabSlider(
+            label = stringResource(R.string.settings_blend_ahead),
+            valueText = pluralStringResource(R.plurals.settings_blend_ahead_value, shown, shown),
+            value = shown.toFloat(),
+            onValueChange = { onAheadChange(it.roundToInt().coerceIn(1, SkipBlendAheadMax)) },
+            valueRange = 1f..SkipBlendAheadMax.toFloat(),
+            steps = SkipBlendAheadMax - 2,
+            enabled = !dataSaving,
+        )
+        Text(
+            text = stringResource(if (dataSaving) R.string.settings_blend_ahead_saver else R.string.settings_blend_ahead_desc),
+            fontFamily = InterFontFamily,
+            fontSize = 12.sp,
+            lineHeight = 15.sp,
+            color = LabColors.Secondary,
+            modifier = Modifier.padding(top = 4.dp),
+        )
     }
 }
+
+private fun secondsText(seconds: Float): String =
+    if (seconds % 1f == 0f) "${seconds.toInt()}s" else "${"%.1f".format(seconds)}s"
 
 // the white line is the volume through a fade, the red one the effect riding on it; off, the fade is a hard cut
 @Composable

@@ -46,12 +46,16 @@
     <string name="playback_mix_other_apps">Play alongside other apps</string>
     <string name="playback_mix_other_apps_desc">Keep playing when another app makes sound</string>
     <string name="playback_mix_other_apps_detail">Mochy won\'t pause when a video, game or another music app starts playing, and it won\'t pause them either. Phone calls still pause the music, and it picks back up when the call ends.</string>
+    <string name="playback_resume_bluetooth">Resume on Bluetooth connection</string>
+    <string name="playback_resume_bluetooth_desc">Continue a paused song when headphones or a car connect</string>
+    <string name="pause_music_when_muted_desc">Pause when the volume hits zero, pick back up when it\u0027s raised</string>
     <string name="playback_save_state">Save Player\'s last state</string>
     <string name="playback_save_state_desc">Off clears played tracks on close</string>
     <string name="playback_save_state_detail">Turning this off removes the songs you already played when you close the app</string>
     <string name="settings_albums_from_likes">Albums from liked songs</string>
     <string name="settings_albums_from_likes_desc">Liking a song also adds its album</string>
     <string name="settings_albums_from_likes_detail">This is how Mochy used to work: every song you like brings its album into Albums. When it\'s off, Albums works like Apple Music and shows the albums you saved, plus the albums of songs you added, imported or keep on this phone.</string>
+    <string name="settings_pause_search_history_desc">Stop saving what you search for</string>
     <string name="proxy_status_off">Off</string>
     <string name="proxy_status_on">On, through %1$s</string>
     <string name="proxy_intro">Send Mochy\'s YouTube traffic through another server. It helps when YouTube blocks your network, or when YouTube Music isn\'t available where you live.</string>
@@ -175,4 +179,8 @@
     <string name="customise_swipe_down_anywhere_desc">Otherwise only from the top of the player and its cover</string>
     <string name="customise_swipe_up_follows">Open with your finger</string>
     <string name="customise_swipe_up_follows_desc">Swiping up the mini player carries the player with you, and it opens as fast as you swipe</string>
+    <string name="customise_landscape_player">Player on its side</string>
+    <string name="customise_landscape_player_desc">How the player looks when you turn your phone sideways</string>
+    <string name="customise_landscape_full_cover">Full cover</string>
+    <string name="customise_landscape_full_cover_desc">The cover fills the left side and melts into the controls. Off, it sits as a rounded square</string>
 </resources>

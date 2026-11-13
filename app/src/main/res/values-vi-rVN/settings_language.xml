@@ -102,4 +102,7 @@
     <string name="customise_player_gestures_desc">Cách trình phát đang mở phản hồi thao tác vuốt của bạn</string>
     <string name="customise_swipe_down_anywhere">Vuốt xuống ở bất kỳ đâu để đóng</string>
     <string name="customise_swipe_down_anywhere_desc">Nếu không bật, bạn chỉ có thể vuốt xuống từ phần trên cùng của trình phát hoặc ảnh bìa để đóng.</string>
+    <string name="playback_resume_bluetooth">Tiếp tục phát khi kết nối Bluetooth</string>
+    <string name="playback_resume_bluetooth_desc">Tiếp tục bài đang tạm dừng khi tai nghe hoặc xe hơi kết nối</string>
+    <string name="pause_music_when_muted_desc">Tạm dừng khi âm lượng về 0, phát lại khi tăng lên</string>
 </resources>

@@ -39,7 +39,6 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -55,6 +54,8 @@ import com.mochyy.mochymusic.ui.component.LocalZoomOutOverlayState
 import com.mochyy.mochymusic.ui.component.pressBounce
 import com.mochyy.mochymusic.ui.screens.donate.showDonateSheet
 import com.mochyy.mochymusic.ui.utils.SoftBlurTransformation
+import com.mochyy.mochymusic.ui.component.RemoteFocus
+import com.mochyy.mochymusic.ui.component.rememberResourcePainter
 
 internal data class DevSocial(val label: String, val url: String)
 
@@ -90,7 +91,7 @@ internal val DevPeople = listOf(
 @Composable
 internal fun DevAvatar(person: DevPerson, modifier: Modifier = Modifier) {
     Image(
-        painter = painterResource(person.avatar),
+        painter = rememberResourcePainter(person.avatar),
         contentDescription = person.name,
         contentScale = ContentScale.Crop,
         modifier = modifier.clip(CircleShape).background(Color(0xFFD9D9D9)),
@@ -245,7 +246,7 @@ private fun DevLinkRow(label: String, onClick: () -> Unit) {
             .height(42.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(DevCard)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .clickable(interactionSource = interaction, indication = RemoteFocus, onClick = onClick)
             .padding(horizontal = 18.dp),
     ) {
         Text(label, style = devText(15f, FontWeight.SemiBold, DevLinkText, -0.4f), maxLines = 1)

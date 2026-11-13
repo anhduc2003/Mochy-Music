@@ -15,15 +15,19 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.ui.component.DefaultDialog
+import com.mochyy.mochymusic.ui.component.LocalZoomOutOverlayState
 import com.mochyy.mochymusic.ui.component.SettingsGroup
 import com.mochyy.mochymusic.ui.component.SettingsGroupStyle
 import com.mochyy.mochymusic.ui.component.SettingsItem
 import com.mochyy.mochymusic.ui.component.SubSettingsScaffold
+import com.mochyy.mochymusic.ui.screens.devices.rememberDevicesLink
+import com.mochyy.mochymusic.ui.screens.devices.showDeviceIntegration
 import com.mochyy.mochymusic.viewmodels.ImportSyncViewModel
 import java.time.LocalDate
 
@@ -36,6 +40,8 @@ fun ImportSyncScreen(
     val progress by viewModel.importProgress.collectAsState()
     val exportMessage by viewModel.exportMessage.collectAsState()
     val signedIn = rememberYouTubeSignedIn()
+    val sheets = LocalZoomOutOverlayState.current
+    val devices = rememberDevicesLink()
 
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
         if (uri != null) viewModel.export(uri)
@@ -104,6 +110,14 @@ fun ImportSyncScreen(
                     icon = painterResource(R.drawable.sync),
                     iconShape = CircleShape,
                     onClick = { navController.navigate(YouTubeSyncRoute) },
+                ),
+                SettingsItem(
+                    title = { Text(stringResource(R.string.devices_title)) },
+                    highlightKey = "Device integration",
+                    descriptionText = stringResource(R.string.devices_row_detail),
+                    icon = painterResource(R.drawable.smartphone),
+                    iconShape = CircleShape,
+                    onClick = { sheets.showDeviceIntegration(devices) },
                 ),
                 SettingsItem(
                     title = { Text("TuneMyMusic CSV") },

@@ -1112,4 +1112,20 @@
     <string name="about_song_nothing_yet">%1$s chưa có thông tin gì về bài hát này.</string>
     <string name="not_recommended_menu">Không đề xuất bài hát này nữa</string>
     <string name="not_recommended_done">Chúng tôi sẽ không đề xuất bài hát này nữa</string>
+    <string name="crossmix_mixing_note">Đang phối…</string>
+    <string name="recap_tap_hint">chạm vào đây để xem tổng kết!!</string>
+    <string name="transition_title">Chuyển tiếp</string>
+    <string name="transition_off">Tắt (tôi chẳng thích vui)</string>
+    <string name="transition_off_desc">Mỗi bài kết thúc trước khi bài tiếp theo bắt đầu</string>
+    <string name="transition_auto">Crossfade tự động</string>
+    <string name="transition_auto_desc">Chuyển mượt %1$d giây từ mỗi bài sang bài tiếp theo</string>
+    <string name="transition_manual">Crossfade thủ công</string>
+    <string name="transition_manual_desc">Chọn độ dài mỗi bài chuyển sang bài tiếp theo</string>
+    <string name="experimental_unlock_landscape">Mở khoá chế độ ngang</string>
+    <string name="experimental_unlock_landscape_desc">Cho phép ứng dụng xoay ngang sang bố cục rộng</string>
+    <string name="experimental_unlock_landscape_detail">Tắt, toàn bộ ứng dụng giữ thẳng đứng dù bạn cầm điện thoại thế nào. Bật, ứng dụng xoay theo điện thoại và bố trí các trang cạnh nhau. Vẫn đang hoàn thiện nên vài màn hình có thể chưa đẹp</string>
+    <string name="settings_persistent_shuffle">Giữ phát ngẫu nhiên</string>
+    <string name="settings_studio_for_videos">Bản studio cho video âm nhạc</string>
+    <string name="settings_studio_for_videos_desc">Video âm nhạc phát bản thu studio của bài hát khi có, không kèm tiểu phẩm và hiệu ứng âm thanh của video</string>
+    <string name="transition_transport_heading">Chuyển tiếp khi tạm dừng, phát, tua tới và tua lại</string>
 </resources>

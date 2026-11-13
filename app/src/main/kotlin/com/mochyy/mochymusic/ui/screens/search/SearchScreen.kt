@@ -15,7 +15,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.ui.unit.Dp
+import com.mochyy.mochymusic.ui.utils.stableStatusBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -89,9 +92,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import com.mochyy.mochymusic.ui.component.navigateToTab
+import com.mochyy.mochymusic.ui.component.RemoteFocus
 
 /** set on the search page's entry to open its field with the keyboard up */
-private const val SearchFocusKey = "focusSearch"
+internal const val SearchFocusKey = "focusSearch"
 
 /** opens the search page's field, ready to type (the Search tab's double tap) */
 fun NavController.requestSearchFocus() {
@@ -104,6 +108,22 @@ fun SearchScreen(
     navController: NavController,
     pureBlack: Boolean,
 ) {
+    // on its side the field and its history stay in the pane at the left (SearchSidePane), so this side shows the categories
+    if (com.mochyy.mochymusic.ui.utils.isLandscapeLayout()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(SearchColors.page(pureBlack))
+        ) {
+            SearchBrowseContent(
+                listState = rememberLazyListState(),
+                navController = navController,
+                columns = 3,
+                topPadding = WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding() + SearchTopClearance,
+            )
+        }
+        return
+    }
     val database = LocalDatabase.current
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
@@ -287,7 +307,7 @@ fun SearchScreen(
                                 .size(20.dp)
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
+                                    indication = RemoteFocus,
                                 ) {
                                     active = false
                                     focusManager.clearFocus()
@@ -307,7 +327,7 @@ fun SearchScreen(
                                 .size(20.dp)
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
+                                    indication = RemoteFocus,
                                 ) { query = TextFieldValue("") },
                         )
                     }
@@ -331,6 +351,9 @@ private fun SearchBrowseContent(
     listState: LazyListState,
     navController: NavController,
     viewModel: MoodAndGenresViewModel = hiltViewModel(),
+    // tiles in a row: two upright, three in the wider pane on its side
+    columns: Int = 2,
+    topPadding: Dp = searchTopBarHeight(withTitle = true),
 ) {
     val sections by viewModel.moodAndGenres.collectAsState()
     val bottomInset = LocalPlayerAwareWindowInsets.current
@@ -341,7 +364,7 @@ private fun SearchBrowseContent(
         state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            top = searchTopBarHeight(withTitle = true),
+            top = topPadding,
             bottom = bottomInset + 24.dp,
         ),
     ) {
@@ -364,7 +387,7 @@ private fun SearchBrowseContent(
                         ruleBelow = true,
                     )
                 }
-                val rows = section.items.chunked(2)
+                val rows = section.items.chunked(columns)
                 itemsIndexed(
                     items = rows,
                     key = { rowIndex, _ -> "row_${sectionIndex}_$rowIndex" },
@@ -395,7 +418,7 @@ private fun SearchBrowseContent(
                                 modifier = Modifier.weight(1f),
                             )
                         }
-                        if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
+                        repeat(columns - row.size) { Spacer(modifier = Modifier.weight(1f)) }
                     }
                 }
                 item(key = "gap_${sectionIndex}") { Spacer(modifier = Modifier.height(22.dp)) }
@@ -405,7 +428,7 @@ private fun SearchBrowseContent(
 }
 
 @Composable
-private fun SearchActiveContent(
+internal fun SearchActiveContent(
     listState: LazyListState,
     query: String,
     state: com.mochyy.mochymusic.viewmodels.SearchSuggestionViewState,
@@ -413,6 +436,7 @@ private fun SearchActiveContent(
     onSubmit: (String) -> Unit,
     onDeleteHistory: (SearchHistory) -> Unit,
     navController: NavController,
+    topPadding: Dp = searchTopBarHeight(withTitle = false),
 ) {
     val playerConnection = LocalPlayerConnection.current
     val offlineMode by rememberPreference(com.mochyy.mochymusic.constants.OfflineModeKey, defaultValue = false)
@@ -424,7 +448,7 @@ private fun SearchActiveContent(
         state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            top = searchTopBarHeight(withTitle = false),
+            top = topPadding,
             bottom = bottomInset + 24.dp,
         ),
     ) {

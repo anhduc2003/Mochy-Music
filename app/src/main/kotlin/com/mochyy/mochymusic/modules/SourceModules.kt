@@ -13,21 +13,30 @@ import com.mochyy.mochymusic.module.StreamFormat
 import com.mochyy.mochymusic.module.TrackQuery
 import com.mochyy.mochymusic.module.applemusic.AppleMusicModule
 import com.mochyy.mochymusic.module.monochrome.MonochromeModule
+import com.mochyy.mochymusic.utils.DataSaver
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class SourceModules @Inject constructor(
-    @ApplicationContext context: Context,
+    @ApplicationContext private val context: Context,
     private val registry: ModuleRegistry,
 ) {
     private val prefs = context.getSharedPreferences("source_modules", Context.MODE_PRIVATE)
+
+    // where modules look songs up, apart from whoever asked, so a call that won't stop never keeps a song waiting
+    private val resolveScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     // ---- provider order -----------------------------------------------------------------------
     //
@@ -116,7 +125,7 @@ class SourceModules @Inject constructor(
         track: TrackQuery?,
         skip: Set<String>,
         onUndecodable: (id: String, stream: SourceStream) -> Unit = { _, _ -> },
-    ): Route = walk(_order.value, track, skip, ::isUsable) { id, stream ->
+    ): Route = walk(_order.value, track, skip, ::isUsable, ::playbackPicks) { id, stream ->
         // a stream this phone has no decoder for would play in silence: the next provider has it
         DeviceDecoders.canPlay(stream).also { playable ->
             if (!playable) {
@@ -128,7 +137,7 @@ class SourceModules @Inject constructor(
 
     /** the download order's walk: the first provider that gives one whole file this phone can play, else youtube */
     suspend fun downloadRoute(track: TrackQuery?, skip: Set<String>): Route =
-        walk(_downloadOrder.value, track, skip, ::isUsableForDownload) { id, stream ->
+        walk(_downloadOrder.value, track, skip, ::isUsableForDownload, { id, _ -> picks(id) }) { id, stream ->
             // a download is saved as one file, so a stream in pieces or one only a cdm can open can't be kept
             (stream.format == StreamFormat.Progressive && stream.drm == null && DeviceDecoders.canPlay(stream)).also { savable ->
                 if (!savable) android.util.Log.i(Tag, "$id: ${track?.title}: can't download a ${stream.format} ${stream.codec} stream, passing over")
@@ -140,28 +149,51 @@ class SourceModules @Inject constructor(
         track: TrackQuery?,
         skip: Set<String>,
         usable: (String) -> Boolean,
+        picksFor: (id: String, module: SourceModule) -> Map<String, String>,
         accept: (id: String, stream: SourceStream) -> Boolean,
     ): Route = withContext(Dispatchers.IO) {
+        // the providers worth asking, in order, up to youtube, which needs no asking
+        val asked = mutableListOf<String>()
         for (id in order) {
             if (id in skip || !usable(id)) continue
-            if (id == YouTubeId) return@withContext Route.YouTube
-            val module = module(id) ?: continue
-            if (track == null) continue
-            val result = runCatching { module.resolve(track, picks(id)) }
-                .onFailure { android.util.Log.w(Tag, "$id failed for ${track.title}", it) }
-                .getOrNull()
-            when (result) {
-                is ResolveResult.Found -> {
-                    if (!accept(id, result.stream)) continue
-                    android.util.Log.i(Tag, "$id: ${track.title} -> ${result.stream.matched.title} (${result.stream.qualityLabel})")
-                    return@withContext Route.Module(module, result.stream)
-                }
-                is ResolveResult.NotFound -> android.util.Log.i(Tag, "$id: ${track.title}: ${result.reason}")
-                is ResolveResult.Unavailable -> android.util.Log.i(Tag, "$id unavailable for ${track.title}: ${result.reason}")
-                null -> Unit
-            }
+            asked += id
+            if (id == YouTubeId) break
         }
-        Route.Exhausted
+        // every module ahead of youtube is asked at once, so a slow one up front no longer holds up the rest; answers are still taken in order
+        val startedAt = System.currentTimeMillis()
+        val answers = if (track == null) emptyMap() else asked.mapNotNull { id ->
+            val module = module(id) ?: return@mapNotNull null
+            id to resolveScope.async {
+                runCatching { module.resolve(track, picksFor(id, module)) }
+                    .onFailure { if (it !is CancellationException) android.util.Log.w(Tag, "$id failed for ${track.title}", it) }
+                    .getOrNull()
+            }
+        }.toMap()
+        try {
+            for (id in asked) {
+                if (id == YouTubeId) return@withContext Route.YouTube
+                val module = module(id) ?: continue
+                val answer = answers[id] ?: continue
+                // timed on the waiting side, so a module stuck in a call that ignores cancelling can't hold the song either
+                val left = ModuleTimeoutMs - (System.currentTimeMillis() - startedAt)
+                val result = withTimeoutOrNull(left.coerceAtLeast(1L)) { answer.await() }
+                if (result == null && answer.isActive) android.util.Log.i(Tag, "$id took longer than ${ModuleTimeoutMs / 1000} s for ${track?.title}, moving on")
+                when (result) {
+                    is ResolveResult.Found -> {
+                        if (!accept(id, result.stream)) continue
+                        android.util.Log.i(Tag, "$id: ${track?.title} -> ${result.stream.matched.title} (${result.stream.qualityLabel})")
+                        return@withContext Route.Module(module, result.stream)
+                    }
+                    is ResolveResult.NotFound -> android.util.Log.i(Tag, "$id: ${track?.title}: ${result.reason}")
+                    is ResolveResult.Unavailable -> android.util.Log.i(Tag, "$id unavailable for ${track?.title}: ${result.reason}")
+                    null -> Unit
+                }
+            }
+            Route.Exhausted
+        } finally {
+            // the ones further down the order aren't needed once one has the song
+            answers.values.forEach { it.cancel() }
+        }
     }
 
     /** every module, whatever it adds; playback only looks at the ones that add audio */
@@ -186,6 +218,20 @@ class SourceModules @Inject constructor(
 
     fun picks(id: String): Map<String, String> = registry.picks(id)
 
+    /**
+     * the picks a song plays with: with data saver on, a module's stream quality steps down to its
+     * "high" option (or one below its best when it has none), and a lighter pick stays as it is
+     */
+    fun playbackPicks(id: String, module: SourceModule): Map<String, String> {
+        val picks = picks(id)
+        if (!DataSaver.isActive(context)) return picks
+        val quality = module.choices.firstOrNull { it.id == QualityChoice }?.options ?: return picks
+        val cap = quality.indexOfFirst { it.id == SaverOption }.takeIf { it >= 0 } ?: 1
+        val picked = quality.indexOfFirst { it.id == picks[QualityChoice] }.takeIf { it >= 0 } ?: 0
+        if (picked >= cap || cap >= quality.size) return picks
+        return picks + (QualityChoice to quality[cap].id)
+    }
+
     fun setPick(id: String, choiceId: String, optionId: String) = registry.setPick(id, choiceId, optionId)
 
     fun refresh() {
@@ -205,6 +251,11 @@ class SourceModules @Inject constructor(
 
     companion object {
         private const val Tag = "SourceModules"
+        // how long a module may take to find a song before the next provider in the order plays it
+        private const val ModuleTimeoutMs = 12_000L
+        // the choice every module names its stream quality with, and the option data saver steps down to
+        const val QualityChoice = "quality"
+        private const val SaverOption = "high"
         /** youtube music in the provider order: not a module, and needs no account */
         const val YouTubeId = "youtube"
         // modules added later (jiosaavn, link modules) aren't listed: refresh slots them in just ahead of youtube, where they get asked

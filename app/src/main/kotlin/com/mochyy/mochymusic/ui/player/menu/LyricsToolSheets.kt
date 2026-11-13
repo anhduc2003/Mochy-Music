@@ -48,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -67,11 +68,14 @@ import com.mochyy.mochymusic.lyrics.LyricsUtils
 import com.mochyy.mochymusic.lyrics.YouTubeCaptionTranslation
 import com.mochyy.mochymusic.ui.component.AppSwitch
 import com.mochyy.mochymusic.ui.component.SheetIcon
+import com.mochyy.mochymusic.ui.component.TopToaster
+import com.mochyy.mochymusic.ui.menu.songedit.LyricsFileBox
 import com.mochyy.mochymusic.utils.rememberPreference
 import com.mochyy.mochymusic.viewmodels.LyricsMenuViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import com.mochyy.mochymusic.ui.component.RemoteFocus
 
 // ---------------------------------------------------------------------------------------------
 // Editor
@@ -262,6 +266,7 @@ fun LyricsProviderSheet(onDismiss: () -> Unit) {
         )
     }
     val active = lyricsEntity?.provider
+    val addedText = stringResource(R.string.lyrics_file_added)
 
     MenuSheetSurface(onDismiss = onDismiss, wrapHeight = true) { _ ->
         val closeSheet = LocalMenuSheetClose.current
@@ -277,6 +282,17 @@ fun LyricsProviderSheet(onDismiss: () -> Unit) {
                 color = Color.White,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
+            )
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // your own file sits above every source and, like tapping one, takes over straight away
+            LyricsFileBox(
+                picked = null,
+                onPicked = { file ->
+                    mediaMetadata?.let { viewModel.saveLyrics(it.id, file.text) }
+                    TopToaster.show(text = addedText, iconRes = R.drawable.lyrics)
+                    closeSheet()
+                },
             )
             Spacer(modifier = Modifier.height(14.dp))
 
@@ -308,7 +324,7 @@ fun LyricsProviderSheet(onDismiss: () -> Unit) {
                         .clickable(
                             enabled = available != null && !isActive,
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
+                            indication = RemoteFocus,
                         ) {
                             val metadata = mediaMetadata
                             if (available != null && metadata != null) {
@@ -504,7 +520,7 @@ fun LyricsTranslationSheet(onDismiss: () -> Unit) {
                         // switched off instead of locking the button.
                         enabled = target.isNotBlank(),
                         interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
+                        indication = RemoteFocus,
                     ) {
                         if (translationOn) {
                             LyricsTranslationHelper.triggerClearTranslations()
@@ -687,7 +703,7 @@ private fun LanguagePickerSheet(
                             )
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
+                                indication = RemoteFocus,
                             ) {
                                 onPick(code)
                                 closeSheet()
@@ -733,7 +749,7 @@ internal fun PillButton(
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null,
+                indication = RemoteFocus,
                 onClick = onClick,
             )
     ) {

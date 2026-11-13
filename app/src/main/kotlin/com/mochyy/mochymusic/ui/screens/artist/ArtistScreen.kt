@@ -133,6 +133,7 @@ import com.music.innertube.models.YTItem
 import com.music.innertube.pages.ArtistSection
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.mochyy.mochymusic.ui.component.RemoteFocus
 
 /** an artist page's shelves, sorted by what they hold; YouTube's titles are in the account's language */
 private class ArtistShelves(sections: List<ArtistSection>) {
@@ -219,7 +220,10 @@ fun ArtistScreen(
 
     val lazyListState = rememberLazyListState()
     val revealSeen = rememberRevealSeenState()
-    val bannerHeight = playlistCoverHeight()
+    // on its side the banner is the whole screen, the name block sitting at its foot just over the bottom bar
+    val landscape = com.mochyy.mochymusic.ui.utils.isLandscapeLayout()
+    val bannerHeight = if (landscape) androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp else playlistCoverHeight()
+    val headerFoot = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding() + 6.dp
     val bannerHeightPx = with(LocalDensity.current) { bannerHeight.toPx() }
     val scrollProgress = remember(lazyListState, bannerHeightPx) {
         derivedStateOf {
@@ -337,10 +341,16 @@ fun ArtistScreen(
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     item(key = "header", contentType = "header") {
+                        Box(
+                            contentAlignment = Alignment.BottomStart,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .then(if (landscape) Modifier.height(bannerHeight - headerFoot) else Modifier),
+                        ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = bannerHeight * ArtistAvatarAt)
+                                .padding(top = if (landscape) 0.dp else bannerHeight * ArtistAvatarAt)
                                 .padding(start = PlaylistInset - 3.dp, end = PlaylistInset)
                         ) {
                             ArtistAvatar(url = header?.avatarUrl ?: photo?.resize(544, 544))
@@ -371,6 +381,7 @@ fun ArtistScreen(
                                 onLike = viewModel::toggleLike,
                                 onSubscribe = viewModel::toggleSubscribe,
                             )
+                        }
                         }
                     }
 
@@ -833,7 +844,8 @@ private fun LazyListScope.librarySection(
                 makeTimeString(song.song.duration * 1000L),
             ).joinToString(" · "),
             isActive = song.id == mediaMetadataId(),
-            isPlaying = isPlaying(),
+            // folded, so a play or pause only touches the row that's playing
+            isPlaying = song.id == mediaMetadataId() && isPlaying(),
             onClick = { onPlay(index) },
             onLongClick = { onSongMenu(song) },
             onMenuClick = { onSongMenu(song) },
@@ -897,7 +909,7 @@ private fun ArtistAbout(name: String, bio: String, modifier: Modifier = Modifier
             modifier = Modifier
                 .animateContentSize(spring(dampingRatio = 0.9f, stiffness = 420f))
                 .clip(RoundedCornerShape(8.dp))
-                .clickable(interactionSource = null, indication = null) { expanded = !expanded },
+                .clickable(interactionSource = null, indication = RemoteFocus) { expanded = !expanded },
         )
     }
 }

@@ -45,6 +45,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
+import com.mochyy.mochymusic.link.isTelevision
 
 // how long after the launch intro the PoToken WebView may boot (Home's reveal runs ~1s)
 private const val PoTokenAfterIntroMillis = 2_500L
@@ -59,9 +60,15 @@ class App : Application(), SingletonImageLoader.Factory {
     @Inject
     lateinit var musicDatabase: com.mochyy.mochymusic.db.MusicDatabase
 
+    // only built once a tv is paired, it pulls in the downloads
+    @Inject
+    lateinit var phoneLink: dagger.Lazy<com.mochyy.mochymusic.link.phone.PhoneLinkHost>
+
     override fun onCreate() {
         // before super, because that's where hilt builds the database and the player caches
         com.mochyy.mochymusic.importer.transfer.TransferRestore.applyPending(this)
+        // the folders a move to another drive left behind, cleared once nothing has them open
+        com.mochyy.mochymusic.playback.StoragePlaces.cleanUpLeftovers(this)
         super.onCreate()
 
         AppLanguage.initialize(this)
@@ -74,11 +81,27 @@ class App : Application(), SingletonImageLoader.Factory {
         }
 
         PreferencesCache.start(this, applicationScope)
+        // tokens saved before the vault existed are sealed on the first start after the update
+        applicationScope.launch(kotlinx.coroutines.Dispatchers.IO) { (dataStore as? com.mochyy.mochymusic.utils.SecretPreferences)?.sealLeftovers() }
         com.mochyy.mochymusic.utils.NotRecommended.init(this)
 
         applicationScope.launch(Dispatchers.IO) {
             try {
                 musicDatabase.query { purgeTimestampArtists() }
+            } catch (e: Exception) {
+                reportException(e)
+            }
+        }
+
+        applicationScope.launch(Dispatchers.IO) {
+            // the plain 5 s crossfade used to be the default and onboarding's pick, and it never mixed a thing: anyone left on it moves to crossmix once
+            try {
+                if (dataStore.data.first()[CrossmixDefaultMovedKey] != true) {
+                    dataStore.edit { prefs ->
+                        if (prefs[CrossmixModeKey] == CrossmixMode.AUTO_CROSSFADE.name) prefs[CrossmixModeKey] = CrossmixMode.CROSSMIX.name
+                        prefs[CrossmixDefaultMovedKey] = true
+                    }
+                }
             } catch (e: Exception) {
                 reportException(e)
             }
@@ -128,6 +151,14 @@ class App : Application(), SingletonImageLoader.Factory {
         }
 
         applicationScope.launch(Dispatchers.IO) {
+            // a paired device can reach this phone again as soon as mochy is up, after the intro has had the main thread
+            if (isTelevision() || !com.mochyy.mochymusic.link.phone.PhoneLinkHost.hasPairedDevices(this@App)) return@launch
+            com.mochyy.mochymusic.ui.launch.LaunchGate.awaitIntro()
+            phoneLink.get().refresh()
+            com.mochyy.mochymusic.link.phone.PhoneLinkService.start(this@App)
+        }
+
+        applicationScope.launch(Dispatchers.IO) {
             // Local songs whose cover file was cleared away get it back from the song's own file.
             // After the intro, so it doesn't share the disk with the first frames.
             com.mochyy.mochymusic.ui.launch.LaunchGate.awaitIntro()
@@ -144,6 +175,7 @@ class App : Application(), SingletonImageLoader.Factory {
     private suspend fun initializeSettings() {
         val settings = dataStore.data.first()
         com.mochyy.mochymusic.utils.OfflineMode.set(settings[OfflineModeKey] ?: false)
+        com.mochyy.mochymusic.utils.DataSaver.attach(this)
         val locale = AppLanguage.systemLocale(this)
         val languageTag = locale.language
 
@@ -265,6 +297,14 @@ class App : Application(), SingletonImageLoader.Factory {
                 .collect { ipVersion ->
                     YouTube.ipVersion = ipVersion?.toEnum(defaultValue = IpVersion.AUTO) ?: IpVersion.AUTO
                 }
+        }
+    }
+
+    // the screen went to the background: covers decoded for it were the most the app held while music played on, so most of them go; the latest stay for coming back
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level == android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
+            SingletonImageLoader.get(this).memoryCache?.let { cache -> cache.trimToSize(cache.size / 4) }
         }
     }
 
