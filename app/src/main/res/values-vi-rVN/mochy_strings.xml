@@ -1128,4 +1128,8 @@
     <string name="settings_studio_for_videos">Bản studio cho video âm nhạc</string>
     <string name="settings_studio_for_videos_desc">Video âm nhạc phát bản thu studio của bài hát khi có, không kèm tiểu phẩm và hiệu ứng âm thanh của video</string>
     <string name="transition_transport_heading">Chuyển tiếp khi tạm dừng, phát, tua tới và tua lại</string>
+    <plurals name="settings_blend_ahead_value">
+        <item quantity="one">%d bài</item>
+        <item quantity="other">%d bài</item>
+    </plurals>
 </resources>
