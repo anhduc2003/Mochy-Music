@@ -114,5 +114,5 @@
     <string name="customise_lyrics_translation_desc">Dịch lời bài hát của mọi bài khi đang phát</string>
     <string name="customise_lyrics_preview_translation">nếu tôi là một hòn đá</string>
     <string name="settings_floating_lyrics">Lời bài hát nổi</string>
-    <string name="settings_floating_lyrics_desc">Dòng đang hát thay chỗ tên ca sĩ trong thông báo, trên màn hình khoá và trên xe; ra khỏi Mochy thì nó nằm ngay hàng thanh trạng thái, kèm vòng thời gian của bài</string>
-    <string name="settings_floating_lyrics_detail">Viên trên thanh trạng thái cần quyền hiển thị trên ứng dụng khác, và sẽ phủ lên đảo động của máy khi đang hiện. Nó không nhận chạm, nên bạn vẫn kéo thanh thông báo xuống bình thường.</string></resources>
+    <string name="settings_floating_lyrics_desc">Dòng đang hát thay chỗ tên ca sĩ trong thông báo, trên màn hình khoá và trên xe; ra khỏi Mochy thì nó nằm trong một viên đen, kéo đi bất kỳ đâu và chụm hai ngón để thu phóng</string>
+    <string name="settings_floating_lyrics_detail">Viên cần quyền hiển thị trên ứng dụng khác. Một ngón để kéo, hai ngón để đổi độ rộng; vị trí và kích thước được ghim lại cho lần sau. Lời dài tự thu chữ cho vừa khung, và chữ chạy theo nhịp như karaoke khi bài có mốc từng từ.</string></resources>

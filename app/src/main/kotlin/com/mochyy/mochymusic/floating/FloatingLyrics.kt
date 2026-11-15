@@ -5,6 +5,7 @@ package com.mochyy.mochymusic.floating
 import android.content.Context
 import android.provider.Settings
 import android.view.View
+import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -12,6 +13,9 @@ import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import com.mochyy.mochymusic.car.CarLyricsSource
 import com.mochyy.mochymusic.constants.FloatingLyricsKey
+import com.mochyy.mochymusic.constants.FloatingLyricsWidthKey
+import com.mochyy.mochymusic.constants.FloatingLyricsXKey
+import com.mochyy.mochymusic.constants.FloatingLyricsYKey
 import com.mochyy.mochymusic.db.MusicDatabase
 import com.mochyy.mochymusic.models.MediaMetadata
 import com.mochyy.mochymusic.utils.dataStore
@@ -26,6 +30,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -50,6 +55,24 @@ class FloatingLyrics(
         appVisible.value = ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
     }
 
+    // where it was left and how wide it was pinned, so it comes back the same way next time
+    private val windowListener = object : StatusWindowListener {
+        override fun onMoved(x: Int, y: Int) {
+            scope.launch {
+                context.dataStore.edit {
+                    it[FloatingLyricsXKey] = x
+                    it[FloatingLyricsYKey] = y
+                }
+            }
+        }
+
+        override fun onResized(widthDp: Int) {
+            scope.launch {
+                context.dataStore.edit { it[FloatingLyricsWidthKey] = widthDp }
+            }
+        }
+    }
+
     // call on the main thread, the app's lifecycle is watched from there
     fun start() {
         if (job != null) return
@@ -72,8 +95,15 @@ class FloatingLyrics(
 
     private suspend fun open() {
         if (window != null) return
-        val bar = StatusWindow(context)
-        if (!bar.show { StatusLyrics(state, bar.metrics) }) return
+        val prefs = context.dataStore.data.first()
+        val bar = StatusWindow(
+            context,
+            prefs[FloatingLyricsXKey],
+            prefs[FloatingLyricsYKey],
+            prefs[FloatingLyricsWidthKey],
+            windowListener,
+        )
+        if (!bar.show { StatusLyrics(state) }) return
         window = bar
         follow = scope.launch { followSong() }
     }
