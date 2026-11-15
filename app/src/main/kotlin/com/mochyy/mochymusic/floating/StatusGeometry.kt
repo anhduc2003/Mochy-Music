@@ -4,6 +4,36 @@ package com.mochyy.mochymusic.floating
 internal object StatusGeometry {
     const val HandleWidthDp = 32f
 
+    enum class Anchor { LEFT, CENTER, RIGHT }
+
+    fun snapAnchor(x: Int, width: Int, screenWidth: Int, left: Int, right: Int, threshold: Int): Anchor {
+        val center = (screenWidth - width) / 2 + x + width / 2f
+        val safeCenter = (left + right) / 2f
+        return when {
+            kotlin.math.abs(center - safeCenter) <= threshold.coerceAtLeast(0) -> Anchor.CENTER
+            center < safeCenter -> Anchor.LEFT
+            else -> Anchor.RIGHT
+        }
+    }
+
+    fun anchorX(anchor: Anchor, width: Int, screenWidth: Int, left: Int, right: Int): Int {
+        val origin = (screenWidth - width) / 2
+        val target = when (anchor) {
+            Anchor.LEFT -> left
+            Anchor.CENTER -> left + (right - left - width) / 2
+            Anchor.RIGHT -> right - width
+        }
+        return centeredX(target - origin, width, screenWidth, left, right)
+    }
+
+    fun verticalFraction(y: Int, height: Int, top: Int, bottom: Int): Int {
+        val travel = (bottom - top - height).coerceAtLeast(0)
+        return if (travel == 0) 0 else (((y - top).toLong() * 1000 / travel).toInt()).coerceIn(0, 1000)
+    }
+
+    fun anchoredY(fraction: Int, height: Int, top: Int, bottom: Int): Int =
+        top + ((bottom - top - height).coerceAtLeast(0).toLong() * fraction.coerceIn(0, 1000) / 1000).toInt()
+
     fun width(requested: Float, available: Float): Float {
         val maximum = available.coerceAtLeast(1f)
         return requested.coerceIn(minOf(120f, maximum), maximum)

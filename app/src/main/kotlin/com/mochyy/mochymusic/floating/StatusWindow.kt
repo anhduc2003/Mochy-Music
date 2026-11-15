@@ -21,6 +21,7 @@ import android.widget.FrameLayout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -40,7 +41,7 @@ private const val EdgeRoomDp = 12f
 
 // what the window tells the service about, so where it was left and how wide it was come back next time
 internal interface StatusWindowListener {
-    fun onMoved(x: Int, y: Int)
+    fun onMoved(x: Int, y: Int, anchor: StatusGeometry.Anchor, verticalFraction: Int)
     fun onResized(widthDp: Int)
 }
 
@@ -52,6 +53,8 @@ internal class StatusWindow(
     savedY: Int?,
     savedWidthDp: Int?,
     private val listener: StatusWindowListener,
+    private val savedAnchor: String? = null,
+    savedVerticalFraction: Int? = null,
 ) {
     private val windowManager = context.getSystemService(WindowManager::class.java)
     private val density get() = context.resources.displayMetrics.density
@@ -70,12 +73,26 @@ internal class StatusWindow(
     private var removed = false
     private var targetWidthPx = 0
     private val heightDp = 38f
+    var expanded by mutableStateOf(false)
+        private set
+    private var anchor = StatusGeometry.Anchor.entries.firstOrNull { it.name == savedAnchor }
+        ?: StatusGeometry.Anchor.CENTER
+    private var verticalFraction = savedVerticalFraction?.coerceIn(0, 1000)
+    private var targetHeightPx = 0
+
+    fun setExpanded(value: Boolean) {
+        if (expanded == value) return
+        expanded = value
+        adaptWidth()
+    }
 
     private val params = WindowManager.LayoutParams(
         px(StatusGeometry.width(maximumWidthDp, maxWidthDp())).coerceAtLeast(1),
         px(heightDp),
         overlayType(),
         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+            WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
             WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
@@ -90,6 +107,11 @@ internal class StatusWindow(
 
     // false when the system refused the window, the permission was taken back most likely
     fun show(content: @Composable () -> Unit): Boolean {
+        val bounds = placementBounds()
+        // Migrate the old free position to the nearest stable anchor once.
+        if (savedAnchor == null) anchor = StatusGeometry.snapAnchor(params.x, params.width, screenSize().x, bounds.left, bounds.right, px(36f))
+        if (verticalFraction == null) verticalFraction = StatusGeometry.verticalFraction(params.y, params.height, bounds.top, bounds.bottom)
+        applyAnchor()
         clampInto(params)
         root.setViewTreeLifecycleOwner(owner)
         root.setViewTreeSavedStateRegistryOwner(owner)
@@ -125,30 +147,39 @@ internal class StatusWindow(
     private fun adaptWidth(animate: Boolean = true) {
         if (touching || removed) return
         fittingWidthDp = StatusGeometry.width(maximumWidthDp, maxWidthDp())
-        val target = px(StatusGeometry.adaptiveWidth(
+        val target = px(if (expanded) minOf(280f, maxWidthDp()) else StatusGeometry.adaptiveWidth(
             contentWidthDp ?: maximumWidthDp, maximumWidthDp, maxWidthDp(),
         )).coerceAtLeast(1)
-        if (target == targetWidthPx && widthAnimator?.isRunning == true) return
+        val panelHeight = if (maxWidthDp() < 240f) 144f else 96f
+        val targetHeight = minOf(px(if (expanded) panelHeight else heightDp), placementBounds().height().coerceAtLeast(1))
+        if (target == targetWidthPx && targetHeight == targetHeightPx && widthAnimator?.isRunning == true) return
         cancelWidthAnimation()
-        if (target == params.width) return
         val startWidth = params.width
+        val startHeight = params.height
         val startX = params.x
-        val screenWidth = screenSize().x
-        fun applyWidth(width: Int) {
-            params.width = width
-            params.x = StatusGeometry.anchoredX(startX, startWidth, width, screenWidth)
+        val startY = params.y
+        val bounds = placementBounds()
+        val endX = StatusGeometry.anchorX(anchor, target, screenSize().x, bounds.left, bounds.right)
+        val endY = StatusGeometry.anchoredY(verticalFraction ?: 0, targetHeight, bounds.top, bounds.bottom)
+        fun applySize(fraction: Float) {
+            params.width = (startWidth + (target - startWidth) * fraction).roundToInt()
+            params.height = (startHeight + (targetHeight - startHeight) * fraction).roundToInt()
+            params.x = (startX + (endX - startX) * fraction).roundToInt()
+            params.y = (startY + (endY - startY) * fraction).roundToInt()
             clampInto(params)
             update()
         }
         if (!animate || !root.isAttachedToWindow) {
-            applyWidth(target)
+            applySize(1f)
             return
         }
+        if (target == startWidth && targetHeight == startHeight && startX == endX && startY == endY) return
         targetWidthPx = target
-        widthAnimator = ValueAnimator.ofInt(startWidth, target).apply {
+        targetHeightPx = targetHeight
+        widthAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = 260L
             interpolator = AccelerateDecelerateInterpolator()
-            addUpdateListener { applyWidth(it.animatedValue as Int) }
+            addUpdateListener { applySize(it.animatedValue as Float) }
             start()
         }
     }
@@ -172,17 +203,22 @@ internal class StatusWindow(
     }
 
     private fun persistPosition() {
-        // Preferences restore at the maximum width before content is measured. Save
-        // that equivalent gravity offset so a collapsed capsule keeps its left edge.
-        val restoreWidth = px(StatusGeometry.width(maximumWidthDp, maxWidthDp())).coerceAtLeast(1)
-        listener.onMoved(
-            StatusGeometry.anchoredX(params.x, params.width, restoreWidth, screenSize().x),
-            params.y,
-        )
+        listener.onMoved(params.x, params.y, anchor, verticalFraction ?: 0)
+    }
+
+    private fun placementBounds(): Rect = safeBounds().apply {
+        val margin = minOf(px(EdgeRoomDp), (width() / 2 - 1).coerceAtLeast(0), (height() / 2 - 1).coerceAtLeast(0))
+        inset(margin, margin)
+    }
+
+    private fun applyAnchor() {
+        val bounds = placementBounds()
+        params.x = StatusGeometry.anchorX(anchor, params.width, screenSize().x, bounds.left, bounds.right)
+        params.y = StatusGeometry.anchoredY(verticalFraction ?: 0, params.height, bounds.top, bounds.bottom)
     }
 
     private fun clampInto(lp: WindowManager.LayoutParams) {
-        val bounds = safeBounds()
+        val bounds = placementBounds()
         lp.x = StatusGeometry.centeredX(lp.x, lp.width, screenSize().x, bounds.left, bounds.right)
         lp.y = StatusGeometry.y(lp.y, lp.height, bounds.top, bounds.bottom)
     }
@@ -246,8 +282,14 @@ internal class StatusWindow(
         private var pinchStart = 0f
         private var widthStart = 0f
         private var pixelWidthStart = 0
+        private var childStream = false
+        private var multiTouch = false
 
         override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+            if (event.actionMasked == MotionEvent.ACTION_OUTSIDE) {
+                setExpanded(false)
+                return true
+            }
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     touching = true
@@ -258,10 +300,15 @@ internal class StatusWindow(
                     changedPosition = false
                     firstId = event.getPointerId(0)
                     secondId = -1
-                    grip = event.x >= width - px(StatusGeometry.HandleWidthDp)
+                    grip = !expanded && event.x >= width - px(StatusGeometry.HandleWidthDp)
+                    multiTouch = false
+                    childStream = expanded && event.y >= px(heightDp)
                     rebase(event)
+                    if (childStream) super.dispatchTouchEvent(event)
                 }
                 MotionEvent.ACTION_POINTER_DOWN -> if (firstId != -1 && secondId == -1) {
+                    multiTouch = true
+                    cancelChild(event)
                     secondId = event.getPointerId(event.actionIndex)
                     grip = false
                     rebase(event)
@@ -284,23 +331,44 @@ internal class StatusWindow(
                     val dy = rawY(event, first) - downY
                     if (second >= 0) {
                         val span = span(event, first, second)
-                        if (pinchStart > 1f) resize(widthStart * span / pinchStart, anchoredLeft = false)
+                        if (!expanded && pinchStart > 1f && kotlin.math.abs(span - pinchStart) > slop) resize(widthStart * span / pinchStart, anchoredLeft = false)
                     } else if (grip) {
                         if (dragging || kotlin.math.abs(dx) > slop) {
                             dragging = true
                             resize(widthStart + dx / density, anchoredLeft = true)
                         }
                     } else if (dragging || hypot(dx, dy) > slop) {
+                        cancelChild(event)
                         dragging = true
                         params.x = fromX + dx.roundToInt()
                         params.y = fromY + dy.roundToInt()
                         clampInto(params)
                         changedPosition = true
                         update()
-                    }
+                    } else if (childStream) super.dispatchTouchEvent(event)
                 }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> finish()
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    val tap = event.actionMasked == MotionEvent.ACTION_UP && !changedPosition && !changedWidth && !multiTouch && !grip && !childStream
+                    if (childStream) super.dispatchTouchEvent(event)
+                    finish()
+                    if (tap) setExpanded(!expanded)
+                }
             }
+            return true
+        }
+
+        private fun cancelChild(event: MotionEvent) {
+            if (!childStream) return
+            val cancel = MotionEvent.obtain(event)
+            cancel.action = MotionEvent.ACTION_CANCEL
+            super.dispatchTouchEvent(cancel)
+            cancel.recycle()
+            childStream = false
+        }
+
+        override fun performClick(): Boolean {
+            super.performClick()
+            setExpanded(!expanded)
             return true
         }
 
@@ -331,7 +399,12 @@ internal class StatusWindow(
 
         private fun finish(resume: Boolean = true) {
             if (changedWidth) listener.onResized(maximumWidthDp.roundToInt())
-            if (changedPosition) persistPosition()
+            if (changedPosition) {
+                val bounds = placementBounds()
+                anchor = StatusGeometry.snapAnchor(params.x, params.width, screenSize().x, bounds.left, bounds.right, px(36f))
+                verticalFraction = StatusGeometry.verticalFraction(params.y, params.height, bounds.top, bounds.bottom)
+                persistPosition()
+            }
             firstId = -1
             secondId = -1
             grip = false
@@ -339,6 +412,7 @@ internal class StatusWindow(
             changedWidth = false
             changedPosition = false
             touching = false
+            childStream = false
             if (resume) adaptWidth()
         }
 

@@ -112,6 +112,8 @@ jobs:
 
           ### Floating lyrics improvements
           - The floating capsule smoothly shrinks for short lyrics and expands for longer lines. Drag the right-hand grip to set its saved maximum width.
+          - Automatically aligns to the center or the nearest safe screen edge after dragging, and keeps that alignment as lyrics change width.
+          - Tap the capsule to expand playback controls: previous/next, play/pause, repeat and shuffle. Tap outside to collapse it.
           - Dragging and resizing remain available while automatic sizing pauses during touch gestures.
           - Style 2 karaoke renderer with per-word timing and display-synchronized animation, replacing the old 60 ms sweep timer.
           - Requests up to 120 Hz while playing when high refresh rate is enabled. Actual frame rate depends on the device and system policy.

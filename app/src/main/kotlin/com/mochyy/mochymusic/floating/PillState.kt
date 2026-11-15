@@ -21,6 +21,26 @@ internal class PillState(private val player: () -> Player?) {
     var script by mutableStateOf<PillScript?>(null)
 
     var playing by mutableStateOf(false)
+    var playWhenReady by mutableStateOf(false)
+    var repeatMode by mutableIntStateOf(Player.REPEAT_MODE_OFF)
+    var shuffle by mutableStateOf(false)
+    var canPlay by mutableStateOf(false)
+    var canPrevious by mutableStateOf(false)
+    var canNext by mutableStateOf(false)
+    var canRepeat by mutableStateOf(false)
+    var canShuffle by mutableStateOf(false)
+
+    fun updatePlayback(current: Player?) {
+        playing = current?.isPlaying == true
+        playWhenReady = current?.playWhenReady == true
+        repeatMode = current?.repeatMode ?: Player.REPEAT_MODE_OFF
+        shuffle = current?.shuffleModeEnabled == true
+        canPlay = current?.isCommandAvailable(Player.COMMAND_PLAY_PAUSE) == true
+        canPrevious = current?.isCommandAvailable(Player.COMMAND_SEEK_TO_PREVIOUS) == true
+        canNext = current?.isCommandAvailable(Player.COMMAND_SEEK_TO_NEXT) == true
+        canRepeat = current?.isCommandAvailable(Player.COMMAND_SET_REPEAT_MODE) == true
+        canShuffle = current?.isCommandAvailable(Player.COMMAND_SET_SHUFFLE_MODE) == true
+    }
 
     // bumped on a seek or a speed change, so everything timed works out again where the song is
     var seekTick by mutableIntStateOf(0)

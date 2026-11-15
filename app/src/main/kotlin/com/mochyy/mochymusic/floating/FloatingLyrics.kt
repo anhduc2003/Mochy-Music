@@ -13,6 +13,8 @@ import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import com.mochyy.mochymusic.car.CarLyricsSource
 import com.mochyy.mochymusic.constants.FloatingLyricsKey
+import com.mochyy.mochymusic.constants.FloatingLyricsAnchorKey
+import com.mochyy.mochymusic.constants.FloatingLyricsVerticalFractionKey
 import com.mochyy.mochymusic.constants.FloatingLyricsWidthKey
 import com.mochyy.mochymusic.constants.FloatingLyricsXKey
 import com.mochyy.mochymusic.constants.FloatingLyricsYKey
@@ -57,11 +59,13 @@ class FloatingLyrics(
 
     // where it was left and how wide it was pinned, so it comes back the same way next time
     private val windowListener = object : StatusWindowListener {
-        override fun onMoved(x: Int, y: Int) {
+        override fun onMoved(x: Int, y: Int, anchor: StatusGeometry.Anchor, verticalFraction: Int) {
             scope.launch {
                 context.dataStore.edit {
                     it[FloatingLyricsXKey] = x
                     it[FloatingLyricsYKey] = y
+                    it[FloatingLyricsAnchorKey] = anchor.name
+                    it[FloatingLyricsVerticalFractionKey] = verticalFraction
                 }
             }
         }
@@ -102,9 +106,32 @@ class FloatingLyrics(
             prefs[FloatingLyricsYKey],
             prefs[FloatingLyricsWidthKey],
             windowListener,
+            prefs[FloatingLyricsAnchorKey],
+            prefs[FloatingLyricsVerticalFractionKey],
         )
         val onContentWidth: (Float) -> Unit = bar::setContentWidth
-        if (!bar.show { StatusLyrics(state, bar.fittingWidthDp, onContentWidth) }) return
+        val host = object : StatusPlaybackHost {
+            override fun command(command: Int) {
+                val current = player.value ?: return
+                if (!current.isCommandAvailable(command)) return
+                when (command) {
+                    Player.COMMAND_PLAY_PAUSE -> if (current.playWhenReady) current.pause() else {
+                        if (current.playbackState == Player.STATE_IDLE && current.isCommandAvailable(Player.COMMAND_PREPARE)) current.prepare()
+                        if (current.playbackState == Player.STATE_ENDED && current.isCommandAvailable(Player.COMMAND_SEEK_TO_DEFAULT_POSITION)) current.seekToDefaultPosition()
+                        current.play()
+                    }
+                    Player.COMMAND_SEEK_TO_PREVIOUS -> current.seekToPrevious()
+                    Player.COMMAND_SEEK_TO_NEXT -> current.seekToNext()
+                    Player.COMMAND_SET_REPEAT_MODE -> current.repeatMode = when (current.repeatMode) {
+                        Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                        Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                        else -> Player.REPEAT_MODE_OFF
+                    }
+                    Player.COMMAND_SET_SHUFFLE_MODE -> current.shuffleModeEnabled = !current.shuffleModeEnabled
+                }
+            }
+        }
+        if (!bar.show { StatusPanel(state, bar, onContentWidth, host) }) return
         window = bar
         follow = scope.launch {
             launch {
@@ -154,8 +181,13 @@ class FloatingLyrics(
     // a crossfade hands over to a new player, so the listener moves with it
     private suspend fun followPlayer() {
         player.collectLatest { current ->
+            state.updatePlayback(current)
             if (current == null) return@collectLatest
             val listener = object : Player.Listener {
+                override fun onEvents(player: Player, events: Player.Events) {
+                    state.updatePlayback(player)
+                }
+
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     state.playing = isPlaying
                 }

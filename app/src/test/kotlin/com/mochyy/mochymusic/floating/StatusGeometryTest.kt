@@ -69,6 +69,62 @@ class StatusGeometryTest {
         assertEquals((screen - startWidth) / 2 + startX, (screen - width) / 2 + resizedX)
     }
 
+    @Test fun `snap picks center when close and nearest edge otherwise`() {
+        val screen = 1000
+        val left = 24
+        val right = 960
+        val width = 300
+        // centered: x=0 means the capsule sits in the middle
+        assertEquals(StatusGeometry.Anchor.CENTER, StatusGeometry.snapAnchor(0, width, screen, left, right, 60))
+        // pushed well to the left of centre
+        assertEquals(StatusGeometry.Anchor.LEFT, StatusGeometry.snapAnchor(-300, width, screen, left, right, 60))
+        // pushed well to the right of centre
+        assertEquals(StatusGeometry.Anchor.RIGHT, StatusGeometry.snapAnchor(300, width, screen, left, right, 60))
+    }
+
+    @Test fun `each anchor lands exactly on its edge or the middle`() {
+        val screen = 1080
+        val left = 24
+        val right = 1056
+        for (width in listOf(120, 301, 640)) {
+            val origin = (screen - width) / 2
+            val startLeft = origin + StatusGeometry.anchorX(StatusGeometry.Anchor.LEFT, width, screen, left, right)
+            val startRight = origin + StatusGeometry.anchorX(StatusGeometry.Anchor.RIGHT, width, screen, left, right)
+            val center = origin + StatusGeometry.anchorX(StatusGeometry.Anchor.CENTER, width, screen, left, right)
+            assertEquals(left, startLeft)
+            assertEquals(right, startRight + width)
+            assertEquals((left + right - width) / 2, center)
+        }
+    }
+
+    @Test fun `anchor keeps the edge placed as the lyric width changes`() {
+        val screen = 1000
+        val left = 20
+        val right = 980
+        for (anchor in StatusGeometry.Anchor.entries) {
+            val narrow = StatusGeometry.anchorX(anchor, 140, screen, left, right)
+            val wide = StatusGeometry.anchorX(anchor, 620, screen, left, right)
+            val narrowLeft = (screen - 140) / 2 + narrow
+            val wideLeft = (screen - 620) / 2 + wide
+            when (anchor) {
+                StatusGeometry.Anchor.LEFT -> assertEquals(left, wideLeft)
+                StatusGeometry.Anchor.RIGHT -> assertEquals(right, wideLeft + 620)
+                // growing around the middle: the capsule's centre stays put
+                StatusGeometry.Anchor.CENTER -> assertEquals(narrowLeft + 70, wideLeft + 310)
+            }
+        }
+    }
+
+    @Test fun `vertical fraction survives rotation and stays on screen`() {
+        val fraction = StatusGeometry.verticalFraction(500, 38, 48, 1000)
+        // same share of the new travel, still inside the bounds
+        val rotated = StatusGeometry.anchoredY(fraction, 38, 0, 400)
+        assertTrue(rotated >= 0)
+        assertTrue(rotated + 38 <= 400)
+        assertEquals(48, StatusGeometry.anchoredY(0, 38, 48, 1000))
+        assertEquals(1000 - 38, StatusGeometry.anchoredY(1000, 38, 48, 1000))
+    }
+
     @Test fun `rotation and resize clamp whole window inside safe bounds`() {
         for (screen in listOf(320, 720, 1080)) {
             val left = 24
