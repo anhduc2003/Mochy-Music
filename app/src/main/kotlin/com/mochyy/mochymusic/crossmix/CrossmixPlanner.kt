@@ -29,6 +29,14 @@ data class CrossmixPlan(
     val inStartBeat: Float,
     /** 0..1 how much the two voices would overlap, and so how far they're given bands of their own */
     val yieldAmount: Float = 0f,
+    /**
+     * semitones the outgoing song is shifted by during the mix so the two land in one key: 0 when they
+     * already agree, or when the shift would be too big to go unnoticed. Only ever applied to the song
+     * on its way out, and eased back to its own pitch once the mix is over.
+     */
+    val outSemitones: Float = 0f,
+    /** the same for the incoming song */
+    val inSemitones: Float = 0f,
 ) {
     /** incoming media time heard at a transition beat */
     fun inMediaAt(beat: Float): Double = inCueMs + (beat - swapBeat) * inMediaPerBeat
@@ -67,10 +75,33 @@ object CrossmixPlanner {
     /** an overlap runs at most this long, two calm beat-matched songs a little longer, two that can't lock together shorter */
     private const val MaxOverlapMs = 16_000.0
     private const val MaxCalmOverlapMs = 24_000.0
-    private const val MaxUnmatchedOverlapMs = 8_500.0
+    // wide enough that the allowed beat counts meet end to end: with the lengths below, every tempo
+    // from ~53 to ~160 bpm has one that lands inside the window instead of falling into a gap
+    internal const val MaxUnmatchedOverlapMs = 9_000.0
     // and at least this long, longer for a fast count: a slow song is often counted in double time, and eight of those beats are over in a blink
     private const val MinOverlapMs = 3_500.0
     private const val MinFastOverlapMs = 6_000.0
+    // a beat count between the styles' own 8 and 16, used only where neither of those fits the tempo
+    private const val GapLength = 12
+    /**
+     * beat counts an overlap may fall back to when the style's own lengths don't fit the tempo. All are bar
+     * multiples, so the downbeat still lands where the song puts it, and together with the styles' own 8 and
+     * 16 they cover every tempo the analyser reports (60-200 bpm) with no silent gap between lengths.
+     */
+    private val GapLengths = intArrayOf(4, 8, GapLength, 20, 24, 32)
+    /**
+     * the furthest a song may be shifted to meet the other's key. One semitone is inaudible on its own
+     * (it is what a DJ does for a key clash), two is the most that still sounds like the same recording;
+     * past that the song stops sounding like itself, so the pair is better served by a short blend.
+     */
+    private const val MaxSemitones = 2
+    /**
+     * the one Camelot distance worth shifting. A distance of 1 is already pleasant: it is either a fifth
+     * apart or the parallel major/minor, which share a root and need nothing. A distance of 3 or more is
+     * far enough that no two-semitone move reaches it, so the filters keep those apart instead. That leaves
+     * distance 2, a whole step on the wheel, which is exactly what a small shift fixes.
+     */
+    private const val ShiftableKeyDistance = 2
     /** seconds of real music the outgoing song may leave unplayed by handing over early */
     private const val MaxSkippedMusicS = 12f
     /** a change in energy at least this big between the two songs is what the stunt styles are kept for */
@@ -116,6 +147,17 @@ object CrossmixPlanner {
         // the next song lands no deeper than two minutes in, nor past a quarter of it
         val latestLanding = if (incoming.durationMs > 0L) min(MaxEntryMs, incoming.durationMs / 4) else MaxEntryMs
         val gesture = pairGesture(out, inc)
+        // the key move, worked out once: only the outgoing song is shifted, because it's the one leaving.
+        // The incoming song carries on after the mix at its own pitch, and a song the listener keeps hearing
+        // turned a semitone is far more noticeable than one that was already on its way out.
+        // Shifting only helps when the roots are a semitone or two apart (the classic clash); a fifth or a
+        // relative major/minor comes back null here and is left alone, which is right: those already sit
+        // together without help.
+        val outSemitones = if (keyDistance == ShiftableKeyDistance) {
+            Harmony.shiftSemitones(out.key, inc?.key, MaxSemitones) ?: 0f
+        } else {
+            0f
+        }
         val scratchOut = FxParams()
         val scratchIn = FxParams()
 
@@ -134,9 +176,18 @@ object CrossmixPlanner {
             val bonus = if (tempo == null && style == gesture) GestureBonus else 0f
             // overlapping styles lock the beat when tempos allow, hand-over styles only need the next downbeat on the outgoing one's
             val locked = tempo != null && (style.needsBeatMatch || !style.entersAtEnd)
-            for (length in style.lengths) {
-                // overlaps stay short: long ones only for two calm songs that lock together, or when the listener asked for long
-                if (!style.entersAtEnd && !overlapFits(length, length * outGrid.periodMs, tempo != null, calmMatch, settings)) continue
+            // a 12-beat overlap sits between the 8 and the 16 bars the styles ask for, so their allowed beat
+            // counts meet end to end and no tempo falls between them (see overlapFits). Only added when none of
+            // the style's own lengths fits this song's tempo, so a style keeps its own lengths whenever they work
+            val lengths = if (style.entersAtEnd) {
+                style.lengths
+            } else {
+                val ownFits = style.lengths.any {
+                    overlapFits(it, it * outGrid.periodMs, matched = false, calmMatch = calmMatch, settings = settings)
+                }
+                if (ownFits) style.lengths else GapLengths
+            }
+            for (length in lengths) {
                 val swap = style.swapAt(length)
                 for (exit in exits) {
                     // the hand-over sits on one of this song's bars, counted on the beats fitted around it, and the whole move fits in its last 30 s
@@ -148,6 +199,10 @@ object CrossmixPlanner {
                     val landing = pickLanding(style, out, inc, exit.swapMs, swap, period, tempo, locked, outVoice, inVoice, latestLanding) ?: continue
                     val match = if (locked) beatMatch(inc!!, landing.timeMs, tempo!!, period, maxSpeedUp) else null
                     if (style.needsBeatMatch && match == null) continue
+                    // the overlap allowance depends on the beat match that really happened, not on one that just
+                    // looked possible: checked here, after beatMatch, or a pair the planner only hoped would lock
+                    // would be handed the beat-matched 16 s and then blend unmatched for that whole time
+                    if (!style.entersAtEnd && !overlapFits(length, length * period, match != null, calmMatch, settings)) continue
                     val inBeat = match?.inBeatMs ?: period
                     // heard from the start of a blend, or from the hand-over for a drop; up to a bar of silent run-up before that, so the beat is locked before anyone hears it
                     val heardFrom = if (style.entersAtEnd) length.toFloat() else 0f
@@ -167,6 +222,7 @@ object CrossmixPlanner {
                         outSpeed = match?.outSpeed ?: 1f,
                         beatMatched = match != null,
                         inStartBeat = heardFrom - preRoll,
+                        outSemitones = outSemitones,
                     )
                     val lengthFit = lengthFit(style, length, out, inc, keyClash)
                     // two voices at once is the one thing a mix must never do: a clash scores a blend down so a shorter one or another spot wins, and failing that the voices get bands of their own

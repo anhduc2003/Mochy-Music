@@ -314,6 +314,7 @@ class CrossmixTest {
         val plan = CrossmixPlanner.plan(
             CrossmixTrackInput("x", 240_000L, null, null),
             CrossmixTrackInput("y", 0L, null, null),
+            CrossmixSettings(alwaysMix = true),
         )
         assertTrue(plan.style.label, plan.style.blendsBoth)
         assertTrue(plan.outStartMs >= 240_000L - CrossmixPlanner.MaxLeadMs)
@@ -326,6 +327,7 @@ class CrossmixTest {
             val plan = CrossmixPlanner.plan(
                 CrossmixTrackInput("a", 200_000L, outgoingTrack, null),
                 CrossmixTrackInput("b", 0L, inc, null),
+                CrossmixSettings(alwaysMix = true),
             )
             assertTrue(plan.style.label, plan.style.blendsBoth)
             assertTrue("${plan.lengthBeats} beats", plan.lengthBeats * plan.outBeatMs >= 6_000.0 - 1.0)
@@ -435,8 +437,28 @@ class CrossmixTest {
             assertTrue("${plan.style.label} is a flavour style", plan.style.use != StyleUse.Flavour)
             if (!plan.style.entersAtEnd) {
                 val seconds = plan.lengthBeats * plan.outBeatMs / 1_000.0
-                assertTrue("${plan.style.label} blends for $seconds s", seconds <= if (plan.beatMatched) 16.0 else 8.5)
+                // the cap depends on whether the pair really locked, which only the plan knows: an unmatched
+                // blend is held to the unmatched ceiling, a matched one to the much longer matched ceiling
+                val cap = if (plan.beatMatched) 16.0 else CrossmixPlanner.MaxUnmatchedOverlapMs / 1_000.0
+                assertTrue("${plan.style.label} blends for $seconds s, cap $cap", seconds <= cap)
             }
+        }
+    }
+
+    @Test
+    fun `no tempo falls between the allowed blend lengths`() {
+        // the analyser only reports 60-200 bpm (see estimateTempo), so that's the range hand-overs must cover.
+        // The fallback counts are bar multiples; together with the window's 6 s floor they leave no tempo
+        // without a length, which is what the old 8/16-only list did between 80 and 113 bpm
+        val window = CrossmixPlanner.MaxUnmatchedOverlapMs / 1_000.0
+        val counts = listOf(4, 8, 12, 16, 20, 24, 32)
+        for (bpm in 60..200) {
+            val beatMs = 60_000.0 / bpm
+            val fits = counts.any { beats ->
+                val seconds = beats * beatMs / 1_000.0
+                seconds >= 6.0 && seconds <= window
+            }
+            assertTrue("$bpm bpm has no blend length that fits $window s", fits)
         }
     }
 
@@ -680,5 +702,32 @@ class CrossmixTest {
             val inGrid = nearTempoTrack.localGrid(plan.inCueMs)!!
             assertEquals(inGrid.snap(plan.inCueMs).toDouble(), plan.inCueMs.toDouble(), 1.5)
         }
+    }
+
+    // -- key matching -----------------------------------------------------------------------
+
+    @Test
+    fun `a semitone or two of key clash gets shifted, further is left alone`() {
+        // C to C# is one semitone, C to D is two: both are shifts a DJ would make
+        assertEquals(1f, Harmony.shiftSemitones("C major", "C# major", 2)!!, 0.001f)
+        assertEquals(2f, Harmony.shiftSemitones("C major", "D major", 2)!!, 0.001f)
+        // and downwards when that's the shorter way round: B is one below C
+        assertEquals(-1f, Harmony.shiftSemitones("C major", "B major", 2)!!, 0.001f)
+        // same key needs no shift at all
+        assertEquals(0f, Harmony.shiftSemitones("A minor", "A minor", 2)!!, 0.001f)
+        // a fifth apart can't be reached in two semitones: left alone rather than bent badly
+        assertEquals(null, Harmony.shiftSemitones("C major", "G major", 2))
+        // unknown keys are never guessed at
+        assertEquals(null, Harmony.shiftSemitones(null, "C major", 2))
+        assertEquals(null, Harmony.shiftSemitones("C major", null, 2))
+    }
+
+    @Test
+    fun `the shift takes the shortest way round the octave`() {
+        // A to C is three up or nine down; two semitones can't reach it either way, so no shift
+        assertEquals(null, Harmony.shiftSemitones("A major", "C major", 2))
+        // but A to B is two up, and A to G is two down
+        assertEquals(2f, Harmony.shiftSemitones("A major", "B major", 2)!!, 0.001f)
+        assertEquals(-2f, Harmony.shiftSemitones("A major", "G major", 2)!!, 0.001f)
     }
 }

@@ -602,4 +602,25 @@ object Harmony {
         val number = (majorRoot * 7) % 12
         return number to minor
     }
+
+    /**
+     * Semitones to move [moving] by so it lands in [target]'s key, or null when they can't meet within
+     * [maxSemitones]. Picks the shortest shift either way; when major and minor would both work, the one
+     * matching [moving]'s own mode wins so a song is never turned from minor to major for the same cost.
+     * Null means leave the pitch alone: either the keys are unknown, or the move is too big to hide.
+     */
+    fun shiftSemitones(moving: String?, target: String?, maxSemitones: Int): Float? {
+        val from = pitchClass(moving) ?: return null
+        val to = pitchClass(target) ?: return null
+        if (from == to) return 0f
+        // the shortest way round the octave, in semitones (a fifth up is a fourth down, not a fifth up)
+        var best: Int? = null
+        for (semitones in 1..maxSemitones) {
+            val up = (from + semitones) % 12
+            val down = ((from - semitones) % 12 + 12) % 12
+            if (up == to) { best = semitones; break }
+            if (down == to) { best = -semitones; break }
+        }
+        return best?.toFloat()
+    }
 }

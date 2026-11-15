@@ -27,6 +27,7 @@ import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.pow
 
 /**
  * Runs Crossmix transitions: analyses the song and the next one, plans the hand-over, then plays
@@ -89,9 +90,10 @@ class CrossmixDirector(
     // how long play() takes to be heard, learnt from each transition's first beat-lock reading and kept across launches
     private var startLatencyMs = host.learnedStartLatencyMs() ?: DefaultStartLatencyMs
 
-    /** the outgoing song brought up to a faster next song's tempo, and the speed it goes back to if the mix is called off */
+    /** the outgoing song brought up to a faster next song's tempo, and the speed and pitch it goes back to if the mix is called off */
     private class SpeedRamp(val player: ExoPlayer, val base: PlaybackParameters) {
         var lastSet = base.speed
+        var lastPitch = base.pitch
     }
 
     private var speedRamp: SpeedRamp? = null
@@ -289,6 +291,9 @@ class CrossmixDirector(
         val firstMoveMs = plan.outMediaAt(min(plan.inStartBeat, 0f))
         // a faster next song: this one comes up to its tempo over a few beats, before the next one is even prepared
         val rampMs = if (plan.outSpeed > 1.0005f) ceil((plan.outSpeed - 1f) / RampStep) * plan.outBeatMs else 0.0
+        // a key clash the pair can meet: this song is bent to the next one's key. It's a separate move from the
+        // tempo ramp because most key clashes happen between songs already at one tempo, where nothing ramps at all
+        val needsKeyShift = plan.outSemitones != 0f
         if (testJump) {
             if (!stillCurrent(outgoing, item)) return
             val target = (firstMoveMs - ArmLeadMs - rampMs - TestRunUpMs).toLong().coerceAtLeast(0L)
@@ -306,6 +311,14 @@ class CrossmixDirector(
             return
         }
         try {
+            if (needsKeyShift) {
+                // bent while the song is still on its own, a few beats before the two meet, so the shift has
+                // happened by the time the next one is heard: nobody hears the moment it moved
+                if (rampMs <= 0.0 && !waitForOutgoing(outgoing, item, firstMoveMs - ArmLeadMs - KeyShiftLeadMs)) return
+                host.crossmixBlocker()?.let { report(it); return }
+                if (plan.outSpeed <= 1.0005f) report("Matching the next one's key…")
+                shiftKey(outgoing, plan, base)
+            }
             if (rampMs > 0.0) {
                 if (!waitForOutgoing(outgoing, item, firstMoveMs - ArmLeadMs - rampMs)) return
                 host.crossmixBlocker()?.let { report(it); return }
@@ -314,7 +327,7 @@ class CrossmixDirector(
             }
             prepareAndStart(outgoing, item, nextIndex, plan, base, firstMoveMs)
         } finally {
-            // called off at any point before the mix took this song over: it plays on at the listener's own speed
+            // called off at any point before the mix took this song over: it plays on at the listener's own speed and pitch
             if (running?.outgoing !== outgoing) restoreSpeed()
         }
     }
@@ -323,6 +336,10 @@ class CrossmixDirector(
     private suspend fun rampOutgoing(outgoing: ExoPlayer, item: MediaItem, plan: CrossmixPlan, base: PlaybackParameters, untilMs: Double): Boolean {
         val ramp = SpeedRamp(outgoing, base).also { speedRamp = it }
         val target = base.speed * plan.outSpeed
+        // a key clash this pair can meet in a semitone or two: the outgoing song is bent to the next one's
+        // key, gently enough that it still sounds like itself. Its pitch rides with its speed change, so
+        // there's one more thing to set on every step and one more to put back afterwards
+        val targetPitch = base.pitch * pitchFactor(plan.outSemitones)
         val beatsLeft = ((untilMs - outgoing.currentPosition) / plan.outBeatMs).toInt()
         val steps = min(ceil((plan.outSpeed - 1f) / RampStep).toInt(), beatsLeft).coerceAtLeast(1)
         for (index in 0 until steps) {
@@ -333,19 +350,48 @@ class CrossmixDirector(
                 return false
             }
             val speed = if (index == steps - 1) target else base.speed + (target - base.speed) * (index + 1) / steps
-            outgoing.playbackParameters = PlaybackParameters(speed, base.pitch)
+            outgoing.playbackParameters = PlaybackParameters(speed, targetPitch)
             ramp.lastSet = speed
+            ramp.lastPitch = targetPitch
             if (index < steps - 1 && !waitForOutgoing(outgoing, item, outgoing.currentPosition + plan.outBeatMs)) return false
         }
         return true
     }
 
-    /** a sped-up outgoing song back to the listener's own speed, unless they've chosen another since */
+    /** 2^(semitones/12): the multiplier that takes a pitch to another key */
+    private fun pitchFactor(semitones: Float): Float =
+        if (semitones == 0f) 1f else 2f.pow(semitones / 12f)
+
+    /**
+     * bends the outgoing song to the next one's key, keeping whatever speed it's at. Recorded as a speed
+     * ramp with nothing ramped, so [restoreSpeed] puts the pitch back if the mix never happens: a song left
+     * a semitone off after a cancelled mix would be worse than the clash the shift was avoiding.
+     */
+    private fun shiftKey(outgoing: ExoPlayer, plan: CrossmixPlan, base: PlaybackParameters) {
+        val ramp = SpeedRamp(outgoing, base).also { speedRamp = it }
+        val current = outgoing.playbackParameters
+        val pitch = base.pitch * pitchFactor(plan.outSemitones)
+        outgoing.playbackParameters = PlaybackParameters(current.speed, pitch)
+        ramp.lastSet = current.speed
+        ramp.lastPitch = pitch
+        android.util.Log.i(Tag, "key shift: ${plan.outSemitones} semitones")
+    }
+
+    /** a sped-up (and maybe re-keyed) outgoing song back to the listener's own speed and pitch, unless they've chosen another since */
     private fun restoreSpeed() {
         val ramp = speedRamp ?: return
         speedRamp = null
         runCatching {
-            if (abs(ramp.player.playbackParameters.speed - ramp.lastSet) < 0.0005f) ramp.player.playbackParameters = ramp.base
+            val current = ramp.player.playbackParameters
+            // only put back what this mix set: a speed or pitch the listener chose meanwhile is theirs
+            val speedOurs = abs(current.speed - ramp.lastSet) < 0.0005f
+            val pitchOurs = abs(current.pitch - ramp.lastPitch) < 0.0005f
+            if (speedOurs || pitchOurs) {
+                ramp.player.playbackParameters = PlaybackParameters(
+                    if (speedOurs) ramp.base.speed else current.speed,
+                    if (pitchOurs) ramp.base.pitch else current.pitch,
+                )
+            }
         }
     }
 
@@ -645,6 +691,11 @@ class CrossmixDirector(
         const val ArmLeadMs = 9_000.0
         /** too close to plan properly: let this one play through */
         const val MinArmLeadMs = 2_500.0
+        /**
+         * the key shift happens this long before the two songs meet, so the moved pitch has settled and
+         * stopped being audible as a move by the time the next song is heard under it
+         */
+        const val KeyShiftLeadMs = 2_000.0
         /** the next song must be ready by this long before anything happens, or it's called off */
         const val GoMarginMs = 1_200.0
         /** the next song starts this far early and is delayed back: the room the lock has to pull it later or earlier */

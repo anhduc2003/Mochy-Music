@@ -1209,7 +1209,7 @@ class MusicService :
                 tempoMatch = prefs[CrossmixTempoMatchKey].toEnum(CrossmixTempoMatch.FULL),
                 style = prefs[CrossmixStyleKey]?.takeIf { it != CrossmixStyleAuto }?.let { name -> CrossmixStyle.entries.firstOrNull { it.name == name } },
                 stunts = prefs[CrossmixStuntsKey] ?: true,
-                alwaysMix = prefs[CrossmixAlwaysMixKey] ?: true,
+                alwaysMix = prefs[CrossmixAlwaysMixKey] ?: false,
             )
         }
             .distinctUntilChanged()

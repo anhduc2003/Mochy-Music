@@ -235,7 +235,7 @@ private fun CrossmixControls() {
     val (length, onLengthChange) = rememberEnumPreference(CrossmixLengthKey, defaultValue = CrossmixLength.MEDIUM)
     val (tempoMatch, onTempoMatchChange) = rememberEnumPreference(CrossmixTempoMatchKey, defaultValue = CrossmixTempoMatch.FULL)
     val (stunts, onStuntsChange) = rememberPreference(CrossmixStuntsKey, defaultValue = true)
-    val (alwaysMix, onAlwaysMixChange) = rememberPreference(CrossmixAlwaysMixKey, defaultValue = true)
+    val (alwaysMix, onAlwaysMixChange) = rememberPreference(CrossmixAlwaysMixKey, defaultValue = false)
     val pinned = PinnableStyles.indexOfFirst { it.name == styleName }
 
     Spacer(Modifier.height(16.dp))
