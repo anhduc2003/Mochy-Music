@@ -192,5 +192,5 @@
     <string name="customise_lyrics_preview_translation">si je suis une pierre</string>
     <string name="settings_floating_lyrics">Floating lyrics</string>
     <string name="settings_floating_lyrics_desc">The line being sung takes the artist\'s place in the notification, on the lock screen and in the car, and rides in a black capsule you can drag anywhere and pinch wider or narrower once Mochy is out of sight</string>
-    <string name="settings_floating_lyrics_detail">The capsule needs permission to show over other apps. One finger drags it, two pinch its width, and both are pinned for next time. A long line steps its text down until it fits, and the words sweep as they\'re sung when the song has word timings.</string>
+    <string name="settings_floating_lyrics_detail">The capsule needs permission to show over other apps and starts below the status bar. Drag it to move, or drag the bottom-right grip to change its width. Two fingers can also pinch its width. Position and width are saved for next time. A long line steps its text down until it fits, and the words sweep as they\'re sung when the song has word timings.</string>
 </resources>

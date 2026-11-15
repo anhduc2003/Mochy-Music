@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.absolutePadding
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -39,6 +41,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import com.mochyy.mochymusic.R
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -150,9 +156,10 @@ internal fun StatusLyrics(state: PillState) {
         val cover = (maxHeight - 10.dp).coerceAtLeast(16.dp)
         val edge = 5.dp
         val gap = 7.dp
-        val room = with(density) { (maxWidth - edge * 2 - cover - gap).toPx() }
+        val handleWidth = StatusGeometry.HandleWidthDp.dp
+        val room = with(density) { (maxWidth - edge - cover - gap - handleWidth).toPx().coerceAtLeast(0f) }
 
-        Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxSize().absolutePadding(right = handleWidth), verticalAlignment = Alignment.CenterVertically) {
             Spacer(Modifier.width(edge))
             CoverDisc(state, cover, progress)
             Spacer(Modifier.width(gap))
@@ -161,11 +168,30 @@ internal fun StatusLyrics(state: PillState) {
                 sweep = sweep,
                 appear = appear.value,
                 room = room,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = edge),
+                modifier = Modifier.weight(1f),
             )
         }
+        val resizeDescription = stringResource(R.string.floating_lyrics_resize)
+        Spacer(
+            Modifier
+                .align(AbsoluteAlignment.BottomRight)
+                .size(handleWidth, maxHeight)
+                .semantics { contentDescription = resizeDescription }
+                .drawBehind {
+                    // A visible bottom-right grip; the window owns its entire touch strip.
+                    val right = size.width - 9.dp.toPx()
+                    val bottom = size.height - 9.dp.toPx()
+                    for (length in listOf(5.dp.toPx(), 10.dp.toPx())) {
+                        drawLine(
+                            Color.White.copy(alpha = 0.8f),
+                            Offset(right - length, bottom),
+                            Offset(right, bottom - length),
+                            1.5.dp.toPx(),
+                            StrokeCap.Round,
+                        )
+                    }
+                },
+        )
     }
 }
 

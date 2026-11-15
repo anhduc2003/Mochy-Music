@@ -1314,5 +1314,6 @@
     <string name="recent_search_playlist">Playlist · %1$s</string>
     <string name="recent_search_artist">Artist</string>
     <string name="recent_search_remove">Remove from recent searches</string>
-    <string name="floating_lyrics_permission">Let Mochy show over other apps so the lyrics can sit in the status bar</string>
+    <string name="floating_lyrics_permission">Let Mochy show floating lyrics over other apps</string>
+    <string name="floating_lyrics_resize">Drag to resize the lyrics width</string>
 </resources>
