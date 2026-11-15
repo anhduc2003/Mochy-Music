@@ -158,7 +158,7 @@ fun StudioSheets(
                 val current = menuLayout.actionAt(slot)
                 val used = (menuLayout.slots + menuLayout.side).toSet()
                 OptionSheet(if (slot == PlayerMenuLayout.SideSlot) "Nút cạnh dấu mũi tên" else "Nút menu ${slot + 1}") {
-                    PlayerMenuAction.entries.forEach { action ->
+                    PlayerMenuAction.entries.filter { it != PlayerMenuAction.ROTATE }.forEach { action ->
                         OptionRow(
                             selected = action == current,
                             onClick = { menuLayout.assign(slot, action) },

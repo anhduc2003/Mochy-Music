@@ -33,7 +33,10 @@ enum class PlayerMenuAction(val label: String, @param:DrawableRes val icon: Int)
     KEEP_AWAKE("Giữ màn hình luôn bật", R.drawable.lock_open),
     TRANSLATE_LYRICS("Dịch lời bài hát", R.drawable.translate),
     DOWNLOAD("Tải xuống", R.drawable.download),
-    ADD_TO_PLAYLIST("Thêm vào danh sách phát", R.drawable.playlist_add);
+    ADD_TO_PLAYLIST("Thêm vào danh sách phát", R.drawable.playlist_add),
+
+    // the turntable's own rotate button, added by the player rather than picked in the editor
+    ROTATE("Xoay", R.drawable.screen_rotation);
 
     companion object {
         val DefaultSlots = listOf(OTHER_MENU, SLEEP_TIMER, SEE_VIDEO, REPEAT)

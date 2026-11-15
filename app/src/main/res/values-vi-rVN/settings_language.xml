@@ -105,4 +105,14 @@
     <string name="playback_resume_bluetooth">Tiếp tục phát khi kết nối Bluetooth</string>
     <string name="playback_resume_bluetooth_desc">Tiếp tục bài đang tạm dừng khi tai nghe hoặc xe hơi kết nối</string>
     <string name="pause_music_when_muted_desc">Tạm dừng khi âm lượng về 0, phát lại khi tăng lên</string>
-</resources>
+    <!-- 8.4.1: romanisation/translation toggles and floating lyrics -->
+    <string name="settings_romanize_as_main">Phiên âm làm dòng chính</string>
+    <string name="settings_romanize_as_main_desc">Phần phiên âm sẽ là dòng được hát, bản gốc vẫn nằm bên dưới</string>
+    <string name="customise_lyrics_romanisation">Phiên âm</string>
+    <string name="customise_lyrics_romanisation_desc">Cách đọc cho lời bài hát tiếng Nhật, Hàn, Trung, Hindi và chữ Kirin</string>
+    <string name="customise_lyrics_translation">Bản dịch</string>
+    <string name="customise_lyrics_translation_desc">Dịch lời bài hát của mọi bài khi đang phát</string>
+    <string name="customise_lyrics_preview_translation">nếu tôi là một hòn đá</string>
+    <string name="settings_floating_lyrics">Lời bài hát nổi</string>
+    <string name="settings_floating_lyrics_desc">Giữ dòng đang hát trong một bong bóng nhỏ trên các ứng dụng khác</string>
+    <string name="settings_floating_lyrics_detail">Chạm vào ảnh bìa để mở Mochy, hoặc giữ để phát và tạm dừng. Kéo bong bóng đến bất kỳ đâu, hoặc thả lên dấu X để ẩn cho đến khi bạn quay lại Mochy.</string></resources>

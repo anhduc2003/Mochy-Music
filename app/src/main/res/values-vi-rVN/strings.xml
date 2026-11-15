@@ -485,4 +485,5 @@
     <string name="transition_seconds">%1$s giây</string>
     <string name="video_find">Tìm video</string>
     <string name="video_wrong">Sai video?</string>
-</resources>
+    <!-- 8.4.1 -->
+    <string name="no_internet_next_on_phone">Không có mạng, nên đây là bài tiếp theo đã lưu trên điện thoại của bạn</string></resources>

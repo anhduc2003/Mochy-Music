@@ -52,4 +52,8 @@
     <string name="module_apple_limits">Không hỗ trợ: âm thanh không mất dữ liệu, Dolby Atmos và bản phối âm thanh không gian của Apple (Apple chỉ mã hóa các định dạng này cho FairPlay, công nghệ DRM riêng của hãng), cũng như tải xuống (trình phát trên web không được cấp giấy phép phát ngoại tuyến).</string>
     <string name="quality_module_stream">Luồng phát</string>
     <string name="quality_provider_footnote">Nhấn vào YouTube Music để bật hoặc tắt, hoặc nhấn vào một mô-đun để mở trang của mô-đun đó. Kéo tay nắm để thay đổi thứ tự: mỗi bài hát sẽ được phát từ nguồn đầu tiên đang bật và có bài hát đó. Các mô-đun bạn đã tắt sẽ không được liệt kê ở đây.</string>
-</resources>
+    <!-- 8.4.1: skin audio format and output labels -->
+    <string name="skin_audio_lossy">Nén mất dữ liệu</string>
+    <string name="skin_audio_lossless">Không nén mất dữ liệu</string>
+    <string name="skin_output_speaker">Loa</string>
+    <string name="skin_output_wired">Tai nghe có dây</string></resources>

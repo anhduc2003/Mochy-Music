@@ -1132,4 +1132,22 @@
         <item quantity="one">%d bài</item>
         <item quantity="other">%d bài</item>
     </plurals>
+    <!-- 8.4.1: welcome page, rotate button, stream backend, floating lyrics -->
+    <string name="welcome_lets_listen">Bắt đầu nghe nhạc nào!</string>
+    <string name="welcome_tap_anywhere">Chạm vào bất kỳ đâu để tiếp tục</string>
+    <string name="player_rotate">Xoay</string>
+    <string name="player_turn_upright">Xoay thẳng đứng</string>
+    <string name="experimental_stream_backend">Nguồn luồng phát</string>
+    <string name="experimental_stream_backend_innertubex">InnerTubeX, rồi đến cổ điển</string>
+    <string name="experimental_stream_backend_classic">Chỉ cổ điển</string>
+    <string name="experimental_stream_backend_detail">Cách bài hát YouTube tìm luồng phát. InnerTubeX thử trước, bài nào không phát được sẽ chuyển sang bộ tìm cổ điển, nên bài luôn phát được dù theo cách nào. Chế độ chỉ cổ điển sẽ bỏ qua InnerTubeX. Chạm để chuyển</string>
+    <string name="discord_login_note">Mở trang đăng nhập chính thức của Discord trong trình duyệt. Mật khẩu của bạn chỉ được gửi cho Discord.</string>
+    <string name="discord_permissions_note">Trang của Discord cũng liệt kê bạn bè và lời mời, vì chúng đi kèm với tính năng chia sẻ trạng thái. Mochy chỉ đọc tên và ảnh của bạn, và hiển thị bài bạn đang phát.</string>
+    <string name="floating_lyrics_open">Mở Mochy</string>
+    <string name="floating_lyrics_hide">Ẩn lời bài hát nổi</string>
+    <string name="floating_lyrics_permission">Cho phép Mochy hiển thị trên ứng dụng khác để lời bài hát có thể nổi</string>
+    <string name="song_share_romanisation_hint">Cách đọc của từ ngữ, ngay dưới mỗi dòng</string>
+    <string name="song_share_romanisation_none">Lời bài hát này đọc vốn đã ổn</string>
+    <string name="song_share_romanisation_main_hint">Thẻ sẽ hát theo phần phiên âm, bản gốc nằm bên dưới</string>
+    <string name="song_share_translation_hint">Mỗi dòng được dịch sang ngôn ngữ của bạn, ngay bên dưới</string>
 </resources>
