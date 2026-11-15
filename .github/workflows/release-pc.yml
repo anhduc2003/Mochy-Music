@@ -37,11 +37,11 @@ jobs:
           - os: macos-latest
             artifact: macos
             installer: dmg
-            portable: tar.gz
+            portable: zip
           - os: ubuntu-latest
             artifact: linux
             installer: deb
-            portable: tar.gz
+            portable: zip
 
     steps:
       - name: Checkout
@@ -90,14 +90,11 @@ jobs:
           fi
           parent=$(dirname "$root")
           base="mochy-pc-${{ matrix.artifact }}"
-          if [ "${{ matrix.portable }}" = "zip" ]; then
-            # zip from inside the parent so the archive holds a single top-level Mochy/ folder
-            (cd "$parent" && zip -qr "$OLDPWD/out/$base.zip" Mochy)
-          else
-            # --transform keeps permissions (the launcher must stay executable), and the archive
-            # still unpacks into one Mochy/ folder
-            tar -czpf "out/$base.tar.gz" -C "$parent" Mochy
-          fi
+
+          # java's jar tool rather than zip/tar: it is the one archiver guaranteed on all three
+          # runners. The windows image has no `zip` binary at all, and macos has no GNU tar flags.
+          jar --create --file "out/$base.${{ matrix.portable }}" -C "$parent" Mochy
+
           ls -lh out
 
       - name: Build native installer
@@ -178,10 +175,11 @@ jobs:
           | Hệ điều hành | Bản cài | Bản portable |
           |---|---|---|
           | Windows | `mochy-pc-windows.msi` | `mochy-pc-windows.zip` |
-          | macOS | `mochy-pc-macos.dmg` | `mochy-pc-macos.tar.gz` |
-          | Linux | `mochy-pc-linux.deb` | `mochy-pc-linux.tar.gz` |
+          | macOS | `mochy-pc-macos.dmg` | `mochy-pc-macos.zip` |
+          | Linux | `mochy-pc-linux.deb` | `mochy-pc-linux.zip` |
 
           Bản portable: giải nén, vào thư mục `Mochy/` và chạy `Mochy` (Windows: `Mochy.exe`).
+          Trên macOS/Linux cần cấp quyền chạy: `chmod +x Mochy/bin/Mochy`.
 
           ### Có gì
           - Phát nhạc: WAV, AIFF, AU, **MP3, OGG/Opus, FLAC**
