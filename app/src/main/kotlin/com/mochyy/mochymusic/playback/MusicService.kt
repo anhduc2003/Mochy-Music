@@ -671,8 +671,11 @@ class MusicService :
     // the line being sung on android auto's own player while a car is connected
     private var carLyrics: CarLyrics? = null
 
-    // the line being sung floating over other apps, when it's turned on
+    // the line being sung in a bubble over other apps, when it's turned on and allowed to draw over them
     private var floatingLyrics: com.mochyy.mochymusic.floating.FloatingLyrics? = null
+
+    // the same line in the player card's artist line, in the notification and on the lock screen
+    private var cardLyrics: com.mochyy.mochymusic.floating.CardLyrics? = null
 
     // what android auto's templated player reads, handed over by the car app
     val platformSessionToken: android.media.session.MediaSession.Token
@@ -873,9 +876,12 @@ class MusicService :
         val car = CarLyrics(this, CarLyricsSource(database, lyricsHelper), currentMediaMetadata, { player }, sessionPlayer, scope)
             .also { it.start() }
         carLyrics = car
-        // the phone's own lyrics ride on the same card the car uses, so they take turns rather than both writing it
-        floatingLyrics = com.mochyy.mochymusic.floating.FloatingLyrics(
+        // the same switch turns on both: the line in the player card, and the bubble over other apps for whoever wants it out there
+        cardLyrics = com.mochyy.mochymusic.floating.CardLyrics(
             this, CarLyricsSource(database, lyricsHelper), currentMediaMetadata, playerFlow, car.active, sessionPlayer, scope,
+        ).also { it.start() }
+        floatingLyrics = com.mochyy.mochymusic.floating.FloatingLyrics(
+            this, database, CarLyricsSource(database, lyricsHelper), currentMediaMetadata, playerFlow, scope,
         ).also { it.start() }
         player.repeatMode = dataStore.get(RepeatModeKey, REPEAT_MODE_OFF)
 
@@ -4338,6 +4344,8 @@ class MusicService :
         fadingLoudnessEnhancer = null
         carLyrics?.stop()
         carLyrics = null
+        cardLyrics?.stop()
+        cardLyrics = null
         floatingLyrics?.stop()
         floatingLyrics = null
         mediaSession.release()
@@ -4364,7 +4372,7 @@ class MusicService :
     private fun sessionPlayer(base: ExoPlayer): CarLyricsPlayer =
         CarLyricsPlayer(TransportFadingPlayer(base, transport, audioPass)).also {
             carLyrics?.attach(it)
-            floatingLyrics?.attach(it)
+            cardLyrics?.attach(it)
         }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession

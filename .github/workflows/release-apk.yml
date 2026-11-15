@@ -112,7 +112,7 @@ jobs:
 
           ### What's new from 8.4.1
           - **InnerTubeX stream backend** with the classic finder as automatic fallback (Settings → Experimental → Stream backend)
-          - **Lyrics in the player**: the line being sung takes the artist's place in the notification, on the lock screen and in the car
+          - **Floating lyrics, in the player and over it**: the line being sung takes the artist's place in the notification, on the lock screen and in the car, and rides in a bubble with the song's progress ring once Mochy is out of sight
           - **New welcome page**: the mochy girl with an animated rig (eyes, hair, mouth, phone), tap anywhere to continue
           - **Rotate button** in the player menu, straight from the turntable
           - **lrc.red lyrics provider** and lyric export fixes

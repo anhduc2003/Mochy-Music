@@ -190,7 +190,7 @@
     <string name="customise_lyrics_translation">Translation</string>
     <string name="customise_lyrics_translation_desc">Translates every song\'s lyrics as it plays</string>
     <string name="customise_lyrics_preview_translation">si je suis une pierre</string>
-    <string name="settings_floating_lyrics">Lyrics in the player</string>
-    <string name="settings_floating_lyrics_desc">Show the line being sung where the artist goes, in the notification, on the lock screen and in the car</string>
-    <string name="settings_floating_lyrics_detail">The line takes the artist\'s place while someone is singing and hands it back between lines and when nothing is playing. One player, no bubble over your other apps, and nothing extra to allow.</string>
+    <string name="settings_floating_lyrics">Floating lyrics</string>
+    <string name="settings_floating_lyrics_desc">The line being sung takes the artist\'s place in the notification, on the lock screen and in the car, and rides in a bubble with the song\'s progress ring once Mochy is out of sight</string>
+    <string name="settings_floating_lyrics_detail">The bubble needs permission to show over other apps. Tap the cover to open Mochy, hold it for play and pause, drag it anywhere, or drop it on the cross to hide it.</string>
 </resources>
