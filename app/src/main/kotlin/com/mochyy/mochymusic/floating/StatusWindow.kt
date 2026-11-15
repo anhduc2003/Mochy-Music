@@ -80,7 +80,7 @@ internal class StatusWindow(
     private var verticalFraction = savedVerticalFraction?.coerceIn(0, 1000)
     private var targetHeightPx = 0
 
-    fun setExpanded(value: Boolean) {
+    fun changeExpanded(value: Boolean) {
         if (expanded == value) return
         expanded = value
         adaptWidth()
@@ -287,7 +287,7 @@ internal class StatusWindow(
 
         override fun dispatchTouchEvent(event: MotionEvent): Boolean {
             if (event.actionMasked == MotionEvent.ACTION_OUTSIDE) {
-                setExpanded(false)
+                changeExpanded(false)
                 return true
             }
             when (event.actionMasked) {
@@ -351,7 +351,7 @@ internal class StatusWindow(
                     val tap = event.actionMasked == MotionEvent.ACTION_UP && !changedPosition && !changedWidth && !multiTouch && !grip && !childStream
                     if (childStream) super.dispatchTouchEvent(event)
                     finish()
-                    if (tap) setExpanded(!expanded)
+                    if (tap) changeExpanded(!expanded)
                 }
             }
             return true
@@ -368,7 +368,7 @@ internal class StatusWindow(
 
         override fun performClick(): Boolean {
             super.performClick()
-            setExpanded(!expanded)
+            changeExpanded(!expanded)
             return true
         }
 

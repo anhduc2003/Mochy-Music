@@ -36,7 +36,7 @@ internal fun StatusPanel(state: PillState, window: StatusWindow, onContentWidth:
     Column(Modifier.fillMaxSize().clip(RoundedCornerShape(19.dp)).background(Color(0xF2000000))) {
         val action = stringResource(if (window.expanded) R.string.floating_lyrics_collapse else R.string.floating_lyrics_expand)
         Box(Modifier.fillMaxWidth().height(38.dp).semantics {
-            onClick(label = action) { window.setExpanded(!window.expanded); true }
+            onClick(label = action) { window.changeExpanded(!window.expanded); true }
         }) {
             StatusLyrics(state, if (window.expanded) minOf(280f, window.fittingWidthDp) else window.fittingWidthDp, onContentWidth)
         }
