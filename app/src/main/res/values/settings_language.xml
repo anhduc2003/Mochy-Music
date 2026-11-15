@@ -191,6 +191,6 @@
     <string name="customise_lyrics_translation_desc">Translates every song\'s lyrics as it plays</string>
     <string name="customise_lyrics_preview_translation">si je suis une pierre</string>
     <string name="settings_floating_lyrics">Floating lyrics</string>
-    <string name="settings_floating_lyrics_desc">The line being sung takes the artist\'s place in the notification, on the lock screen and in the car, and rides in a bubble with the song\'s progress ring once Mochy is out of sight</string>
-    <string name="settings_floating_lyrics_detail">The bubble needs permission to show over other apps. Tap the cover to open Mochy, hold it for play and pause, drag it anywhere, or drop it on the cross to hide it.</string>
+    <string name="settings_floating_lyrics_desc">The line being sung takes the artist\'s place in the notification, on the lock screen and in the car, and sits in the status bar with the song\'s progress ring once Mochy is out of sight</string>
+    <string name="settings_floating_lyrics_detail">The status bar capsule needs permission to show over other apps, and covers the phone\'s own island while it\'s up. It never takes a touch: pulling the bar down still works as usual.</string>
 </resources>

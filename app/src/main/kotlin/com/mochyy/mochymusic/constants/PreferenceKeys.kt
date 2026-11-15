@@ -909,11 +909,8 @@ val ShowLyricsKey = booleanPreferencesKey("showLyrics")
 val SwipeLyricsKey = booleanPreferencesKey("swipeLyrics")
 // the line being sung shown as the title and cover on android auto's player while a car is connected, on unless turned off
 val CarLyricsKey = booleanPreferencesKey("carLyrics")
-// the line being sung shown in the player card's artist line and in a little pill over other apps, off until turned on
+// the line being sung shown in the player card's artist line and in a capsule in the status bar, off until turned on
 val FloatingLyricsKey = booleanPreferencesKey("floatingLyrics")
-// where the floating lyrics pill was left on screen, in px from the top left; missing until it's first moved
-val FloatingLyricsXKey = intPreferencesKey("floatingLyricsX")
-val FloatingLyricsYKey = intPreferencesKey("floatingLyricsY")
 val EnableLyricsThumbnailPlayPauseKey = booleanPreferencesKey("enableLyricsThumbnailPlayPause")
 val LyricsTextPositionKey = stringPreferencesKey("lyricsTextPosition")
 val LyricsClickKey = booleanPreferencesKey("lyricsClick")
