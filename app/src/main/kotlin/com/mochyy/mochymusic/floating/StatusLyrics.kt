@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -177,7 +178,7 @@ internal fun StatusLyrics(
         Row(
             Modifier
                 .align(contentAlignment)
-                .wrapContentHeight()
+                .fillMaxSize()
                 .absolutePadding(right = handleWidth),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -185,20 +186,22 @@ internal fun StatusLyrics(
             CoverDisc(state, cover, progress)
             Spacer(Modifier.width(gap))
             key(script, rowIndex) {
-                // Laid out at a stable width taken from the saved maximum, never the animating
-                // window width. The text is a single unwrapped line, so the capsule simply
-                // reveals/covers it as it grows or shrinks instead of re-laying the glyphs
-                // (and the karaoke shader layer) out on every frame of the animation.
-                LyricLine(
-                    text = text,
-                    words = row?.words,
-                    positionProvider = positionProvider,
-                    playing = state.playing,
-                    seekTick = state.seekTick,
-                    appear = { appear.value },
-                    room = room,
-                    modifier = Modifier.requiredWidth(with(density) { room.toDp() }),
-                )
+                // The line is laid out once at the stable room width so the animating
+                // capsule never re-shapes the glyphs or the karaoke layer; the box around
+                // it is what the window shrinks, and it clips the overhang on the right
+                // instead of letting the row overflow the capsule on both sides.
+                Box(Modifier.weight(1f).clipToBounds()) {
+                    LyricLine(
+                        text = text,
+                        words = row?.words,
+                        positionProvider = positionProvider,
+                        playing = state.playing,
+                        seekTick = state.seekTick,
+                        appear = { appear.value },
+                        room = room,
+                        modifier = Modifier.requiredWidth(with(density) { room.toDp() }),
+                    )
+                }
             }
         }
         val resizeDescription = stringResource(R.string.floating_lyrics_resize)
