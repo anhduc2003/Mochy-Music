@@ -63,7 +63,7 @@ jobs:
           LIBREFM_API_KEY: ${{ secrets.LIBREFM_API_KEY }}
           LIBREFM_SECRET: ${{ secrets.LIBREFM_SECRET }}
           DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
-        run: ./gradlew assembleUniversalFossRelease --no-configuration-cache --console=plain --warning-mode summary
+        run: ./gradlew :app:testUniversalFossDebugUnitTest --tests '*StatusGeometryTest*' :app:assembleUniversalFossRelease --no-configuration-cache --console=plain --warning-mode summary
 
       - name: Rename APK
         run: |
@@ -111,7 +111,8 @@ jobs:
           Sync with upstream **mochy-8.4.1** (\`eafbbe6\`), keeping this fork's Vietnamese localisation and its own features.
 
           ### Floating lyrics improvements
-          - Drag the floating capsule and resize its width with the right-hand grip; position and width are saved.
+          - The floating capsule smoothly shrinks for short lyrics and expands for longer lines. Drag the right-hand grip to set its saved maximum width.
+          - Dragging and resizing remain available while automatic sizing pauses during touch gestures.
           - Style 2 karaoke renderer with per-word timing and display-synchronized animation, replacing the old 60 ms sweep timer.
           - Requests up to 120 Hz while playing when high refresh rate is enabled. Actual frame rate depends on the device and system policy.
 

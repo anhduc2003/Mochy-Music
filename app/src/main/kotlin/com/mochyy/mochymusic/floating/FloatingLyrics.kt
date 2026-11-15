@@ -103,7 +103,8 @@ class FloatingLyrics(
             prefs[FloatingLyricsWidthKey],
             windowListener,
         )
-        if (!bar.show { StatusLyrics(state) }) return
+        val onContentWidth: (Float) -> Unit = bar::setContentWidth
+        if (!bar.show { StatusLyrics(state, bar.fittingWidthDp, onContentWidth) }) return
         window = bar
         follow = scope.launch {
             launch {

@@ -77,7 +77,7 @@ private const val SizeStepSp = 0.5f
 
 // the line being sung in a black capsule: the cover with how far along the song is as a ring, then the line itself sweeping as it's sung
 @Composable
-internal fun StatusLyrics(state: PillState) {
+internal fun StatusLyrics(state: PillState, fittingWidthDp: Float, onContentWidth: (Float) -> Unit) {
     val script = state.script
     var rowIndex by remember(script) {
         mutableIntStateOf(script?.let { it.stops[it.stopAt(state.lyricsClock())].top } ?: 0)
@@ -136,7 +136,29 @@ internal fun StatusLyrics(state: PillState) {
         val edge = 5.dp
         val gap = 7.dp
         val handleWidth = StatusGeometry.HandleWidthDp.dp
-        val room = with(density) { (maxWidth - edge - cover - gap - handleWidth).toPx().coerceAtLeast(0f) }
+        // Fit against the stable user/screen maximum, not animation frames; otherwise
+        // the text would step through font sizes while the capsule expands.
+        val room = with(density) { (fittingWidthDp.dp - edge - cover - gap - handleWidth).toPx().coerceAtLeast(0f) }
+        val measurer = rememberTextMeasurer()
+        val preferredStyle = MaterialTheme.typography.headlineSmall.copy(
+            fontWeight = FontWeight.Bold,
+            fontSize = MaxTextSp.sp,
+        )
+        // Never measure using maxWidth/room: the actual window is animated and must not
+        // become an input to its own target. Include a little breathing room after text.
+        val contentWidth = remember(text, preferredStyle, measurer, density.density, density.fontScale, cover) {
+            val measured = measurer.measure(
+                text = AnnotatedString(text),
+                style = preferredStyle,
+                softWrap = false,
+                maxLines = 1,
+            ).size.width
+            StatusGeometry.contentWidthDp(
+                measured.toFloat(), density.density, cover.value, edge.value,
+                gap.value, handleWidth.value, paddingDp = 4f,
+            )
+        }
+        LaunchedEffect(contentWidth, onContentWidth) { onContentWidth(contentWidth) }
 
         Row(Modifier.fillMaxSize().absolutePadding(right = handleWidth), verticalAlignment = Alignment.CenterVertically) {
             Spacer(Modifier.width(edge))

@@ -2,6 +2,8 @@
 
 package com.mochyy.mochymusic.floating
 
+import android.animation.ValueAnimator
+import android.view.animation.AccelerateDecelerateInterpolator
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Configuration
@@ -17,6 +19,9 @@ import android.view.WindowInsets
 import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.Lifecycle
@@ -54,11 +59,20 @@ internal class StatusWindow(
     private val root = DragFrame()
     private val compose = ComposeView(context)
 
-    private var widthDp = StatusGeometry.width(savedWidthDp?.toFloat() ?: defaultWidthDp(), maxWidthDp())
+    // Only user resizing changes this preference. Rotation and automatic sizing merely
+    // constrain its current presentation, so returning to a wider screen restores it.
+    private var maximumWidthDp = (savedWidthDp?.toFloat() ?: defaultWidthDp()).coerceAtLeast(120f)
+    var fittingWidthDp by mutableFloatStateOf(StatusGeometry.width(maximumWidthDp, maxWidthDp()))
+        private set
+    private var contentWidthDp: Float? = null
+    private var widthAnimator: ValueAnimator? = null
+    private var touching = false
+    private var removed = false
+    private var targetWidthPx = 0
     private val heightDp = 38f
 
     private val params = WindowManager.LayoutParams(
-        px(widthDp),
+        px(StatusGeometry.width(maximumWidthDp, maxWidthDp())).coerceAtLeast(1),
         px(heightDp),
         overlayType(),
         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -89,8 +103,54 @@ internal class StatusWindow(
     }
 
     fun remove() {
+        removed = true
+        cancelWidthAnimation()
         owner.destroy()
         runCatching { windowManager.removeView(root) }
+    }
+
+    fun setContentWidth(widthDp: Float) {
+        if (!widthDp.isFinite() || removed) return
+        contentWidthDp = widthDp
+        adaptWidth()
+    }
+
+    private fun cancelWidthAnimation() {
+        widthAnimator?.cancel()
+        widthAnimator?.removeAllUpdateListeners()
+        widthAnimator = null
+        targetWidthPx = 0
+    }
+
+    private fun adaptWidth(animate: Boolean = true) {
+        if (touching || removed) return
+        fittingWidthDp = StatusGeometry.width(maximumWidthDp, maxWidthDp())
+        val target = px(StatusGeometry.adaptiveWidth(
+            contentWidthDp ?: maximumWidthDp, maximumWidthDp, maxWidthDp(),
+        )).coerceAtLeast(1)
+        if (target == targetWidthPx && widthAnimator?.isRunning == true) return
+        cancelWidthAnimation()
+        if (target == params.width) return
+        val startWidth = params.width
+        val startX = params.x
+        val screenWidth = screenSize().x
+        fun applyWidth(width: Int) {
+            params.width = width
+            params.x = StatusGeometry.anchoredX(startX, startWidth, width, screenWidth)
+            clampInto(params)
+            update()
+        }
+        if (!animate || !root.isAttachedToWindow) {
+            applyWidth(target)
+            return
+        }
+        targetWidthPx = target
+        widthAnimator = ValueAnimator.ofInt(startWidth, target).apply {
+            duration = 260L
+            interpolator = AccelerateDecelerateInterpolator()
+            addUpdateListener { applyWidth(it.animatedValue as Int) }
+            start()
+        }
     }
 
     // Request a matching-resolution high-refresh mode; the system still decides the actual rate.
@@ -109,6 +169,16 @@ internal class StatusWindow(
 
     private fun update() {
         if (root.isAttachedToWindow) runCatching { windowManager.updateViewLayout(root, params) }
+    }
+
+    private fun persistPosition() {
+        // Preferences restore at the maximum width before content is measured. Save
+        // that equivalent gravity offset so a collapsed capsule keeps its left edge.
+        val restoreWidth = px(StatusGeometry.width(maximumWidthDp, maxWidthDp())).coerceAtLeast(1)
+        listener.onMoved(
+            StatusGeometry.anchoredX(params.x, params.width, restoreWidth, screenSize().x),
+            params.y,
+        )
     }
 
     private fun clampInto(lp: WindowManager.LayoutParams) {
@@ -180,6 +250,10 @@ internal class StatusWindow(
         override fun dispatchTouchEvent(event: MotionEvent): Boolean {
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
+                    touching = true
+                    cancelWidthAnimation()
+                    // Layout may still be catching up with the last animation frame.
+                    if (width > 0) params.width = width
                     changedWidth = false
                     changedPosition = false
                     firstId = event.getPointerId(0)
@@ -231,9 +305,10 @@ internal class StatusWindow(
         }
 
         private fun resize(requested: Float, anchoredLeft: Boolean) {
-            widthDp = StatusGeometry.width(requested, maxWidthDp())
-            params.width = px(widthDp)
-            if (anchoredLeft) params.x = StatusGeometry.resizedX(fromX, pixelWidthStart, params.width)
+            maximumWidthDp = StatusGeometry.width(requested, maxWidthDp())
+            fittingWidthDp = maximumWidthDp
+            params.width = px(maximumWidthDp).coerceAtLeast(1)
+            if (anchoredLeft) params.x = StatusGeometry.anchoredX(fromX, pixelWidthStart, params.width, screenSize().x)
             clampInto(params)
             changedWidth = true
             changedPosition = true
@@ -247,22 +322,24 @@ internal class StatusWindow(
             downY = rawY(event, first)
             fromX = params.x
             fromY = params.y
-            widthStart = widthDp
-            pixelWidthStart = params.width
+            pixelWidthStart = width.takeIf { it > 0 } ?: params.width
+            widthStart = pixelWidthStart / density
             dragging = false
             val second = event.findPointerIndex(secondId)
             pinchStart = if (second >= 0) span(event, first, second) else 0f
         }
 
-        private fun finish() {
-            if (changedWidth) listener.onResized(widthDp.roundToInt())
-            if (changedPosition) listener.onMoved(params.x, params.y)
+        private fun finish(resume: Boolean = true) {
+            if (changedWidth) listener.onResized(maximumWidthDp.roundToInt())
+            if (changedPosition) persistPosition()
             firstId = -1
             secondId = -1
             grip = false
             dragging = false
             changedWidth = false
             changedPosition = false
+            touching = false
+            if (resume) adaptWidth()
         }
 
         // rawX/rawY belong to index zero on older Android. Its raw-local offset maps
@@ -274,14 +351,13 @@ internal class StatusWindow(
 
         override fun onConfigurationChanged(newConfig: Configuration?) {
             super.onConfigurationChanged(newConfig)
-            finish()
-            widthDp = StatusGeometry.width(widthDp, maxWidthDp())
-            params.width = px(widthDp)
+            cancelWidthAnimation()
+            finish(resume = false)
             params.height = minOf(px(heightDp), safeBounds().height().coerceAtLeast(1))
+            adaptWidth(animate = false)
             clampInto(params)
             update()
-            listener.onResized(widthDp.roundToInt())
-            listener.onMoved(params.x, params.y)
+            persistPosition()
         }
     }
 }
