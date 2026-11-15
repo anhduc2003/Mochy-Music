@@ -112,13 +112,13 @@ jobs:
 
           ### What's new from 8.4.1
           - **InnerTubeX stream backend** with the classic finder as automatic fallback (Settings → Experimental → Stream backend)
-          - **Floating lyrics**: the line being sung in a small bubble over other apps, dragged anywhere or dropped on the cross to hide
+          - **Lyrics in the player**: the line being sung takes the artist's place in the notification, on the lock screen and in the car
           - **New welcome page**: the mochy girl with an animated rig (eyes, hair, mouth, phone), tap anywhere to continue
           - **Rotate button** in the player menu, straight from the turntable
           - **lrc.red lyrics provider** and lyric export fixes
           - **Romanisation** for song share cards and lyrics (Japanese, Korean, Chinese, Hindi, Cyrillic)
           - Song share and crossmix fixes, song-share export fixes
-          - \`compileSdk\`/\`targetSdk\` 37, \`SYSTEM_ALERT_WINDOW\` and \`ACCESS_LOCAL_NETWORK\` permissions
+          - \`compileSdk\`/\`targetSdk\` 37, \`ACCESS_LOCAL_NETWORK\` permission
 
           ### Kept from this fork
           - Vietnamese UI, including the 22 newly translated strings for the 8.4.1 screens
