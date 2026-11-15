@@ -1,95 +1,97 @@
 # Mochy for PC
 
-Bản Mochy chạy trên máy tính, viết bằng Kotlin + Compose Desktop.
+Bản Mochy chạy trên máy tính, viết bằng Kotlin + Compose Desktop. Đóng gói thành `Mochy.exe`
+(hoặc `.dmg` / `.deb` tuỳ hệ điều hành).
 
-## Vì sao là module riêng
-
-`:app` là một **Android application**: toàn bộ UI (149.000 trong tổng 221.000 dòng) viết trên
-Compose for Android, ExoPlayer, Room, Hilt và `Context`. Không dòng nào trong số đó biên dịch
-được ngoài Android. Vì vậy không thể "thêm target desktop" vào `:app` — phải là module mới.
-
-Phần **dùng chung được** là những gì vốn không cần Android ngay từ đầu: phân tích nhạc, planner
-crossmix, bộ phân tích lời bài hát (123 file / 12.000 dòng thuần Kotlin). Những file đó được
-chuyển sang theo từng package, `:app` không bị sửa.
-
-## Chạy thử
+## Chạy
 
 ```bash
-./gradlew :desktop:run
-```
-
-Đóng gói cho hệ điều hành hiện tại:
-
-```bash
-./gradlew :desktop:packageDistributionForCurrentOS
+./gradlew :desktop:run                          # chạy trực tiếp
+./gradlew :desktop:createDistributable          # đóng gói ra thư mục có Mochy.exe
+./gradlew :desktop:packageDistributionForCurrentOS  # ra installer (.msi/.dmg/.deb)
 ```
 
 Yêu cầu JDK 21.
 
-## Đã có gì
+## Vì sao là module riêng
 
-| Tính năng | Trạng thái |
+`:app` là một **Android application**: UI (149.000 trong tổng 221.000 dòng) viết trên Compose for
+Android, ExoPlayer, Room, Hilt và `Context`. Không dòng nào biên dịch được ngoài Android. Phần
+dùng chung được là những gì vốn không cần Android (123 file / 12.000 dòng thuần Kotlin), chuyển
+sang theo từng package — `:app` không bị sửa.
+
+## Tính năng
+
+| | Trạng thái |
 |---|---|
 | Mở thư mục / nhiều tệp | ✅ |
-| Đọc tag (title, artist, album, thời lượng) | ✅ |
+| Đọc tag (title, artist, album, thời lượng, ảnh bìa) | ✅ |
 | Thư viện lưu trên đĩa (SQLite) | ✅ |
-| Phát / tạm dừng / bài trước / bài sau | ✅ |
-| Thanh tiến trình + tua | ✅ |
-| Hàng đợi, shuffle, repeat | ✅ (engine) |
+| Phát / tạm dừng / trước / sau / tua / âm lượng | ✅ |
+| Shuffle, repeat (off/all/one) | ✅ |
 | Tự chuyển bài khi hết | ✅ |
-| Định dạng: WAV, AIFF, AU | ✅ |
-| Định dạng: MP3, OGG/Opus, FLAC | ✅ (qua SPI provider) |
-| Lời bài hát đồng bộ từ tag trong tệp | ✅ |
-| **Crossmix** (planner + phân tích nhịp + khớp giọng) | ✅ port nguyên |
-| Tìm kiếm online (YouTube Music) | ✅ metadata |
-| **Phát nhạc online** | ❌ bị YouTube chặn |
-| Tải nhạc YouTube về máy | ❌ |
-| Scrobble Last.fm / Discord | ❌ |
+| **WAV, AIFF, AU, MP3, OGG/Opus, FLAC** | ✅ |
+| **Lời bài hát đồng bộ** (từ tag trong tệp) | ✅ |
+| **Crossmix** (phân tích nhịp + khớp giọng + planner) | ✅ dùng chung thuật toán với điện thoại |
+| **Tìm kiếm YouTube Music** | ✅ đã kiểm chứng 14 kết quả thật |
+| **Phát nhạc online** | ✅ đã kiểm chứng lấy được stream thật |
+| **Last.fm scrobble** | ✅ có code, cần API key |
+| **Discord Rich Presence** | ✅ có code, cần 1 lần bấm chạy Discord |
+| Nền gradient theo màu bìa + cover art | ✅ |
+| Tải nhạc về máy | ❌ |
 
-## Giới hạn đã biết — nói rõ, không che
+## Phát online: cách vượt chặn
 
-### Phát nhạc online: YouTube chặn
-
-Tôi đã thử **live với tài khoản không đăng nhập** trên 5 client InnerTube:
+Lần đầu tôi thử gọi thẳng player endpoint và **cả 5 client đều bị chặn**:
 
 | Client | Kết quả |
 |---|---|
-| `WEB_REMIX` | `UNPLAYABLE`, 0 stream |
-| `ANDROID_VR` | `LOGIN_REQUIRED`, 0 stream |
-| `ANDROID_MUSIC` | `LOGIN_REQUIRED`, 0 stream |
-| `WEB` | `UNPLAYABLE`, 0 stream |
-| `TVHTML5_SIMPLY_EMBEDDED_PLAYER` | `ERROR`, 0 stream |
+| `WEB_REMIX`, `WEB`, `ANDROID_TESTSUITE` | `UNPLAYABLE` ("Cần tải lại trang này") |
+| `ANDROID_MUSIC`, `ANDROID_VR`, `ANDROID_CREATOR`, `VISIONOS` | `LOGIN_REQUIRED` |
 
-YouTube giờ yêu cầu session đã đăng nhập, hoặc cặp visitor-data + signature, mới trả URL luồng phát.
-**Tìm kiếm vẫn hoạt động** (14 kết quả thật với tên bài, videoId, thời lượng), nhưng bấm phát sẽ
-báo lỗi. Muốn phát được phải port pipeline giải mã signature — bản Android đã có (qua
-NewPipeExtractor), nhưng NewPipeExtractor là thư viện Android và bản JitPack của nó không dùng
-được từ module JVM thuần.
+YouTube giờ đòi **proof-of-origin token**. Cách hoạt động được (đã kiểm chứng):
 
-### Tải nhạc YouTube: chưa có
+1. `GET` trang watch với user-agent trình duyệt → nhận cookie (`VISITOR_INFO1_LIVE`,
+   `__Secure-YNID`, `YSC`…) **và** giá trị `STS` — signature timestamp mà JS player hiện tại dùng
+2. `POST` player endpoint với client **VISIONOS**, kèm cookie đó, visitor id, và
+   `signatureTimestamp` trong `playbackContext`
 
-Cùng lý do trên: cần resolve được URL trước khi tải.
+Client VISIONOS không bị hỏi PoToken, và trả `streamingData` có `url` trực tiếp — không cần
+`signatureCipher`, nên không phải chạy JS giải mã.
 
-### Scrobble / Discord: chưa port
+**Chi tiết quan trọng:** `STS` cũ chính là thứ biến phản hồi tốt thành `UNPLAYABLE`. Đó là lỗi
+của bản đầu tiên tôi viết.
 
-Phần này nhỏ (456 + 1.869 dòng) và độc lập, làm được khi cần.
+Kết quả kiểm chứng: `itag=251`, `audio/webm; codecs="opus"`, 164 kbps, URL googlevideo có `sig=`.
 
-### UI
+Phần này **dễ hỏng theo thời gian** — YouTube đổi yêu cầu client thường xuyên. Khi hỏng, triệu
+chứng là `streamUrl` trả `null` và UI báo rõ, không im lặng.
 
-Bản tối giản có chủ đích: Material 3 mặc định. Player trên Android là 128.000 dòng tự vẽ (mâm đĩa
-than, ảnh bìa biến hình, lời bài hát phát sáng) — port phần đó là giai đoạn riêng.
+## Crossmix port nguyên văn
 
-## Crossmix đã port
+`CrossmixAnalysis`, `CrossmixBars`, `CrossmixStyles`, `CrossmixPlanner` (~108.000 ký tự) chép
+nguyên — chúng chỉ import `kotlin.math`. Hai chỗ phải thay:
 
-`CrossmixAnalysis`, `CrossmixBars`, `CrossmixStyles`, `CrossmixPlanner` (khoảng 108.000 ký tự)
-chuyển nguyên văn — chúng chỉ import `kotlin.math`. Chỉ hai chỗ phải thay:
-
-- `constants.CrossmixLength` / `CrossmixTempoMatch` → khai báo lại trong package
+- `CrossmixLength` / `CrossmixTempoMatch` → khai báo lại trong package
 - `LyricsUtils.parseLyrics` (82.000 ký tự, kéo theo kuromoji + pinyin + Room) → `LyricsStamp`,
   chỉ đọc tem `[mm:ss.xx]` vì planner chỉ cần biết dòng nào đang hát
 
-Bản PC dùng chung thuật toán với điện thoại, gồm cả 4 sửa lỗi gần đây (vùng chết tempo, khớp
-giọng, căn nhịp theo kết quả thật, `alwaysMix` mặc định tắt).
+Bản PC dùng chung thuật toán với điện thoại, gồm cả 4 sửa lỗi gần đây.
+
+## Tích hợp: cần cấu hình
+
+Cả hai đều **tắt mặc định** và không cản trở việc phát nhạc khi thiếu.
+
+**Last.fm** — cần API key/secret của ứng dụng (đăng ký tại last.fm/api). Đặt qua biến môi trường:
+
+```bash
+LASTFM_API_KEY=... LASTFM_SECRET=... ./gradlew :desktop:run
+```
+
+Scrobble tính theo đúng luật Last.fm: nửa độ dài bài hoặc 4 phút, tuỳ cái nào tới trước.
+
+**Discord** — đặt `DISCORD_CLIENT_ID` rồi chạy. Dùng IPC socket (`discord-ipc-0`), không cần
+OAuth. Nếu Discord không chạy thì presence đơn giản là tắt, không báo lỗi.
 
 ## Kiểm thử
 
@@ -97,11 +99,14 @@ giọng, căn nhịp theo kết quả thật, `alwaysMix` mặc định tắt).
 ./gradlew :desktop:test
 ```
 
-**11 test**, tất cả đều đạt:
+**12 test, tất cả đạt:**
 
-- `DesktopPlayerTest` (4): đọc tag, tách tên file, báo lỗi khi thiếu tệp, hợp đồng phát nhạc
-- `CrossmixPlannerTest` (6): phủ kín BPM, trần blend, khớp giọng, Camelot, tem lời bài hát
-- `InnerTubeTest` (1): tìm kiếm thật, kiểm tra kết quả dùng được
+| Bộ test | Nội dung |
+|---|---|
+| `DesktopPlayerTest` (4) | đọc tag, tách tên file, báo lỗi thiếu tệp, hợp đồng phát nhạc |
+| `CrossmixPlannerTest` (6) | phủ kín BPM, trần blend, khớp giọng, Camelot, tem lời |
+| `InnerTubeTest` (1) | tìm kiếm thật, 14 kết quả |
+| `YouTubeSessionTest` (1) | lấy stream thật, itag 251 |
 
-Test cần network hoặc audio device sẽ **tự bỏ qua** khi máy không có, và in lý do — không giả
-vờ đạt.
+Test cần network hoặc audio device sẽ **tự bỏ qua** và in lý do khi máy không có — không giả vờ
+đạt. Máy build này không có sound card nên test phát nhạc thực chất bị bỏ qua.

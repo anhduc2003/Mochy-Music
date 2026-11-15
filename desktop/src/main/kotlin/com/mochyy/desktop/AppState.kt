@@ -4,9 +4,12 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.ImageBitmap
 import com.mochyy.desktop.audio.DesktopPlayer
 import com.mochyy.desktop.db.LibraryDb
+import com.mochyy.desktop.discord.DiscordPresence
 import com.mochyy.desktop.lyrics.EmbeddedLyricsSource
 import com.mochyy.desktop.model.Track
 import com.mochyy.desktop.net.InnerTube
+import com.mochyy.desktop.net.YouTubeSession
+import com.mochyy.desktop.scrobble.LastFmScrobbler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -31,6 +34,27 @@ class AppState {
     /** the library on disk; a failure to open it is not fatal, the session just isn't saved */
     private val db: LibraryDb? = runCatching { LibraryDb() }.getOrNull()
 
+    /**
+     * Integrations, both off unless configured.
+     *
+     * Last.fm needs an API key and secret, which are per-application and belong to whoever ships
+     * the build — they are read from the environment rather than committed, so a plain checkout
+     * simply has no scrobbling instead of someone else's credentials.
+     */
+    private val lastFm: LastFmScrobbler? = runCatching {
+        val key = System.getenv("LASTFM_API_KEY").orEmpty()
+        val secret = System.getenv("LASTFM_SECRET").orEmpty()
+        if (key.isBlank() || secret.isBlank()) null
+        else LastFmScrobbler(key, secret)
+    }.getOrNull()
+
+    /** Discord presence; connects on first use and stays quiet when Discord isn't running */
+    private val presence: DiscordPresence? = runCatching {
+        val id = System.getenv("DISCORD_CLIENT_ID").orEmpty()
+        if (id.isBlank()) null
+        else DiscordPresence(id).takeIf { it.connect() }
+    }.getOrNull()
+
     /** the queue as the user sees it; the player keeps its own copy for advancing */
     val queue = mutableStateListOf<Track>()
 
@@ -53,6 +77,64 @@ class AppState {
                 queue.addAll(saved)
                 player.setQueue(saved)
                 _status.value = "Đã khôi phục ${saved.size} bài"
+            }
+        }
+        watchForScrobbleAndPresence()
+    }
+
+    /**
+     * Bridges the player to the integrations.
+     *
+     * Both are best-effort by design: a Last.fm that is not signed in and a Discord that is not
+     * running are the normal case, not errors, and neither may interrupt playback. The scrobble
+     * fires once per play, decided by Last.fm's own rule (half the track or four minutes).
+     */
+    private fun watchForScrobbleAndPresence() {
+        scope.launch {
+            var lastTrackId: String? = null
+            var lastScrobbledFor: String? = null
+            var startedAt = 0L
+            player.state.collect { state ->
+                val track = state.track
+                if (track?.id != lastTrackId) {
+                    // a new song: close out the presence of the old one and open the new
+                    lastTrackId = track?.id
+                    startedAt = System.currentTimeMillis()
+                    presence?.let { p ->
+                        if (track == null) p.clearActivity()
+                        else p.setActivity(
+                            details = track.title,
+                            state = track.artist,
+                            startedAtEpochMs = startedAt,
+                            largeText = track.album ?: "Mochy",
+                        )
+                    }
+                    if (track != null) {
+                        runCatching {
+                            lastFm?.nowPlaying(
+                                artist = track.artist.ifBlank { "Unknown" },
+                                title = track.title,
+                                album = track.album,
+                                durationSeconds = track.durationMs / 1000,
+                            )
+                        }
+                    }
+                }
+                // the one scrobble, when the play has lasted long enough
+                if (track != null && lastScrobbledFor != track.id &&
+                    LastFmScrobbler.countsAsPlay(state.positionMs, state.durationMs.takeIf { it > 0 } ?: track.durationMs)
+                ) {
+                    lastScrobbledFor = track.id
+                    runCatching {
+                        lastFm?.scrobble(
+                            artist = track.artist.ifBlank { "Unknown" },
+                            title = track.title,
+                            album = track.album,
+                            durationSeconds = (track.durationMs / 1000).takeIf { it > 0 } ?: 0,
+                            startedAtEpochSeconds = startedAt / 1000,
+                        )
+                    }
+                }
             }
         }
     }
@@ -123,17 +205,17 @@ class AppState {
     fun playOnline(videoId: String, title: String, artist: String, durationMs: Long, thumbnail: String?) {
         scope.launch {
             _status.value = "Đang lấy luồng phát cho “$title”…"
-            val url = runCatching { InnerTube().streamUrl(videoId) }.getOrNull()
-            if (url == null) {
-                _status.value = "Không lấy được luồng phát cho “$title”"
+            val stream = runCatching { YouTubeSession().stream(videoId) }.getOrNull()
+            if (stream == null) {
+                _status.value = "YouTube từ chối cấp luồng phát cho “$title” — thử bài khác"
                 return@launch
             }
             val track = Track(
                 id = "yt:$videoId",
                 title = title,
                 artist = artist,
-                durationMs = durationMs,
-                uri = url,
+                durationMs = durationMs.takeIf { it > 0 } ?: 0L,
+                uri = stream.url,
                 thumbnailUrl = thumbnail,
             )
             queue.clear()
@@ -142,7 +224,7 @@ class AppState {
             player.play(track)
             // an online track carries no embedded lyrics
             _lyrics.value = emptyList()
-            _status.value = "Đang phát: $title"
+            _status.value = "Đang phát: $title · ${stream.mimeType.substringBefore(';')} ${stream.bitrate / 1000} kbps"
         }
     }
 
