@@ -16,6 +16,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -42,6 +43,10 @@ class CarLyrics(
     private var job: Job? = null
     private var shown: CarLyricsPlayer.Overlay? = null
 
+    // whether the car is the one writing the card right now, so the phone's own lyrics stand down instead of trading lines with it
+    private val _active = MutableStateFlow(false)
+    val active: StateFlow<Boolean> = _active.asStateFlow()
+
     // call on the main thread, the connection is live data
     fun start() {
         if (job != null) return
@@ -50,7 +55,10 @@ class CarLyrics(
             val wanted = context.dataStore.data.map { it[CarLyricsKey] ?: true }.distinctUntilChanged()
             combine(inCar, wanted) { car, on -> car && on }
                 .distinctUntilChanged()
-                .collectLatest { active -> if (active) follow() else show(null) }
+                .collectLatest { on ->
+                    _active.value = on
+                    if (on) follow() else show(null)
+                }
         }
     }
 
@@ -58,6 +66,7 @@ class CarLyrics(
         connection.type.removeObserver(onConnection)
         job?.cancel()
         job = null
+        _active.value = false
         show(null)
     }
 
@@ -101,7 +110,7 @@ class CarLyrics(
                 if (shownLine != Int.MIN_VALUE) show(null)
                 shownLine = Int.MIN_VALUE
             } else if (index != shownLine) {
-                show(CarLyricsPlayer.Overlay(song.id, title, line.text.trim()))
+                show(CarLyricsPlayer.Overlay(song.id, line.text.trim(), title))
                 shownLine = index
             }
             delay(if (current.isPlaying) PlayingTickMs else PausedTickMs)

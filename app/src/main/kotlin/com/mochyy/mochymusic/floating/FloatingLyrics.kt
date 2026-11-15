@@ -3,193 +3,109 @@
 package com.mochyy.mochymusic.floating
 
 import android.content.Context
-import android.content.Intent
-import android.provider.Settings
-import android.view.View
-import androidx.datastore.preferences.core.edit
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.ProcessLifecycleOwner
-import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
-import com.mochyy.mochymusic.MainActivity
+import com.mochyy.mochymusic.car.CarLyricsPlayer
 import com.mochyy.mochymusic.car.CarLyricsSource
 import com.mochyy.mochymusic.constants.FloatingLyricsKey
-import com.mochyy.mochymusic.constants.FloatingLyricsXKey
-import com.mochyy.mochymusic.constants.FloatingLyricsYKey
-import com.mochyy.mochymusic.db.MusicDatabase
 import com.mochyy.mochymusic.models.MediaMetadata
 import com.mochyy.mochymusic.utils.dataStore
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
-// the line being sung floating over other apps: shown while it's turned on and allowed, a song is loaded and mochy itself is out of sight
+// the line being sung, in the player card itself rather than in a window of its own: while it's on, the notification, the lock screen and
+// anything else reading the session put the line where the artist goes, so there's still one player instead of a second one floating about
 class FloatingLyrics(
     private val context: Context,
-    private val database: MusicDatabase,
     private val source: CarLyricsSource,
     private val song: StateFlow<MediaMetadata?>,
     private val player: StateFlow<Player?>,
+    private val carInCharge: StateFlow<Boolean>,
+    private var card: CarLyricsPlayer,
     private val scope: CoroutineScope,
 ) {
-    private val appVisible = MutableStateFlow(true)
-
-    // dropped on the cross: hidden until mochy is opened again
-    private val dismissed = MutableStateFlow(false)
-    private val state = PillState { player.value }
     private var job: Job? = null
-    private var window: PillWindow? = null
-    private var follow: Job? = null
+    private var shown: CarLyricsPlayer.Overlay? = null
 
-    private val visibility = LifecycleEventObserver { _, _ ->
-        val visible = ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
-        appVisible.value = visible
-        if (visible) dismissed.value = false
-    }
-
-    private val host = object : PillHost {
-        override fun setWindowExpanded(expanded: Boolean) {
-            window?.setExpanded(expanded)
-        }
-
-        override fun openApp() {
-            state.expanded = false
-            val open = Intent(context, MainActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-            runCatching { context.startActivity(open) }
-        }
-
-        // the same as the widget's button
-        override fun togglePlay() {
-            val current = player.value ?: return
-            if (current.isPlaying) current.pause() else current.play()
-        }
-    }
-
-    private val windowListener = object : PillWindowListener {
-        override fun onMoved(x: Int, y: Int) {
-            scope.launch {
-                context.dataStore.edit {
-                    it[FloatingLyricsXKey] = x
-                    it[FloatingLyricsYKey] = y
-                }
-            }
-        }
-
-        override fun onDismissed() {
-            dismissed.value = true
-        }
-
-        override fun onTouched() {
-            if (state.expanded) state.touchTick++
-        }
-
-        override fun onTouchedOutside() {
-            state.expanded = false
-        }
-    }
-
-    // call on the main thread, the app's lifecycle is watched from there
+    // call on the main thread, the session's player is read from there
     fun start() {
         if (job != null) return
-        ProcessLifecycleOwner.get().lifecycle.addObserver(visibility)
         job = scope.launch {
             val wanted = context.dataStore.data.map { it[FloatingLyricsKey] ?: false }.distinctUntilChanged()
-            val hasSong = song.map { it != null }.distinctUntilChanged()
-            combine(wanted, appVisible, dismissed, hasSong) { on, visible, gone, playing -> on && !visible && !gone && playing }
+            // a car showing its own line keeps the card, so the two never trade it back and forth
+            combine(wanted, carInCharge) { on, car -> on && !car }
                 .distinctUntilChanged()
-                .collect { show -> if (show && Settings.canDrawOverlays(context)) open() else close() }
+                .collectLatest { on -> if (on) follow() else show(null) }
         }
     }
 
     fun stop() {
-        ProcessLifecycleOwner.get().lifecycle.removeObserver(visibility)
         job?.cancel()
         job = null
-        close()
+        show(null)
     }
 
-    private suspend fun open() {
-        if (window != null) return
-        val prefs = context.dataStore.data.first()
-        val pill = PillWindow(context, prefs[FloatingLyricsXKey], prefs[FloatingLyricsYKey], windowListener)
-        if (!pill.show { FloatingPill(state, pill.metrics, host) }) return
-        window = pill
-        follow = scope.launch { followSong() }
+    // a crossfade hands the session a new player, and the line on the card moves over to it instead of vanishing until the next one
+    fun attach(next: CarLyricsPlayer) {
+        card = next
+        next.show(shown)
     }
 
-    private fun close() {
-        follow?.cancel()
-        follow = null
-        window?.remove()
-        window = null
-        state.expanded = false
+    private fun show(next: CarLyricsPlayer.Overlay?) {
+        shown = next
+        card.show(next)
     }
 
-    // keeps the pill's song, lyrics and play state current for as long as it's on screen; nothing runs while it's hidden
-    private suspend fun followSong() = coroutineScope {
-        launch { followPlayer() }
-        song.distinctUntilChangedBy { it?.id }.collectLatest { metadata ->
-            state.song = metadata
-            state.script = null
-            if (metadata == null) return@collectLatest
-            val artist = metadata.artists.joinToString { it.name }
-            val appRtl = context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
-            val offset = database.song(metadata.id).map { it?.song?.lyricsOffset ?: 0 }
-            // follows the saved lyrics, so a fix or a new source in the app reaches the pill straight away
-            combine(database.lyrics(metadata.id), offset) { lyrics, shift -> lyrics?.lyrics to shift }
-                .distinctUntilChanged()
-                .collectLatest { (raw, shift) ->
-                    state.offsetMs = shift
-                    if (raw == null) {
-                        // nothing saved yet: fetched once and saved, and the saved copy comes back through here
-                        source.fetch(metadata)
-                        return@collectLatest
-                    }
-                    state.script = withContext(Dispatchers.Default) { PillScript.build(raw, metadata.title, artist, appRtl) }
-                }
+    // follows each song for as long as the lyrics are wanted, and hands the artist back the moment they aren't
+    private suspend fun follow() {
+        try {
+            song.distinctUntilChangedBy { it?.id }.collectLatest { metadata ->
+                show(null)
+                if (metadata != null) sing(metadata)
+            }
+        } finally {
+            show(null)
         }
     }
 
-    // a crossfade hands over to a new player, so the listener moves with it
-    private suspend fun followPlayer() {
-        player.collectLatest { current ->
-            if (current == null) return@collectLatest
-            val listener = object : Player.Listener {
-                override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    state.playing = isPlaying
-                }
-
-                override fun onPositionDiscontinuity(oldPosition: Player.PositionInfo, newPosition: Player.PositionInfo, reason: Int) {
-                    state.seekTick++
-                }
-
-                override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
-                    state.seekTick++
-                }
+    // only a new line goes out, a plain text change the card shows at once without any picture going over
+    private suspend fun sing(metadata: MediaMetadata) {
+        val lyrics = source.load(metadata)?.takeIf { it.synced } ?: return
+        var shownLine = Int.MIN_VALUE
+        while (true) {
+            // a player that isn't there yet is waited for rather than given up on, the song is still the one that's loaded
+            val current = player.value
+            if (current == null) {
+                delay(PausedTickMs)
+                continue
             }
-            state.playing = current.isPlaying
-            state.seekTick++
-            current.addListener(listener)
-            try {
-                awaitCancellation()
-            } finally {
-                current.removeListener(listener)
+            val position = current.currentPosition
+            val index = lyrics.lineAt(position)
+            // long instrumental stretches hand the artist back until singing starts again
+            val line = lyrics.lines.getOrNull(index)?.takeIf {
+                it.text.isNotBlank() && current.currentMediaItem?.mediaId == metadata.id && !lyrics.isBreak(index, position)
             }
+            if (line == null) {
+                if (shownLine != Int.MIN_VALUE) show(null)
+                shownLine = Int.MIN_VALUE
+            } else if (index != shownLine) {
+                // the song keeps its own title here, only the artist line gives way
+                show(CarLyricsPlayer.Overlay(metadata.id, line.text.trim()))
+                shownLine = index
+            }
+            delay(if (current.isPlaying) PlayingTickMs else PausedTickMs)
         }
+    }
+
+    private companion object {
+        const val PlayingTickMs = 90L
+        const val PausedTickMs = 500L
     }
 }
-

@@ -113,6 +113,6 @@
     <string name="customise_lyrics_translation">Bản dịch</string>
     <string name="customise_lyrics_translation_desc">Dịch lời bài hát của mọi bài khi đang phát</string>
     <string name="customise_lyrics_preview_translation">nếu tôi là một hòn đá</string>
-    <string name="settings_floating_lyrics">Lời bài hát nổi</string>
-    <string name="settings_floating_lyrics_desc">Giữ dòng đang hát trong một bong bóng nhỏ trên các ứng dụng khác</string>
-    <string name="settings_floating_lyrics_detail">Chạm vào ảnh bìa để mở Mochy, hoặc giữ để phát và tạm dừng. Kéo bong bóng đến bất kỳ đâu, hoặc thả lên dấu X để ẩn cho đến khi bạn quay lại Mochy.</string></resources>
+    <string name="settings_floating_lyrics">Lời bài hát trên trình phát</string>
+    <string name="settings_floating_lyrics_desc">Hiện dòng đang hát ở chỗ tên ca sĩ: trong thông báo, trên màn hình khoá và trên xe</string>
+    <string name="settings_floating_lyrics_detail">Dòng đang hát thay chỗ tên ca sĩ khi có người hát, và trả lại tên ca sĩ giữa các câu và khi không phát gì. Chỉ một trình phát, không còn bong bóng nổi trên ứng dụng khác và không cần cấp quyền gì thêm.</string></resources>

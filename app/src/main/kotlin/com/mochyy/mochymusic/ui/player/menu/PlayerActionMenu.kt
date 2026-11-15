@@ -533,7 +533,7 @@ private fun KeepScreenOnRow() {
     )
 }
 
-// the line being sung floating over other apps once mochy is out of sight
+// the line being sung in the player card's artist line, in the notification and on the lock screen
 @Composable
 private fun FloatingLyricsRow() {
     val (floating, setFloating) = com.mochyy.mochymusic.floating.rememberFloatingLyricsSwitch()

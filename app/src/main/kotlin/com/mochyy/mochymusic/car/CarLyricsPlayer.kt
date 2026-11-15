@@ -8,11 +8,12 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import java.util.concurrent.CopyOnWriteArrayList
 
-// what the media session hands the car: the real player, except that while car lyrics are on the line being sung sits where the artist was
+// what the media session hands the system: the real player, except that while lyrics are on the line being sung sits where the artist was
 @UnstableApi
 class CarLyricsPlayer(player: Player) : ForwardingPlayer(player) {
-    // a lyric is tied to its song, so a skip never shows the old song's line over the new one
-    class Overlay(val mediaId: String, val title: String, val line: String)
+    // a lyric is tied to its song, so a skip never shows the old song's line over the new one; the car takes the song and artist as the
+    // title to make room for it, the phone keeps the song's own title and only gives up the artist line
+    class Overlay(val mediaId: String, val line: String, val title: String? = null)
 
     // the session's own listeners, told straight away when the line changes since the player underneath never changes its metadata for it
     private val listeners = CopyOnWriteArrayList<Player.Listener>()
@@ -37,17 +38,16 @@ class CarLyricsPlayer(player: Player) : ForwardingPlayer(player) {
         listeners -= listener
     }
 
-    // the cover is left alone, so the car keeps the song's own picture and never reloads it for a new line
+    // the cover is left alone, so the card keeps the song's own picture and never reloads it for a new line
     override fun getMediaMetadata(): MediaMetadata {
         val real = super.getMediaMetadata()
         val shown = overlay ?: return real
         if (currentMediaItem?.mediaId != shown.mediaId) return real
-        // the car reads the subtitle when there is one and the artist otherwise, so the line goes in both
-        return real.buildUpon()
-            .setTitle(shown.title)
-            .setDisplayTitle(shown.title)
+        // the card reads the subtitle when there is one and the artist otherwise, so the line goes in both
+        val builder = real.buildUpon()
             .setArtist(shown.line)
             .setSubtitle(shown.line)
-            .build()
+        shown.title?.let { builder.setTitle(it).setDisplayTitle(it) }
+        return builder.build()
     }
 }

@@ -870,10 +870,12 @@ class MusicService :
                 // the same cover comes back done at once, so a new car lyric line doesn't blank the picture while it loads again
                 ).setBitmapLoader(CacheBitmapLoader(CoilBitmapLoader(this, scope)))
                 .build()
-        carLyrics = CarLyrics(this, CarLyricsSource(database, lyricsHelper), currentMediaMetadata, { player }, sessionPlayer, scope)
+        val car = CarLyrics(this, CarLyricsSource(database, lyricsHelper), currentMediaMetadata, { player }, sessionPlayer, scope)
             .also { it.start() }
+        carLyrics = car
+        // the phone's own lyrics ride on the same card the car uses, so they take turns rather than both writing it
         floatingLyrics = com.mochyy.mochymusic.floating.FloatingLyrics(
-            this, database, CarLyricsSource(database, lyricsHelper), currentMediaMetadata, playerFlow, scope,
+            this, CarLyricsSource(database, lyricsHelper), currentMediaMetadata, playerFlow, car.active, sessionPlayer, scope,
         ).also { it.start() }
         player.repeatMode = dataStore.get(RepeatModeKey, REPEAT_MODE_OFF)
 
@@ -4358,9 +4360,12 @@ class MusicService :
         super.onTaskRemoved(rootIntent)
     }
 
-    // every player the session is handed keeps the car's lyric wrapper, a crossfade's new player used to come without it and the lyrics left the car for good
+    // every player the session is handed keeps the lyric wrapper, a crossfade's new player used to come without it and the lyrics left the car for good
     private fun sessionPlayer(base: ExoPlayer): CarLyricsPlayer =
-        CarLyricsPlayer(TransportFadingPlayer(base, transport, audioPass)).also { carLyrics?.attach(it) }
+        CarLyricsPlayer(TransportFadingPlayer(base, transport, audioPass)).also {
+            carLyrics?.attach(it)
+            floatingLyrics?.attach(it)
+        }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
 
