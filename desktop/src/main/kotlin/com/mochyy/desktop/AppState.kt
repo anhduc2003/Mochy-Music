@@ -3,7 +3,10 @@ package com.mochyy.desktop
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.ImageBitmap
 import com.mochyy.desktop.audio.DesktopPlayer
+import com.mochyy.desktop.db.LibraryDb
+import com.mochyy.desktop.lyrics.EmbeddedLyricsSource
 import com.mochyy.desktop.model.Track
+import com.mochyy.desktop.net.InnerTube
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -25,6 +28,9 @@ class AppState {
     val player = DesktopPlayer()
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /** the library on disk; a failure to open it is not fatal, the session just isn't saved */
+    private val db: LibraryDb? = runCatching { LibraryDb() }.getOrNull()
+
     /** the queue as the user sees it; the player keeps its own copy for advancing */
     val queue = mutableStateListOf<Track>()
 
@@ -34,7 +40,36 @@ class AppState {
     private val _status = MutableStateFlow("Chưa có nhạc — hãy thêm thư mục hoặc tệp")
     val status: StateFlow<String> = _status.asStateFlow()
 
+    /** the lyric lines of whatever is playing, and which one is lit */
+    private val _lyrics = MutableStateFlow<List<LyricLine>>(emptyList())
+    val lyrics: StateFlow<List<LyricLine>> = _lyrics.asStateFlow()
+
+    init {
+        // whatever was saved last time, minus entries whose file has since gone
+        scope.launch {
+            val saved = runCatching { db?.pruneMissing(); db?.all() }.getOrNull().orEmpty()
+            if (saved.isNotEmpty()) {
+                _library.value = saved
+                queue.addAll(saved)
+                player.setQueue(saved)
+                _status.value = "Đã khôi phục ${saved.size} bài"
+            }
+        }
+    }
+
     var cover: ImageBitmap? = null
+
+    /** loads lyrics for [track]: the file's own tags first, since that needs no network */
+    fun loadLyrics(track: Track?) {
+        if (track == null) {
+            _lyrics.value = emptyList()
+            return
+        }
+        scope.launch {
+            val text = runCatching { EmbeddedLyricsSource().lyricsFor(track) }.getOrNull()
+            _lyrics.value = LyricLine.parse(text)
+        }
+    }
 
     /** adds a file or a whole folder, reading what it can and saying what it skipped */
     fun addPath(path: String) {
@@ -61,9 +96,16 @@ class AppState {
             val existing = _library.value.map { it.id }.toSet()
             val fresh = read.filter { it.id !in existing }
             _library.value = _library.value + fresh
-            if (queue.isEmpty()) queue.addAll(fresh)
+            if (queue.isEmpty()) queue.addAll(_library.value)
             player.setQueue(_library.value)
-            _status.value = "Đã thêm ${fresh.size} bài" + if (read.size > fresh.size) " (${read.size - fresh.size} bài đã có)" else ""
+            // saved before the status line, so a crash later doesn't lose what was just added
+            val saved = runCatching { db?.addAll(fresh) }.getOrNull() ?: 0
+            _status.value = buildString {
+                append("Đã thêm ${fresh.size} bài")
+                if (read.size > fresh.size) append(" (${read.size - fresh.size} bài đã có)")
+                if (db == null) append(" — không lưu được vào đĩa")
+                else if (saved > 0) append(" · đã lưu")
+            }
         }
     }
 
@@ -74,12 +116,42 @@ class AppState {
         queue.addAll(tracks)
         player.setQueue(tracks, index)
         player.play(track)
+        loadLyrics(track)
+    }
+
+    /** resolves an online result to a stream URL and starts it, without adding it to the library */
+    fun playOnline(videoId: String, title: String, artist: String, durationMs: Long, thumbnail: String?) {
+        scope.launch {
+            _status.value = "Đang lấy luồng phát cho “$title”…"
+            val url = runCatching { InnerTube().streamUrl(videoId) }.getOrNull()
+            if (url == null) {
+                _status.value = "Không lấy được luồng phát cho “$title”"
+                return@launch
+            }
+            val track = Track(
+                id = "yt:$videoId",
+                title = title,
+                artist = artist,
+                durationMs = durationMs,
+                uri = url,
+                thumbnailUrl = thumbnail,
+            )
+            queue.clear()
+            queue.add(track)
+            player.setQueue(listOf(track), 0)
+            player.play(track)
+            // an online track carries no embedded lyrics
+            _lyrics.value = emptyList()
+            _status.value = "Đang phát: $title"
+        }
     }
 
     fun clear() {
         player.stop()
         queue.clear()
         _library.value = emptyList()
+        _lyrics.value = emptyList()
+        runCatching { db?.clear() }
         _status.value = "Đã xoá thư viện"
     }
 

@@ -36,6 +36,21 @@ dependencies {
     // audio: tag reading. Coordinates are net.jthink — org.jaudiotagger is the old, abandoned group
     implementation("net.jthink:jaudiotagger:3.0.1")
 
+    // audio decoding beyond what the JDK ships (WAV/AIFF/AU). Each of these registers a
+    // javax.sound.sampled ServiceProvider, so AudioSystem picks them up by itself and the player
+    // needs no format-specific code: mp3spi adds MP3, vorbisspi adds OGG/Opus, and both pull in
+    // tritonus-share, which is the base they register against.
+    implementation("com.googlecode.soundlibs:mp3spi:1.9.5.4")
+    implementation("com.googlecode.soundlibs:vorbisspi:1.0.3.3")
+    implementation("com.googlecode.soundlibs:tritonus-share:0.3.7.4")
+
+    // FLAC and AAC/M4A as javax.sound SPI providers too, so every format this app lists goes
+    // through one path: AudioSystem finds the provider, the player decodes nothing itself.
+    implementation("com.tianscar.javasound:javasound-flac:1.4.1")
+
+    // library persistence. Room is Android-only; the PC build talks SQLite directly through JDBC.
+    implementation("org.xerial:sqlite-jdbc:3.49.1.0")
+
     testImplementation(kotlin("test"))
     testImplementation("junit:junit:4.13.2")
 }

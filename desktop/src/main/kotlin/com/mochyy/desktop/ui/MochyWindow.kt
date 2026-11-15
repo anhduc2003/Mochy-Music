@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mochyy.desktop.AppState
+import com.mochyy.desktop.LyricLine
 import com.mochyy.desktop.model.Track
 import java.io.File
 import javax.swing.JFileChooser
@@ -60,32 +61,48 @@ fun MochyWindow(state: AppState) {
     val library by state.library.collectAsState()
     val status by state.status.collectAsState()
     val playerState by state.player.state.collectAsState()
+    val lyrics by state.lyrics.collectAsState()
 
     var selectedIndex by remember { mutableStateOf(-1) }
+    var tab by remember { mutableStateOf(0) }
 
     Surface(color = Color(0xFF121216), modifier = Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            Header(state, library.size, status)
+            Header(state, library.size, status, tab) { tab = it }
 
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                if (library.isEmpty()) {
-                    EmptyState()
-                } else {
-                    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-                        itemsIndexed(library, key = { _, t -> t.id }) { index, track ->
-                            TrackRow(
-                                track = track,
-                                index = index,
-                                isCurrent = playerState.track?.id == track.id,
-                                isPlaying = playerState.playing && playerState.track?.id == track.id,
-                                onClick = {
-                                    selectedIndex = index
-                                    state.playFrom(index)
-                                },
-                            )
+            Row(Modifier.weight(1f).fillMaxWidth()) {
+                Box(Modifier.weight(1f).fillMaxHeight()) {
+                    if (tab == 1) {
+                        SearchPane(
+                            onPlay = { videoId, title, artist, durationMs, thumb ->
+                                state.playOnline(videoId, title, artist, durationMs, thumb)
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else if (library.isEmpty()) {
+                        EmptyState()
+                    } else {
+                        LazyColumn(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
+                            itemsIndexed(library, key = { _, t -> t.id }) { index, track ->
+                                TrackRow(
+                                    track = track,
+                                    index = index,
+                                    isCurrent = playerState.track?.id == track.id,
+                                    isPlaying = playerState.playing && playerState.track?.id == track.id,
+                                    onClick = {
+                                        selectedIndex = index
+                                        state.playFrom(index)
+                                    },
+                                )
+                            }
                         }
                     }
                 }
+                LyricsPane(
+                    lyrics = lyrics,
+                    positionMs = playerState.positionMs,
+                    modifier = Modifier.width(320.dp).fillMaxHeight(),
+                )
             }
 
             PlayerBar(state, selectedIndex)
@@ -93,8 +110,41 @@ fun MochyWindow(state: AppState) {
     }
 }
 
+/** the line being sung, lit, with the ones around it for context */
 @Composable
-private fun Header(state: AppState, count: Int, status: String) {
+private fun LyricsPane(lyrics: List<LyricLine>, positionMs: Long, modifier: Modifier = Modifier) {
+    val active = LyricLine.indexAt(lyrics, positionMs)
+    Column(
+        modifier
+            .background(Color(0xFF16161C))
+            .padding(horizontal = 18.dp, vertical = 16.dp),
+    ) {
+        Text("Lời bài hát", color = Color(0xFF6A6A76), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(10.dp))
+        when {
+            lyrics.isEmpty() -> Text(
+                "Không có lời trong tệp",
+                color = Color(0xFF4E4E58),
+                fontSize = 12.sp,
+            )
+            else -> LazyColumn {
+                itemsIndexed(lyrics) { index, line ->
+                    val isActive = index == active
+                    Text(
+                        line.text,
+                        color = if (isActive) Color(0xFFB4BEFE) else Color(0xFF7A7A88),
+                        fontSize = if (isActive) 15.sp else 13.sp,
+                        fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                        modifier = Modifier.padding(vertical = 4.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Header(state: AppState, count: Int, status: String, tab: Int, onTab: (Int) -> Unit) {
     Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -105,6 +155,13 @@ private fun Header(state: AppState, count: Int, status: String) {
             )
             Spacer(Modifier.width(10.dp))
             Text("PC", color = Color(0xFF7A7A85), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.width(26.dp))
+            TextButton(onClick = { onTab(0) }) {
+                Text("Thư viện", color = if (tab == 0) Color(0xFFB4BEFE) else Color(0xFF8A8A95), fontSize = 13.sp)
+            }
+            TextButton(onClick = { onTab(1) }) {
+                Text("Tìm online", color = if (tab == 1) Color(0xFFB4BEFE) else Color(0xFF8A8A95), fontSize = 13.sp)
+            }
             Spacer(Modifier.weight(1f))
             TextButton(onClick = { pickFolder()?.let(state::addPath) }) { Text("Thêm thư mục") }
             TextButton(onClick = { pickFiles()?.forEach(state::addPath) }) { Text("Thêm tệp") }
