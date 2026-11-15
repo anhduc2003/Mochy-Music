@@ -2,9 +2,23 @@ name: Build Release APK
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish (leave empty to only build the artifact)'
+        required: false
+        default: ''
+      release_name:
+        description: 'Release title (leave empty to use "Mochy Music <tag>")'
+        required: false
+        default: ''
+      prerelease:
+        description: 'Mark the release as a pre-release'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build_release:
@@ -56,9 +70,82 @@ jobs:
           mkdir -p release-apk
           cp app/build/outputs/apk/universalFoss/release/*.apk release-apk/mochy-universal-foss-release.apk
 
+      - name: Collect build metadata
+        id: meta
+        run: |
+          version_name=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts | head -1)
+          version_code=$(grep -oP 'versionCode\s*=\s*\K[0-9]+' app/build.gradle.kts | head -1)
+          apk="release-apk/mochy-universal-foss-release.apk"
+          size=$(du -h "$apk" | cut -f1)
+          sha=$(sha256sum "$apk" | cut -d' ' -f1)
+          echo "version_name=$version_name" >> "$GITHUB_OUTPUT"
+          echo "version_code=$version_code" >> "$GITHUB_OUTPUT"
+          echo "size=$size" >> "$GITHUB_OUTPUT"
+          echo "sha256=$sha" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Upload release APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: mochy-universal-foss-release
           path: release-apk/mochy-universal-foss-release.apk
           if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: inputs.tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          RELEASE_NAME: ${{ inputs.release_name }}
+          VERSION_NAME: ${{ steps.meta.outputs.version_name }}
+          VERSION_CODE: ${{ steps.meta.outputs.version_code }}
+          APK_SIZE: ${{ steps.meta.outputs.size }}
+          APK_SHA: ${{ steps.meta.outputs.sha256 }}
+          SHORT_SHA: ${{ steps.meta.outputs.short_sha }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          set -euo pipefail
+          name="${RELEASE_NAME:-Mochy Music $VERSION_NAME}"
+
+          cat > notes.md <<EOF
+          Sync with upstream **mochy-8.4.1** (\`eafbbe6\`), keeping this fork's Vietnamese localisation and its own features.
+
+          ### What's new from 8.4.1
+          - **InnerTubeX stream backend** with the classic finder as automatic fallback (Settings → Experimental → Stream backend)
+          - **Floating lyrics**: the line being sung in a small bubble over other apps, dragged anywhere or dropped on the cross to hide
+          - **New welcome page**: the mochy girl with an animated rig (eyes, hair, mouth, phone), tap anywhere to continue
+          - **Rotate button** in the player menu, straight from the turntable
+          - **lrc.red lyrics provider** and lyric export fixes
+          - **Romanisation** for song share cards and lyrics (Japanese, Korean, Chinese, Hindi, Cyrillic)
+          - Song share and crossmix fixes, song-share export fixes
+          - \`compileSdk\`/\`targetSdk\` 37, \`SYSTEM_ALERT_WINDOW\` and \`ACCESS_LOCAL_NETWORK\` permissions
+
+          ### Kept from this fork
+          - Vietnamese UI, including the 22 newly translated strings for the 8.4.1 screens
+          - Crossmix transition mode
+          - Neon and Mask karaoke lyric styles
+          - Cropped device-image player background, direct video cover toggle
+          - Playback, network and lyric stability fixes
+
+          ### Build
+          - \`versionCode $VERSION_CODE\`, \`versionName $VERSION_NAME\`
+          - Universal FOSS, minSdk 24, targetSdk 37
+          - Signed with a debug keystore generated at build time: **for testing only**. It cannot go on Play Store and cannot upgrade an install signed with a different key.
+          - SHA-256 \`$APK_SHA\`
+
+          Built by the \`Build Release APK\` workflow on \`$SHORT_SHA\`. APK size: $APK_SIZE.
+          EOF
+
+          # idempotent: drop an existing release/tag so a re-run republishes cleanly
+          gh release delete "$TAG" --yes --cleanup-tag || true
+
+          flags=()
+          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+
+          gh release create "$TAG" \
+            release-apk/mochy-universal-foss-release.apk \
+            --title "$name" \
+            --notes-file notes.md \
+            "${flags[@]}"
+
+          echo "Published: $(gh release view "$TAG" --json url --jq .url)"
