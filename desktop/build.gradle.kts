@@ -50,6 +50,11 @@ dependencies {
 
     // library persistence. Room is Android-only; the PC build talks SQLite directly through JDBC.
     implementation("org.xerial:sqlite-jdbc:3.49.1.0")
+    // sqlite-jdbc references SLF4J reflectively and treats it as optional. Without a binding on
+    // the classpath, the release packaging step (ProGuard) refuses to shrink it: it cannot resolve
+    // org.slf4j.LoggerFactory. The no-op binding satisfies that and silences the driver's logging,
+    // which is what we want anyway.
+    implementation("org.slf4j:slf4j-nop:2.0.16")
 
     testImplementation(kotlin("test"))
     testImplementation("junit:junit:4.13.2")
@@ -64,12 +69,32 @@ compose.desktop {
             packageName = "Mochy"
             packageVersion = "1.0.0"
             description = "Mochy Music for PC"
+            // the minimum each jpackage runtime image needs; without a vendor the runtime
+            // detection picks whatever JDK built it, which breaks on another machine
+            vendor = "Mochy"
 
             windows {
                 menuGroup = "Mochy"
                 // a stable UUID so upgrades replace the previous install instead of stacking
                 upgradeUuid = "6f3b1d5a-2c47-4e88-9a1e-7d5c3b8f2a61"
             }
+
+            // jpackage's own rules, merged with what the app needs. The reflection-heavy parts
+            // (kotlinx.serialization, sqlite-jdbc's driver loading, jaudiotagger's tag handlers)
+            // are referenced by name at runtime, so shrinking cannot see them.
+            includeAllModules = true
+        }
+    }
+}
+
+// ProGuard runs on the release packaging path and has to be told about the reflective loads.
+// Without these the release build fails while the debug one succeeds, which is a confusing
+// difference to hit on a CI runner for the first time.
+compose.desktop {
+    application {
+        buildTypes.release.proguard {
+            configurationFiles.from("proguard-desktop.pro")
+            isEnabled.set(true)
         }
     }
 }

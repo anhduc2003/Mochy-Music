@@ -6,12 +6,32 @@ Bản Mochy chạy trên máy tính, viết bằng Kotlin + Compose Desktop. Đ�
 ## Chạy
 
 ```bash
-./gradlew :desktop:run                          # chạy trực tiếp
-./gradlew :desktop:createDistributable          # đóng gói ra thư mục có Mochy.exe
-./gradlew :desktop:packageDistributionForCurrentOS  # ra installer (.msi/.dmg/.deb)
+./gradlew :desktop:run                              # chạy trực tiếp
+./gradlew :desktop:createReleaseDistributable       # app image (portable, không cần WiX/dpkg)
+./gradlew :desktop:packageReleaseDistributionForCurrentOS  # installer (.msi/.dmg/.deb)
 ```
 
 Yêu cầu JDK 21.
+
+### Bản phát hành
+
+Workflow `Build PC Release` dựng cho cả ba hệ điều hành và phát hành lên GitHub Releases:
+
+```
+Actions → Build PC Release → Run workflow → nhập tag (ví dụ vpc-1.0.0)
+```
+
+Mỗi hệ điều hành có hai dạng, vì installer gốc cần công cụ riêng trên runner:
+
+| | Bản cài | Bản portable |
+|---|---|---|
+| Windows | `.msi` (cần WiX) | `.zip` |
+| macOS | `.dmg` | `.tar.gz` |
+| Linux | `.deb` (cần dpkg) | `.tar.gz` |
+
+Bản **portable luôn dựng được** — nó là app-image của jpackage, không cần WiX, Xcode tooling hay
+dpkg. Installer được thử sau và bỏ qua nếu runner thiếu công cụ, nên một nền tảng lỗi không làm
+mất hai nền tảng còn lại.
 
 ## Vì sao là module riêng
 

@@ -1,0 +1,221 @@
+name: Build PC Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish (leave empty to only build artifacts)'
+        required: false
+        default: ''
+      release_name:
+        description: 'Release title (leave empty to use "Mochy PC <version>")'
+        required: false
+        default: ''
+      prerelease:
+        description: 'Mark the release as a pre-release'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    if: github.actor != 'dependabot[bot]'
+    strategy:
+      # one platform failing must not throw away the other two
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: windows
+            installer: msi
+            portable: zip
+          - os: macos-latest
+            artifact: macos
+            installer: dmg
+            portable: tar.gz
+          - os: ubuntu-latest
+            artifact: linux
+            installer: deb
+            portable: tar.gz
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-disabled: true
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+        if: runner.os != 'Windows'
+
+      - name: Install packaging tools (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends fakeroot dpkg-dev
+
+      # The portable app-image is the guaranteed artifact: it needs no WiX, no Xcode tooling and
+      # no dpkg, so it builds on every runner. The native installer is attempted after it.
+      - name: Build portable app image
+        env:
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
+          DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
+        run: ./gradlew :desktop:createReleaseDistributable --no-configuration-cache --console=plain
+
+      - name: Pack the portable build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          root=$(find desktop/build/compose/binaries/main-release -maxdepth 2 -type d -name Mochy | head -1)
+          if [ -z "$root" ]; then
+            echo "app image missing; what was built:"
+            find desktop/build/compose/binaries -maxdepth 4 | head -40
+            exit 1
+          fi
+          parent=$(dirname "$root")
+          base="mochy-pc-${{ matrix.artifact }}"
+          if [ "${{ matrix.portable }}" = "zip" ]; then
+            # zip from inside the parent so the archive holds a single top-level Mochy/ folder
+            (cd "$parent" && zip -qr "$OLDPWD/out/$base.zip" Mochy)
+          else
+            # --transform keeps permissions (the launcher must stay executable), and the archive
+            # still unpacks into one Mochy/ folder
+            tar -czpf "out/$base.tar.gz" -C "$parent" Mochy
+          fi
+          ls -lh out
+
+      - name: Build native installer
+        continue-on-error: true
+        env:
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
+          DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
+        run: ./gradlew :desktop:packageReleaseDistributionForCurrentOS --no-configuration-cache --console=plain
+
+      - name: Collect the installer
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          found=$(find desktop/build/compose/binaries -type f -iname "*.${{ matrix.installer }}" | head -1)
+          if [ -z "$found" ]; then
+            echo "No .${{ matrix.installer }} produced (its packaging tool may be missing on this runner)."
+            echo "The portable build is still uploaded."
+            exit 0
+          fi
+          cp "$found" "out/mochy-pc-${{ matrix.artifact }}.${{ matrix.installer }}"
+          ls -lh out
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mochy-pc-${{ matrix.artifact }}
+          path: out/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish the release
+    needs: build
+    if: inputs.tag != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: mochy-pc-*
+
+      - name: Collect build metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(grep -oP 'packageVersion\s*=\s*"\K[^"]+' desktop/build.gradle.kts | head -1)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          find dist -type f | sort
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          RELEASE_NAME: ${{ inputs.release_name }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          SHORT_SHA: ${{ steps.meta.outputs.short_sha }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          name="${RELEASE_NAME:-Mochy PC $VERSION}"
+
+          cat > notes.md <<'EOF'
+          Bản Mochy dành cho máy tính, viết bằng Kotlin + Compose Desktop.
+
+          ### Tải về
+
+          Mỗi hệ điều hành có hai dạng: **bản cài** (nếu runner dựng được) và **bản portable**
+          (giải nén ra là chạy, không cần cài).
+
+          | Hệ điều hành | Bản cài | Bản portable |
+          |---|---|---|
+          | Windows | `mochy-pc-windows.msi` | `mochy-pc-windows.zip` |
+          | macOS | `mochy-pc-macos.dmg` | `mochy-pc-macos.tar.gz` |
+          | Linux | `mochy-pc-linux.deb` | `mochy-pc-linux.tar.gz` |
+
+          Bản portable: giải nén, vào thư mục `Mochy/` và chạy `Mochy` (Windows: `Mochy.exe`).
+
+          ### Có gì
+          - Phát nhạc: WAV, AIFF, AU, **MP3, OGG/Opus, FLAC**
+          - Thư viện lưu trên đĩa, tự dọn bài đã mất tệp
+          - **Lời bài hát đồng bộ** đọc từ tag trong tệp (ID3 USLT/SYLT, Vorbis comment, ©lyr của M4A)
+          - **Crossmix** dùng chung thuật toán với bản Android
+          - **Tìm kiếm và phát nhạc YouTube Music**
+          - Last.fm scrobble, Discord Rich Presence
+          - Nền gradient lấy màu từ ảnh bìa
+
+          ### Lưu ý
+          - Bản dựng không kèm API key: Last.fm và Discord tắt, phần còn lại chạy bình thường.
+          - Phần lấy luồng phát YouTube phụ thuộc yêu cầu client hiện tại của YouTube và có thể hỏng
+            khi họ đổi. Khi hỏng, app báo lỗi rõ chứ không im lặng.
+          - **macOS**: bản dựng chưa ký số. Lần đầu mở cần chuột phải → Open, hoặc chạy
+            `xattr -dr com.apple.quarantine /Applications/Mochy.app`.
+          - **Windows**: bản `.msi` cần WiX trên máy dựng; nếu thiếu thì chỉ có bản portable.
+          - **Linux**: bản portable cần Java 21 trên máy đích, hoặc dùng bản `.deb`.
+
+          ### Kiểm thử
+          12 unit test, gồm kiểm tra thật với YouTube cho cả tìm kiếm và luồng phát.
+          EOF
+
+          echo "" >> notes.md
+          echo "Dựng từ commit \`$SHORT_SHA\`." >> notes.md
+
+          gh release delete "$TAG" --yes --cleanup-tag || true
+
+          flags=()
+          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+
+          gh release create "$TAG" dist/*/* \
+            --title "$name" \
+            --notes-file notes.md \
+            "${flags[@]}"
+
+          echo "Published: $(gh release view "$TAG" --json url --jq .url)"
