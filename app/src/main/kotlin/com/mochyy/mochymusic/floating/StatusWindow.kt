@@ -2,6 +2,8 @@
 
 package com.mochyy.mochymusic.floating
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.annotation.SuppressLint
@@ -62,6 +64,24 @@ internal class StatusWindow(
     private val root = DragFrame()
     private val compose = ComposeView(context)
 
+    // WindowMetrics may cross into the system server. Keep one coherent snapshot for
+    // each gesture/animation instead of asking for screen and insets on every frame.
+    private data class Geometry(val screen: Point, val safe: Rect, val placement: Rect)
+    private var geometry: Geometry? = null
+    private fun geometry(): Geometry = geometry ?: readGeometry().also { geometry = it }
+    private fun refreshGeometry() { geometry = readGeometry() }
+
+    private data class SubmittedLayout(
+        val width: Int, val height: Int, val x: Int, val y: Int,
+        val displayMode: Int, val refreshRate: Float,
+    )
+    private var submittedLayout: SubmittedLayout? = null
+    private var updatePending = false
+    private val frameUpdate = Runnable {
+        updatePending = false
+        update()
+    }
+
     // Only user resizing changes this preference. Rotation and automatic sizing merely
     // constrain its current presentation, so returning to a wider screen restores it.
     private var maximumWidthDp = (savedWidthDp?.toFloat() ?: defaultWidthDp()).coerceAtLeast(120f)
@@ -75,6 +95,13 @@ internal class StatusWindow(
     private val heightDp = 38f
     var expanded by mutableStateOf(false)
         private set
+
+    // Read by the capsule so it reveals the fixed-width content from the anchored side.
+    var currentAnchor by mutableStateOf(
+        StatusGeometry.Anchor.entries.firstOrNull { it.name == savedAnchor } ?: StatusGeometry.Anchor.CENTER,
+    )
+        private set
+
     private var anchor = StatusGeometry.Anchor.entries.firstOrNull { it.name == savedAnchor }
         ?: StatusGeometry.Anchor.CENTER
     private var verticalFraction = savedVerticalFraction?.coerceIn(0, 1000)
@@ -107,9 +134,11 @@ internal class StatusWindow(
 
     // false when the system refused the window, the permission was taken back most likely
     fun show(content: @Composable () -> Unit): Boolean {
+        refreshGeometry()
         val bounds = placementBounds()
         // Migrate the old free position to the nearest stable anchor once.
         if (savedAnchor == null) anchor = StatusGeometry.snapAnchor(params.x, params.width, screenSize().x, bounds.left, bounds.right, px(36f))
+        currentAnchor = anchor
         if (verticalFraction == null) verticalFraction = StatusGeometry.verticalFraction(params.y, params.height, bounds.top, bounds.bottom)
         applyAnchor()
         clampInto(params)
@@ -126,6 +155,7 @@ internal class StatusWindow(
 
     fun remove() {
         removed = true
+        cancelPendingUpdate()
         cancelWidthAnimation()
         owner.destroy()
         runCatching { windowManager.removeView(root) }
@@ -138,14 +168,16 @@ internal class StatusWindow(
     }
 
     private fun cancelWidthAnimation() {
-        widthAnimator?.cancel()
         widthAnimator?.removeAllUpdateListeners()
+        widthAnimator?.cancel()
         widthAnimator = null
         targetWidthPx = 0
+        targetHeightPx = 0
     }
 
     private fun adaptWidth(animate: Boolean = true) {
         if (touching || removed) return
+        if (widthAnimator?.isRunning != true) refreshGeometry()
         fittingWidthDp = StatusGeometry.width(maximumWidthDp, maxWidthDp())
         val target = px(if (expanded) minOf(280f, maxWidthDp()) else StatusGeometry.adaptiveWidth(
             contentWidthDp ?: maximumWidthDp, maximumWidthDp, maxWidthDp(),
@@ -167,10 +199,12 @@ internal class StatusWindow(
             params.x = (startX + (endX - startX) * fraction).roundToInt()
             params.y = (startY + (endY - startY) * fraction).roundToInt()
             clampInto(params)
-            update()
+            // One relayout per frame no matter how many animator ticks land in it.
+            scheduleUpdate()
         }
         if (!animate || !root.isAttachedToWindow) {
             applySize(1f)
+            flushUpdate()
             return
         }
         if (target == startWidth && targetHeight == startHeight && startX == endX && startY == endY) return
@@ -180,6 +214,10 @@ internal class StatusWindow(
             duration = 260L
             interpolator = AccelerateDecelerateInterpolator()
             addUpdateListener { applySize(it.animatedValue as Float) }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) = flushUpdate()
+                override fun onAnimationCancel(animation: Animator) = flushUpdate()
+            })
             start()
         }
     }
@@ -198,18 +236,36 @@ internal class StatusWindow(
         update()
     }
 
+    private fun scheduleUpdate() {
+        if (removed || updatePending || !root.isAttachedToWindow) return
+        updatePending = true
+        root.postOnAnimation(frameUpdate)
+    }
+
+    private fun cancelPendingUpdate() {
+        root.removeCallbacks(frameUpdate)
+        updatePending = false
+    }
+
+    private fun flushUpdate() {
+        cancelPendingUpdate()
+        update()
+    }
+
     private fun update() {
-        if (root.isAttachedToWindow) runCatching { windowManager.updateViewLayout(root, params) }
+        if (removed || !root.isAttachedToWindow) return
+        val next = SubmittedLayout(params.width, params.height, params.x, params.y,
+            params.preferredDisplayModeId, params.preferredRefreshRate)
+        if (next == submittedLayout) return
+        runCatching { windowManager.updateViewLayout(root, params) }
+            .onSuccess { submittedLayout = next }
     }
 
     private fun persistPosition() {
         listener.onMoved(params.x, params.y, anchor, verticalFraction ?: 0)
     }
 
-    private fun placementBounds(): Rect = safeBounds().apply {
-        val margin = minOf(px(EdgeRoomDp), (width() / 2 - 1).coerceAtLeast(0), (height() / 2 - 1).coerceAtLeast(0))
-        inset(margin, margin)
-    }
+    private fun placementBounds(): Rect = geometry().placement
 
     private fun applyAnchor() {
         val bounds = placementBounds()
@@ -227,25 +283,34 @@ internal class StatusWindow(
 
     private fun maxWidthDp(): Float = safeBounds().width() / density - EdgeRoomDp * 2f
 
-    private fun screenSize(): Point = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        val bounds = windowManager.currentWindowMetrics.bounds
-        Point(bounds.width(), bounds.height())
-    } else {
-        Point().also {
-            @Suppress("DEPRECATION")
-            windowManager.defaultDisplay.getRealSize(it)
+    private fun screenSize(): Point = geometry().screen
+    private fun safeBounds(): Rect = geometry().safe
+
+    private fun readGeometry(): Geometry {
+        val screen: Point
+        val safe: Rect
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val metrics = windowManager.currentWindowMetrics
+            screen = Point(metrics.bounds.width(), metrics.bounds.height())
+            val insets = metrics.windowInsets.getInsetsIgnoringVisibility(
+                WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout(),
+            )
+            safe = Rect(insets.left, insets.top, screen.x - insets.right, screen.y - insets.bottom)
+        } else {
+            screen = Point().also {
+                @Suppress("DEPRECATION")
+                windowManager.defaultDisplay.getRealSize(it)
+            }
+            safe = legacySafeBounds(screen)
         }
+        val placement = Rect(safe)
+        val margin = minOf(px(EdgeRoomDp), (safe.width() / 2 - 1).coerceAtLeast(0), (safe.height() / 2 - 1).coerceAtLeast(0))
+        placement.inset(margin, margin)
+        return Geometry(screen, safe, placement)
     }
 
     @SuppressLint("DiscouragedApi", "InternalInsetResource")
-    private fun safeBounds(): Rect {
-        val screen = screenSize()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val insets = windowManager.currentWindowMetrics.windowInsets.getInsetsIgnoringVisibility(
-                WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout(),
-            )
-            return Rect(insets.left, insets.top, screen.x - insets.right, screen.y - insets.bottom)
-        }
+    private fun legacySafeBounds(screen: Point): Rect {
         fun inset(name: String, fallback: Int): Int {
             val id = context.resources.getIdentifier(name, "dimen", "android")
             return if (id > 0) context.resources.getDimensionPixelSize(id) else fallback
@@ -294,8 +359,12 @@ internal class StatusWindow(
                 MotionEvent.ACTION_DOWN -> {
                     touching = true
                     cancelWidthAnimation()
-                    // Layout may still be catching up with the last animation frame.
+                    cancelPendingUpdate()
+                    refreshGeometry()
+                    // Reconcile the rendered size after interruption; subsequent rebases
+                    // use the latest requested size even if traversal has not run yet.
                     if (width > 0) params.width = width
+                    if (height > 0) params.height = height
                     changedWidth = false
                     changedPosition = false
                     firstId = event.getPointerId(0)
@@ -344,7 +413,7 @@ internal class StatusWindow(
                         params.y = fromY + dy.roundToInt()
                         clampInto(params)
                         changedPosition = true
-                        update()
+                        scheduleUpdate()
                     } else if (childStream) super.dispatchTouchEvent(event)
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
@@ -380,7 +449,7 @@ internal class StatusWindow(
             clampInto(params)
             changedWidth = true
             changedPosition = true
-            update()
+            scheduleUpdate()
         }
 
         private fun rebase(event: MotionEvent) {
@@ -398,10 +467,13 @@ internal class StatusWindow(
         }
 
         private fun finish(resume: Boolean = true) {
+            // Ensure the final pointer position is submitted before persisting it.
+            flushUpdate()
             if (changedWidth) listener.onResized(maximumWidthDp.roundToInt())
             if (changedPosition) {
                 val bounds = placementBounds()
                 anchor = StatusGeometry.snapAnchor(params.x, params.width, screenSize().x, bounds.left, bounds.right, px(36f))
+                currentAnchor = anchor
                 verticalFraction = StatusGeometry.verticalFraction(params.y, params.height, bounds.top, bounds.bottom)
                 persistPosition()
             }
@@ -427,11 +499,25 @@ internal class StatusWindow(
             super.onConfigurationChanged(newConfig)
             cancelWidthAnimation()
             finish(resume = false)
+            refreshGeometry()
             params.height = minOf(px(heightDp), safeBounds().height().coerceAtLeast(1))
             adaptWidth(animate = false)
             clampInto(params)
             update()
             persistPosition()
+        }
+
+        // Insets can change without a configuration change (navigation bar hiding, cutout
+        // moving on rotation for some OEMs); the cached safe area must follow, but nothing
+        // else in the frame loop needs to re-read window metrics.
+        override fun onApplyWindowInsets(insets: WindowInsets): WindowInsets {
+            refreshGeometry()
+            return super.onApplyWindowInsets(insets)
+        }
+
+        override fun onAttachedToWindow() {
+            super.onAttachedToWindow()
+            refreshGeometry()
         }
     }
 }

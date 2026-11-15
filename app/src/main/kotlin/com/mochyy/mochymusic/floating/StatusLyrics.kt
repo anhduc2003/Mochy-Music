@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -77,7 +79,14 @@ private const val SizeStepSp = 0.5f
 
 // the line being sung in a black capsule: the cover with how far along the song is as a ring, then the line itself sweeping as it's sung
 @Composable
-internal fun StatusLyrics(state: PillState, fittingWidthDp: Float, onContentWidth: (Float) -> Unit) {
+internal fun StatusLyrics(
+    state: PillState,
+    fittingWidthDp: Float,
+    onContentWidth: (Float) -> Unit,
+    // Which side stays put while the capsule animates: the content is laid out at the
+    // full width and simply revealed from that side instead of being squeezed.
+    anchor: StatusGeometry.Anchor = StatusGeometry.Anchor.CENTER,
+) {
     val script = state.script
     var rowIndex by remember(script) {
         mutableIntStateOf(script?.let { it.stops[it.stopAt(state.lyricsClock())].top } ?: 0)
@@ -160,11 +169,26 @@ internal fun StatusLyrics(state: PillState, fittingWidthDp: Float, onContentWidt
         }
         LaunchedEffect(contentWidth, onContentWidth) { onContentWidth(contentWidth) }
 
-        Row(Modifier.fillMaxSize().absolutePadding(right = handleWidth), verticalAlignment = Alignment.CenterVertically) {
+        val contentAlignment = when (anchor) {
+            StatusGeometry.Anchor.LEFT -> Alignment.CenterStart
+            StatusGeometry.Anchor.RIGHT -> Alignment.CenterEnd
+            StatusGeometry.Anchor.CENTER -> Alignment.Center
+        }
+        Row(
+            Modifier
+                .align(contentAlignment)
+                .wrapContentHeight()
+                .absolutePadding(right = handleWidth),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Spacer(Modifier.width(edge))
             CoverDisc(state, cover, progress)
             Spacer(Modifier.width(gap))
             key(script, rowIndex) {
+                // Laid out at a stable width taken from the saved maximum, never the animating
+                // window width. The text is a single unwrapped line, so the capsule simply
+                // reveals/covers it as it grows or shrinks instead of re-laying the glyphs
+                // (and the karaoke shader layer) out on every frame of the animation.
                 LyricLine(
                     text = text,
                     words = row?.words,
@@ -173,7 +197,7 @@ internal fun StatusLyrics(state: PillState, fittingWidthDp: Float, onContentWidt
                     seekTick = state.seekTick,
                     appear = { appear.value },
                     room = room,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.requiredWidth(with(density) { room.toDp() }),
                 )
             }
         }

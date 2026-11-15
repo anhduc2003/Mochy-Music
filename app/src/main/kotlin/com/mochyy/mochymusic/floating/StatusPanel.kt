@@ -38,8 +38,7 @@ internal fun StatusPanel(state: PillState, window: StatusWindow, onContentWidth:
         Box(Modifier.fillMaxWidth().height(38.dp).semantics {
             onClick(label = action) { window.changeExpanded(!window.expanded); true }
         }) {
-            StatusLyrics(state, if (window.expanded) minOf(280f, window.fittingWidthDp) else window.fittingWidthDp, onContentWidth)
-        }
+            StatusLyrics(state, if (window.expanded) minOf(280f, window.fittingWidthDp) else window.fittingWidthDp, onContentWidth, StatusGeometry.Anchor.CENTER)        }
         if (window.expanded) {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 val buttons: @Composable (Boolean) -> Unit = { transport ->
