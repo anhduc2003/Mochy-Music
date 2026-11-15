@@ -42,6 +42,10 @@ include(":modules:applemusic")
 include(":modules:monochrome")
 include(":modules:jiosaavn")
 
+// the PC build: a separate module because :app is an Android application and nothing in its UI
+// compiles off Android. It shares code with :app by copying the Android-free sources over.
+include(":desktop")
+
 
 // local newpipe extractor
 //includeBuild("../NewPipeExtractor") {

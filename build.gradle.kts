@@ -3,6 +3,10 @@ plugins {
     alias(libs.plugins.kotlin.ksp) apply (false)
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.protobufPlugin) apply false
+    // the PC build's toolchain: Compose Multiplatform and the Kotlin Compose compiler plugin.
+    // Declared here with apply false so :desktop can apply them without a version.
+    id("org.jetbrains.compose") version "1.9.0" apply false
+    id("org.jetbrains.kotlin.plugin.compose") version "2.3.10" apply false
 }
 
 buildscript {
