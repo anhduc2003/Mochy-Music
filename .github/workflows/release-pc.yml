@@ -82,19 +82,24 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out
-          root=$(find desktop/build/compose/binaries/main-release -maxdepth 2 -type d -name Mochy | head -1)
-          if [ -z "$root" ]; then
-            echo "app image missing; what was built:"
+          base="mochy-pc-${{ matrix.artifact }}"
+
+          # jpackage names the app image differently per platform: Windows and Linux produce
+          # `app/Mochy/`, macOS produces `app/Mochy.app/`. Looking for exactly "Mochy" is why the
+          # first macOS attempt found nothing.
+          image=$(find desktop/build/compose/binaries/main-release -maxdepth 2 -type d -name 'Mochy*' | head -1)
+          if [ -z "$image" ]; then
+            echo "::error::app image not found. What was built:"
             find desktop/build/compose/binaries -maxdepth 4 | head -40
             exit 1
           fi
-          parent=$(dirname "$root")
-          base="mochy-pc-${{ matrix.artifact }}"
+          name=$(basename "$image")
+          parent=$(dirname "$image")
+          echo "packing $name from $parent"
 
           # java's jar tool rather than zip/tar: it is the one archiver guaranteed on all three
-          # runners. The windows image has no `zip` binary at all, and macos has no GNU tar flags.
-          jar --create --file "out/$base.${{ matrix.portable }}" -C "$parent" Mochy
-
+          # runners. Windows has no zip binary, and macOS tar is BSD (different long-flag set).
+          jar --create --file "out/$base.zip" -C "$parent" "$name"
           ls -lh out
 
       - name: Build native installer
