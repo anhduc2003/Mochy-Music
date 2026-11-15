@@ -105,7 +105,17 @@ class FloatingLyrics(
         )
         if (!bar.show { StatusLyrics(state) }) return
         window = bar
-        follow = scope.launch { followSong() }
+        follow = scope.launch {
+            launch {
+                combine(
+                    context.dataStore.data.map { it[com.mochyy.mochymusic.constants.EnableHighRefreshRateKey] ?: true }.distinctUntilChanged(),
+                    androidx.compose.runtime.snapshotFlow { state.playing },
+                ) { enabled, playing -> enabled && playing }
+                    .distinctUntilChanged()
+                    .collect { bar.setHighRefreshRate(it) }
+            }
+            followSong()
+        }
     }
 
     private fun close() {

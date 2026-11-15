@@ -1059,9 +1059,12 @@ internal fun KaraokeSweepText(
     /** Letter rise and swell distances, relative to the full-size line. */
     motionScale: Float = 1f,
     probe: SweepProbe? = null,
+    /** Stop frame callbacks for a paused overlay, but refresh once after seeks. */
+    animationRunning: Boolean = true,
+    animationSeekTick: Int = 0,
 ) {
     val wordMotion = motionStyle.risesWords
-    val head = rememberKaraokeHead(text, words, positionProvider, wordMotion)
+    val head = rememberKaraokeHead(text, words, positionProvider, wordMotion, animationRunning, animationSeekTick)
 
     val hasRuby = !ruby.isNullOrEmpty()
     val style = MaterialTheme.typography.headlineSmall.copy(
@@ -2032,11 +2035,17 @@ private fun rememberKaraokeHead(
     positionProvider: () -> Long,
     /** Style 1: sweep through spaces smoothly and drive the per-word rise/swell springs. */
     wordMotion: Boolean = false,
+    animationRunning: Boolean = true,
+    animationSeekTick: Int = 0,
 ): KaraokeHead {
     val timed = remember(text, words) { karaokeTimedRanges(text, words) }
     val head = remember(text, words) { karaokeHeadFor(text) }
 
-    LaunchedEffect(text, timed, positionProvider, wordMotion) {
+    LaunchedEffect(text, timed, positionProvider, wordMotion, animationRunning, animationSeekTick) {
+        if (!animationRunning) {
+            head.advance(timed, positionProvider() / 1000.0, 0f, wordMotion)
+            return@LaunchedEffect
+        }
         var lastFrameNanos = -1L
         while (true) {
             withFrameNanos { frameNanos ->

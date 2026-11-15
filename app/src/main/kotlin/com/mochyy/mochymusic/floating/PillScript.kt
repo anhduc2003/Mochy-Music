@@ -133,18 +133,19 @@ private fun groupLines(lines: List<LyricsEntry>, duet: Boolean, mirrored: Boolea
         if (entry.text.isBlank()) continue
         val endMs = LyricsUtils.lineEndMs(lines, index)
         val side = if (duet) alignmentFor(entry, useAgentAlignment = true, mirrored = mirrored) else null
-        val parts = splitBackingVocal(entry.text, entry.words)
+        val timings = entry.syllables ?: entry.words
+        val parts = splitBackingVocal(entry.text, timings)
         val owner = groups.lastOrNull()
         if (entry.isBackground && owner != null) {
             val text = parts.backing?.takeIf { parts.lead.isBlank() } ?: entry.text
-            val words = if (parts.lead.isBlank()) parts.backingWords else entry.words
+            val words = if (parts.lead.isBlank()) parts.backingWords else timings
             owner.backing += PillRow(PillRowKind.BACKING, text, words, entry.time, endMs, side)
             continue
         }
         // a line that's all brackets is still the line being sung
         if (parts.backing == null || parts.lead.isBlank()) {
             val text = parts.backing?.takeIf { parts.lead.isBlank() } ?: entry.text
-            val words = if (parts.backing != null) parts.backingWords else entry.words
+            val words = if (parts.backing != null) parts.backingWords else timings
             groups += LineGroup(PillRow(PillRowKind.LEAD, text, words, entry.time, endMs, side))
             continue
         }

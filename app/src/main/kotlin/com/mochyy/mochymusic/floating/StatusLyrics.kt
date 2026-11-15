@@ -18,6 +18,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.key
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.text.style.TextAlign
+import com.mochyy.mochymusic.constants.LyricsMotionStyle
+import com.mochyy.mochymusic.lyrics.WordTimestamp
+import com.mochyy.mochymusic.ui.player.KaraokeSweepText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableFloatState
@@ -30,13 +37,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -46,7 +51,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.mochyy.mochymusic.R
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
@@ -54,7 +58,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
-import com.mochyy.mochymusic.ui.theme.InterFontFamily
 import kotlinx.coroutines.delay
 
 // the capsule is black like the phone's island and a touch shorter than the bar, so it sits in the row without touching its edges
@@ -65,22 +68,12 @@ private val RingStroke = 1.5.dp
 private val RingInset = 3.dp
 
 // the part of the line that hasn't been sung yet, so the karaoke sweep has somewhere to go
-private val UnsungInk = Color(0x59FFFFFF)
+private val UnsungInk = Color.White.copy(alpha = 0.58f)
 
 // the line is laid out as big as it fits: a long one steps down until it sits inside the capsule instead of running out of it
 private const val MaxTextSp = 13f
 private const val MinTextSp = 8f
 private const val SizeStepSp = 0.5f
-
-// how often the sweep moves while a word-timed line is being sung, and how often the ring is redrawn
-private const val SweepTickMs = 60L
-private const val RingTickMs = 500L
-
-private val LineStyle = TextStyle(
-    fontFamily = InterFontFamily,
-    fontWeight = FontWeight.SemiBold,
-    color = Color.White,
-)
 
 // the line being sung in a black capsule: the cover with how far along the song is as a ring, then the line itself sweeping as it's sung
 @Composable
@@ -102,7 +95,7 @@ internal fun StatusLyrics(state: PillState) {
             if (!state.playing) break
             val next = script.nextChangeMs(stop, position)
             if (next == Long.MAX_VALUE) break
-            delay(((next - position) / state.speed()).toLong().coerceAtLeast(40L))
+            delay(((next - position) / state.speed()).toLong().coerceAtLeast(1L))
         }
     }
 
@@ -110,9 +103,10 @@ internal fun StatusLyrics(state: PillState) {
     LaunchedEffect(state.playing, state.seekTick, state.song?.id) {
         while (true) {
             val duration = state.durationMs()
-            progress.floatValue = if (duration > 0L) (state.songPositionMs().toFloat() / duration).coerceIn(0f, 1f) else 0f
+            val position = state.lyricsClock() - state.offsetMs
+            progress.floatValue = if (duration > 0L) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f
             if (!state.playing) break
-            delay(RingTickMs)
+            withFrameNanos { }
         }
     }
 
@@ -124,27 +118,12 @@ internal fun StatusLyrics(state: PillState) {
         else -> row.text
     }
 
-    // a word-timed line is sung across its own span, so the sweep lands on the words as they come
-    var sweep by remember { mutableFloatStateOf(1f) }
-    LaunchedEffect(rowIndex, script, state.playing, state.seekTick) {
-        val words = script?.rows?.getOrNull(rowIndex)?.words
-        if (words.isNullOrEmpty()) {
-            sweep = 1f
-            return@LaunchedEffect
-        }
-        val from = (words.first().startTime * 1000).toLong()
-        val to = (words.last().endTime * 1000).toLong()
-        while (true) {
-            val position = state.lyricsClock()
-            sweep = if (to > from) ((position - from).toFloat() / (to - from)).coerceIn(0f, 1f) else 1f
-            if (!state.playing || sweep >= 1f) break
-            delay(SweepTickMs)
-        }
-    }
+    // Keep the clock identity stable: the shared renderer reads playback time on each frame.
+    val positionProvider = remember(state) { { state.lyricsClock() } }
 
-    // each new line arrives rather than snapping in
-    val appear = remember(text) { Animatable(0f) }
-    LaunchedEffect(text) { appear.animateTo(1f, tween(durationMillis = 220)) }
+    // Repeated text in different entries still gets its own entrance and karaoke state.
+    val appear = remember(script, rowIndex) { Animatable(0f) }
+    LaunchedEffect(appear) { appear.animateTo(1f, tween(durationMillis = 220)) }
 
     BoxWithConstraints(
         Modifier
@@ -163,13 +142,18 @@ internal fun StatusLyrics(state: PillState) {
             Spacer(Modifier.width(edge))
             CoverDisc(state, cover, progress)
             Spacer(Modifier.width(gap))
-            LyricLine(
-                text = text,
-                sweep = sweep,
-                appear = appear.value,
-                room = room,
-                modifier = Modifier.weight(1f),
-            )
+            key(script, rowIndex) {
+                LyricLine(
+                    text = text,
+                    words = row?.words,
+                    positionProvider = positionProvider,
+                    playing = state.playing,
+                    seekTick = state.seekTick,
+                    appear = { appear.value },
+                    room = room,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
         val resizeDescription = stringResource(R.string.floating_lyrics_resize)
         Spacer(
@@ -197,14 +181,25 @@ internal fun StatusLyrics(state: PillState) {
 
 // the line itself: as large as it fits the room it's given, with the part already sung drawn over the part that isn't
 @Composable
-private fun LyricLine(text: String, sweep: Float, appear: Float, room: Float, modifier: Modifier = Modifier) {
+private fun LyricLine(
+    text: String,
+    words: List<WordTimestamp>?,
+    positionProvider: () -> Long,
+    playing: Boolean,
+    seekTick: Int,
+    appear: () -> Float,
+    room: Float,
+    modifier: Modifier = Modifier,
+) {
     val measurer = rememberTextMeasurer()
-    val fontSize = remember(text, room) {
+    val density = LocalDensity.current
+    val baseStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+    val fontSize = remember(text, room, baseStyle, density.density, density.fontScale, measurer) {
         var size = MaxTextSp
         while (size > MinTextSp) {
             val width = measurer.measure(
                 text = AnnotatedString(text),
-                style = LineStyle.copy(fontSize = size.sp),
+                style = baseStyle.copy(fontSize = size.sp),
                 softWrap = false,
                 maxLines = 1,
             ).size.width
@@ -216,26 +211,35 @@ private fun LyricLine(text: String, sweep: Float, appear: Float, room: Float, mo
 
     Box(
         modifier.graphicsLayer {
-            alpha = appear
-            translationY = (1f - appear) * 6.dp.toPx()
+            val fraction = appear()
+            alpha = fraction
+            translationY = (1f - fraction) * 6.dp.toPx()
         },
     ) {
-        BasicText(
-            text = text,
-            style = LineStyle.copy(fontSize = fontSize, color = UnsungInk),
-            maxLines = 1,
-            softWrap = false,
-        )
-        BasicText(
-            text = text,
-            style = LineStyle.copy(fontSize = fontSize),
-            maxLines = 1,
-            softWrap = false,
-            modifier = Modifier.drawWithContent {
-                if (sweep <= 0f) return@drawWithContent
-                clipRect(right = size.width * sweep.coerceIn(0f, 1f)) { this@drawWithContent.drawContent() }
-            },
-        )
+        if (!words.isNullOrEmpty() && text.isNotEmpty()) {
+            KaraokeSweepText(
+                text = text,
+                words = words,
+                positionProvider = positionProvider,
+                waveAmplitudeProvider = { 1f },
+                baseColor = { UnsungInk },
+                highlightColor = Color.White,
+                fontSize = fontSize,
+                lineHeight = (fontSize.value * 1.25f).sp,
+                textAlign = TextAlign.Start,
+                motionStyle = LyricsMotionStyle.LEGACY,
+                singleLine = true,
+                animationRunning = playing,
+                animationSeekTick = seekTick,
+            )
+        } else {
+            BasicText(
+                text = text,
+                style = baseStyle.copy(fontSize = fontSize, color = Color.White),
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
     }
 }
 

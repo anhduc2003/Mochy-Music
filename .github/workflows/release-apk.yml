@@ -110,6 +110,11 @@ jobs:
           cat > notes.md <<EOF
           Sync with upstream **mochy-8.4.1** (\`eafbbe6\`), keeping this fork's Vietnamese localisation and its own features.
 
+          ### Floating lyrics improvements
+          - Drag the floating capsule and resize its width with the right-hand grip; position and width are saved.
+          - Style 2 karaoke renderer with per-word timing and display-synchronized animation, replacing the old 60 ms sweep timer.
+          - Requests up to 120 Hz while playing when high refresh rate is enabled. Actual frame rate depends on the device and system policy.
+
           ### What's new from 8.4.1
           - **InnerTubeX stream backend** with the classic finder as automatic fallback (Settings → Experimental → Stream backend)
           - **Floating lyrics, in the player and over everything**: the line being sung takes the artist's place in the notification, on the lock screen and in the car, and rides in a black capsule you can drag anywhere and pinch wider or narrower, with the song's progress ring, karaoke sweep and text that steps down to fit the line

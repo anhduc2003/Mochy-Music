@@ -93,6 +93,20 @@ internal class StatusWindow(
         runCatching { windowManager.removeView(root) }
     }
 
+    // Request a matching-resolution high-refresh mode; the system still decides the actual rate.
+    @Suppress("DEPRECATION")
+    fun setHighRefreshRate(enabled: Boolean) {
+        val display = root.display ?: windowManager.defaultDisplay
+        val current = display.mode
+        val mode = display.supportedModes
+            .filter { it.physicalWidth == current.physicalWidth && it.physicalHeight == current.physicalHeight }
+            .filter { it.refreshRate <= 120.5f }
+            .maxByOrNull { it.refreshRate }
+        params.preferredDisplayModeId = if (enabled) mode?.modeId ?: 0 else 0
+        params.preferredRefreshRate = if (enabled) mode?.refreshRate ?: 0f else 0f
+        update()
+    }
+
     private fun update() {
         if (root.isAttachedToWindow) runCatching { windowManager.updateViewLayout(root, params) }
     }
