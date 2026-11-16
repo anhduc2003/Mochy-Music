@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.ui.AbsoluteAlignment
@@ -38,7 +39,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -146,16 +146,15 @@ internal fun StatusLyrics(
         val edge = 5.dp
         val gap = 7.dp
         val handleWidth = StatusGeometry.HandleWidthDp.dp
-        // Fit against the stable user/screen maximum, not animation frames; otherwise
-        // the text would step through font sizes while the capsule expands.
-        val room = with(density) { (fittingWidthDp.dp - edge - cover - gap - handleWidth).toPx().coerceAtLeast(0f) }
         val measurer = rememberTextMeasurer()
         val preferredStyle = MaterialTheme.typography.headlineSmall.copy(
             fontWeight = FontWeight.Bold,
             fontSize = MaxTextSp.sp,
         )
-        // Never measure using maxWidth/room: the actual window is animated and must not
-        // become an input to its own target. Include a little breathing room after text.
+        // Keep the lyric's measured width stable for the whole resize animation, but size
+        // it to this line's target capsule width instead of the user's saved maximum.
+        // Otherwise short lyrics leave a wide requiredWidth child centered in a narrow
+        // adaptive capsule and get clipped at both ends.
         val contentWidth = remember(text, preferredStyle, measurer, density.density, density.fontScale, cover) {
             val measured = measurer.measure(
                 text = AnnotatedString(text),
@@ -168,6 +167,12 @@ internal fun StatusLyrics(
                 gap.value, handleWidth.value, paddingDp = 4f,
             )
         }
+        // This target is independent of the animated WindowManager width. The font and
+        // text child therefore stay stable while the capsule grows or shrinks.
+        val targetWidthDp = StatusGeometry.adaptiveWidth(contentWidth, fittingWidthDp, fittingWidthDp)
+        val room = with(density) {
+            (targetWidthDp.dp - edge - cover - gap - handleWidth).toPx().coerceAtLeast(1f)
+        }
         LaunchedEffect(contentWidth, onContentWidth) { onContentWidth(contentWidth) }
 
         val contentAlignment = when (anchor) {
@@ -178,7 +183,7 @@ internal fun StatusLyrics(
         Row(
             Modifier
                 .align(contentAlignment)
-                .fillMaxSize()
+                .fillMaxWidth()
                 .absolutePadding(right = handleWidth),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -190,7 +195,7 @@ internal fun StatusLyrics(
                 // capsule never re-shapes the glyphs or the karaoke layer; the box around
                 // it is what the window shrinks, and it clips the overhang on the right
                 // instead of letting the row overflow the capsule on both sides.
-                Box(Modifier.weight(1f).clipToBounds()) {
+                Box(Modifier.weight(1f)) {
                     LyricLine(
                         text = text,
                         words = row?.words,
