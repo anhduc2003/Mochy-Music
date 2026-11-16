@@ -107,6 +107,7 @@ internal class StatusWindow(
 
     private var anchor = StatusGeometry.Anchor.entries.firstOrNull { it.name == savedAnchor }
         ?: StatusGeometry.Anchor.CENTER
+        set(value) { field = value; currentAnchor = value }
     private var verticalFraction = savedVerticalFraction?.coerceIn(0, 1000)
     private var targetHeightPx = 0
 

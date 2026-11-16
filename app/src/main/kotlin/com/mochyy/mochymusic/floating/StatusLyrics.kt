@@ -5,6 +5,8 @@ package com.mochyy.mochymusic.floating
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -176,40 +178,24 @@ internal fun StatusLyrics(
         val targetRoom = with(density) {
             (targetWidthDp.dp - edge - cover - gap - handleWidth).toPx().coerceAtLeast(1f)
         }
-        val presentedRoom = with(density) {
-            (presentedWidthDp.dp - edge - cover - gap - handleWidth).toPx().coerceAtLeast(1f)
-        }
-        // Keep layout at the target width, then scale only the already-laid-out line while
-        // WindowManager catches up. This prevents a new lyric from being clipped mid-animation.
         val room = targetRoom
         LaunchedEffect(contentWidth, onContentWidth) { onContentWidth(contentWidth) }
 
-        // The group is measured at its stable target width, not stretched to the animating
-        // capsule. Arrangement then pins that group to the chosen edge: Start keeps the cover
-        // and the beginning of the line on a left-pinned pill, End keeps the tail of the line
-        // beside the grip on a right-pinned one, Centre clips both ends evenly. An empty
-        // spacer before the group would only add width, so the arrangement does the work.
-        val groupArrangement = when (anchor) {
-            StatusGeometry.Anchor.LEFT -> Arrangement.Start
-            StatusGeometry.Anchor.CENTER -> Arrangement.Center
-            StatusGeometry.Anchor.RIGHT -> Arrangement.End
-        }
+        // Window anchoring belongs to WindowManager. Internally the disc and text
+        // always share the same vertical centre and keep their normal proportions.
         Row(
             Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .absolutePadding(right = handleWidth),
-            horizontalArrangement = groupArrangement,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Spacer(Modifier.width(edge))
             CoverDisc(state, cover, progress)
             Spacer(Modifier.width(gap))
             key(script, rowIndex) {
-                // The line is laid out once at the stable room width so the animating
-                // capsule never re-shapes the glyphs or the karaoke layer. Scaling the
-                // laid-out line about the anchor pivot keeps that side pinned while the
-                // window catches up; the capsule clips whatever hangs past the far edge.
-                Box(Modifier.requiredWidth(with(density) { room.toDp() })) {
+                // Marquee measures the entire unwrapped line, then scrolls its overflow
+                // inside the available viewport. It never stretches glyphs or covers the disc.
+                Box(Modifier.weight(1f)) {
                     LyricLine(
                         text = text,
                         words = row?.words,
@@ -218,14 +204,11 @@ internal fun StatusLyrics(
                         seekTick = state.seekTick,
                         appear = { appear.value },
                         room = room,
-                        modifier = Modifier
-                            .requiredWidth(with(density) { room.toDp() })
-                            .graphicsLayer {
-                                scaleX = (presentedRoom / targetRoom).coerceIn(0.5f, 1f)
-                                // Without this Compose scales about the middle, so a left-pinned
-                                // pill slid its words inward and a right-pinned one outward.
-                                transformOrigin = TransformOrigin(StatusGeometry.anchorPivotX(anchor), 0.5f)
-                            },
+                        modifier = Modifier.basicMarquee(
+                            iterations = Int.MAX_VALUE,
+                            initialDelayMillis = 400,
+                            repeatDelayMillis = 800,
+                        ),
                     )
                 }
             }
