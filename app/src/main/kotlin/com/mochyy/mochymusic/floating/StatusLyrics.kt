@@ -268,7 +268,12 @@ private fun LyricLine(
 ) {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
-    val baseStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+    // One line in a fixed-height capsule: the default 1.25x line height puts the glyphs
+    // visibly below the cover disc's centre. Matching the box to the type keeps the two centred.
+    val baseStyle = MaterialTheme.typography.headlineSmall.copy(
+        fontWeight = FontWeight.Bold,
+        lineHeight = androidx.compose.ui.unit.TextUnit.Unspecified,
+    )
     val fontSize = remember(text, room, baseStyle, density.density, density.fontScale, measurer) {
         var size = MaxTextSp
         while (size > MinTextSp) {
@@ -300,7 +305,7 @@ private fun LyricLine(
                 baseColor = { UnsungInk },
                 highlightColor = Color.White,
                 fontSize = fontSize,
-                lineHeight = (fontSize.value * 1.25f).sp,
+                lineHeight = fontSize,
                 textAlign = TextAlign.Start,
                 motionStyle = LyricsMotionStyle.LEGACY,
                 singleLine = true,
