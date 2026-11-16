@@ -84,6 +84,7 @@ internal fun StatusLyrics(
     state: PillState,
     fittingWidthDp: Float,
     onContentWidth: (Float) -> Unit,
+    presentedWidthDp: Float = fittingWidthDp,
     // Which side stays put while the capsule animates: the content is laid out at the
     // full width and simply revealed from that side instead of being squeezed.
     anchor: StatusGeometry.Anchor = StatusGeometry.Anchor.CENTER,
@@ -170,9 +171,15 @@ internal fun StatusLyrics(
         // This target is independent of the animated WindowManager width. The font and
         // text child therefore stay stable while the capsule grows or shrinks.
         val targetWidthDp = StatusGeometry.adaptiveWidth(contentWidth, fittingWidthDp, fittingWidthDp)
-        val room = with(density) {
+        val targetRoom = with(density) {
             (targetWidthDp.dp - edge - cover - gap - handleWidth).toPx().coerceAtLeast(1f)
         }
+        val presentedRoom = with(density) {
+            (presentedWidthDp.dp - edge - cover - gap - handleWidth).toPx().coerceAtLeast(1f)
+        }
+        // Keep layout at the target width, then scale only the already-laid-out line while
+        // WindowManager catches up. This prevents a new lyric from being clipped mid-animation.
+        val room = targetRoom
         LaunchedEffect(contentWidth, onContentWidth) { onContentWidth(contentWidth) }
 
         val contentAlignment = when (anchor) {
@@ -204,7 +211,11 @@ internal fun StatusLyrics(
                         seekTick = state.seekTick,
                         appear = { appear.value },
                         room = room,
-                        modifier = Modifier.requiredWidth(with(density) { room.toDp() }),
+                        modifier = Modifier
+                            .requiredWidth(with(density) { room.toDp() })
+                            .graphicsLayer {
+                                scaleX = (presentedRoom / targetRoom).coerceIn(0.5f, 1f)
+                            },
                     )
                 }
             }

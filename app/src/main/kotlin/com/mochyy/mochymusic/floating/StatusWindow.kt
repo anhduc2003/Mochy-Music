@@ -87,6 +87,9 @@ internal class StatusWindow(
     private var maximumWidthDp = (savedWidthDp?.toFloat() ?: defaultWidthDp()).coerceAtLeast(120f)
     var fittingWidthDp by mutableFloatStateOf(StatusGeometry.width(maximumWidthDp, maxWidthDp()))
         private set
+    /** Current native window width; read from graphicsLayer so resize does not relayout text. */
+    var presentedWidthDp by mutableFloatStateOf(maximumWidthDp)
+        private set
     private var contentWidthDp: Float? = null
     private var widthAnimator: ValueAnimator? = null
     private var touching = false
@@ -179,6 +182,7 @@ internal class StatusWindow(
         if (touching || removed) return
         if (widthAnimator?.isRunning != true) refreshGeometry()
         fittingWidthDp = StatusGeometry.width(maximumWidthDp, maxWidthDp())
+        presentedWidthDp = params.width / density
         val target = px(if (expanded) minOf(280f, maxWidthDp()) else StatusGeometry.adaptiveWidth(
             contentWidthDp ?: maximumWidthDp, maximumWidthDp, maxWidthDp(),
         )).coerceAtLeast(1)
@@ -196,6 +200,7 @@ internal class StatusWindow(
         fun applySize(fraction: Float) {
             params.width = (startWidth + (target - startWidth) * fraction).roundToInt()
             params.height = (startHeight + (targetHeight - startHeight) * fraction).roundToInt()
+            presentedWidthDp = params.width / density
             params.x = (startX + (endX - startX) * fraction).roundToInt()
             params.y = (startY + (endY - startY) * fraction).roundToInt()
             clampInto(params)
