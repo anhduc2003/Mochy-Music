@@ -6,6 +6,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -44,6 +45,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -182,16 +184,21 @@ internal fun StatusLyrics(
         val room = targetRoom
         LaunchedEffect(contentWidth, onContentWidth) { onContentWidth(contentWidth) }
 
-        val contentAlignment = when (anchor) {
-            StatusGeometry.Anchor.LEFT -> Alignment.CenterStart
-            StatusGeometry.Anchor.RIGHT -> Alignment.CenterEnd
-            StatusGeometry.Anchor.CENTER -> Alignment.Center
+        // The group is measured at its stable target width, not stretched to the animating
+        // capsule. Arrangement then pins that group to the chosen edge: Start keeps the cover
+        // and the beginning of the line on a left-pinned pill, End keeps the tail of the line
+        // beside the grip on a right-pinned one, Centre clips both ends evenly. An empty
+        // spacer before the group would only add width, so the arrangement does the work.
+        val groupArrangement = when (anchor) {
+            StatusGeometry.Anchor.LEFT -> Arrangement.Start
+            StatusGeometry.Anchor.CENTER -> Arrangement.Center
+            StatusGeometry.Anchor.RIGHT -> Arrangement.End
         }
         Row(
             Modifier
-                .align(contentAlignment)
                 .fillMaxWidth()
                 .absolutePadding(right = handleWidth),
+            horizontalArrangement = groupArrangement,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Spacer(Modifier.width(edge))
@@ -199,10 +206,10 @@ internal fun StatusLyrics(
             Spacer(Modifier.width(gap))
             key(script, rowIndex) {
                 // The line is laid out once at the stable room width so the animating
-                // capsule never re-shapes the glyphs or the karaoke layer; the box around
-                // it is what the window shrinks, and it clips the overhang on the right
-                // instead of letting the row overflow the capsule on both sides.
-                Box(Modifier.weight(1f)) {
+                // capsule never re-shapes the glyphs or the karaoke layer. Scaling the
+                // laid-out line about the anchor pivot keeps that side pinned while the
+                // window catches up; the capsule clips whatever hangs past the far edge.
+                Box(Modifier.requiredWidth(with(density) { room.toDp() })) {
                     LyricLine(
                         text = text,
                         words = row?.words,
@@ -215,6 +222,9 @@ internal fun StatusLyrics(
                             .requiredWidth(with(density) { room.toDp() })
                             .graphicsLayer {
                                 scaleX = (presentedRoom / targetRoom).coerceIn(0.5f, 1f)
+                                // Without this Compose scales about the middle, so a left-pinned
+                                // pill slid its words inward and a right-pinned one outward.
+                                transformOrigin = TransformOrigin(StatusGeometry.anchorPivotX(anchor), 0.5f)
                             },
                     )
                 }

@@ -6,6 +6,17 @@ internal object StatusGeometry {
 
     enum class Anchor { LEFT, CENTER, RIGHT }
 
+    /**
+     * Fraction of a composable's width that stays put while the capsule scales.
+     * A left-anchored pill grows and shrinks from its left edge, a right-anchored one
+     * from its right edge, and a centred one from its middle.
+     */
+    fun anchorPivotX(anchor: Anchor): Float = when (anchor) {
+        Anchor.LEFT -> 0f
+        Anchor.CENTER -> 0.5f
+        Anchor.RIGHT -> 1f
+    }
+
     fun snapAnchor(x: Int, width: Int, screenWidth: Int, left: Int, right: Int, threshold: Int): Anchor {
         val center = (screenWidth - width) / 2 + x + width / 2f
         val safeCenter = (left + right) / 2f

@@ -5,6 +5,26 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class StatusGeometryTest {
+    @Test fun `content pivot stays on the anchored side while scaling`() {
+        assertEquals(0f, StatusGeometry.anchorPivotX(StatusGeometry.Anchor.LEFT), 0f)
+        assertEquals(0.5f, StatusGeometry.anchorPivotX(StatusGeometry.Anchor.CENTER), 0f)
+        assertEquals(1f, StatusGeometry.anchorPivotX(StatusGeometry.Anchor.RIGHT), 0f)
+
+        // Scaling about the pivot must leave the anchored edge exactly where it was.
+        val target = 300f
+        for (anchor in StatusGeometry.Anchor.entries) {
+            val pivot = StatusGeometry.anchorPivotX(anchor) * target
+            val scale = 0.6f
+            val scaledLeft = pivot - pivot * scale
+            val scaledRight = scaledLeft + target * scale
+            when (anchor) {
+                StatusGeometry.Anchor.LEFT -> assertEquals(0f, scaledLeft, 0f)
+                StatusGeometry.Anchor.RIGHT -> assertEquals(target, scaledRight, 0f)
+                StatusGeometry.Anchor.CENTER -> assertEquals(target / 2, (scaledLeft + scaledRight) / 2, 0f)
+            }
+        }
+    }
+
     @Test fun `width fits even when rotation leaves less than the normal minimum`() {
         assertEquals(80f, StatusGeometry.width(300f, 80f), 0f)
         assertEquals(120f, StatusGeometry.width(10f, 400f), 0f)
