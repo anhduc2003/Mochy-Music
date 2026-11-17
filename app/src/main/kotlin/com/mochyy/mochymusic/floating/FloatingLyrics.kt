@@ -11,7 +11,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import com.mochyy.mochymusic.car.CarLyricsSource
+import com.mochyy.mochymusic.extensions.metadata
 import com.mochyy.mochymusic.constants.FloatingLyricsKey
 import com.mochyy.mochymusic.constants.FloatingLyricsAnchorKey
 import com.mochyy.mochymusic.constants.FloatingLyricsVerticalFractionKey
@@ -48,6 +50,7 @@ class FloatingLyrics(
     private val source: CarLyricsSource,
     private val song: StateFlow<MediaMetadata?>,
     private val player: StateFlow<Player?>,
+    private val mixing: StateFlow<Boolean>,
     private val scope: CoroutineScope,
 ) {
     private val appVisible = MutableStateFlow(true)
@@ -113,6 +116,7 @@ class FloatingLyrics(
             windowListener,
             prefs[FloatingLyricsAnchorKey],
             prefs[FloatingLyricsVerticalFractionKey],
+            onDiscTap = { state.discOnly = !state.discOnly },
         )
         val host = object : StatusPlaybackHost {
             override fun command(command: Int) {
@@ -160,7 +164,9 @@ class FloatingLyrics(
     // keeps the capsule's song, lyrics and play state current for as long as it's on screen; nothing runs while it's hidden
     private suspend fun followSong() = coroutineScope {
         launch { followPlayer() }
+        launch { mixing.collect { state.mixing = it } }
         song.distinctUntilChangedBy { it?.id }.collectLatest { metadata ->
+            if (metadata?.id != state.song?.id) state.previousSong = state.song
             state.song = metadata
             state.script = null
             if (metadata != null) followLyrics(metadata)
@@ -216,6 +222,16 @@ class FloatingLyrics(
         state.script = withReadings(romanized.orEmpty(), translated)
     }
 
+    private fun nextMetadata(current: Player): MediaMetadata? {
+        val index = if (current.repeatMode == Player.REPEAT_MODE_ONE) {
+            current.currentMediaItemIndex
+        } else {
+            current.nextMediaItemIndex
+        }
+        if (index !in 0 until current.mediaItemCount) return null
+        return current.getMediaItemAt(index).metadata
+    }
+
     // a crossfade hands over to a new player, so the listener moves with it
     private suspend fun followPlayer() {
         player.collectLatest { current ->
@@ -234,11 +250,20 @@ class FloatingLyrics(
                     state.seekTick++
                 }
 
+                override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+                    state.nextSong = nextMetadata(current)
+                }
+
+                override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+                    state.nextSong = nextMetadata(current)
+                }
+
                 override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
                     state.seekTick++
                 }
             }
             state.playing = current.isPlaying
+            state.nextSong = nextMetadata(current)
             state.seekTick++
             current.addListener(listener)
             try {

@@ -17,6 +17,17 @@ import com.mochyy.mochymusic.ui.player.PlaybackClock
 internal class PillState(private val player: () -> Player?) {
     var song by mutableStateOf<MediaMetadata?>(null)
 
+    // What was playing until a moment ago. A crossmix promotes the incoming song straight away,
+    // so this is the only way the capsule still knows which disc to fade out.
+    var previousSong by mutableStateOf<MediaMetadata?>(null)
+
+    // The queued track after this one, and whether crossmix is blending the two right now.
+    var nextSong by mutableStateOf<MediaMetadata?>(null)
+    var mixing by mutableStateOf(false)
+
+    // Tapping the cover collapses the capsule down to the disc alone.
+    var discOnly by mutableStateOf(false)
+
     // null while the song's lyrics are still being looked up, the capsule shows its title meanwhile
     var script by mutableStateOf<PillScript?>(null)
 

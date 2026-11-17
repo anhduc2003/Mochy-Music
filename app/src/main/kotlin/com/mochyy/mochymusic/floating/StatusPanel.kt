@@ -14,6 +14,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -26,6 +31,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import com.mochyy.mochymusic.R
+import kotlinx.coroutines.delay
 
 internal interface StatusPlaybackHost {
     fun command(command: Int)
@@ -33,12 +39,31 @@ internal interface StatusPlaybackHost {
 
 @Composable
 internal fun StatusPanel(state: PillState, window: StatusWindow, host: StatusPlaybackHost) {
+    // The capsule and the disc alone are laid out differently, so the content follows the
+    // window rather than the tap: it shrinks around the disc, and the capsule only comes back
+    // once the window has grown enough to hold it.
+    var capsule by remember { mutableStateOf(!state.discOnly) }
+    LaunchedEffect(state.discOnly) {
+        window.applyDiscOnly(state.discOnly)
+        if (state.discOnly) {
+            capsule = false
+        } else {
+            delay(ResizeMs)
+            capsule = true
+        }
+    }
+    if (!capsule) {
+        // Only the disc is left, so nothing is drawn behind it: it sits straight on whatever
+        // is underneath. Tapping it brings the capsule back.
+        Box(Modifier.fillMaxSize()) { StatusLyrics(state = state, discOnly = true) }
+        return
+    }
     Column(Modifier.fillMaxSize().clip(RoundedCornerShape(19.dp)).background(Color(0xF2000000))) {
         val action = stringResource(if (window.expanded) R.string.floating_lyrics_collapse else R.string.floating_lyrics_expand)
         Box(Modifier.fillMaxWidth().height(StatusGeometry.CapsuleHeightDp.dp).semantics {
             onClick(label = action) { window.changeExpanded(!window.expanded); true }
         }) {
-            StatusLyrics(state = state)
+            StatusLyrics(state = state, discOnly = false)
         }
         if (window.expanded) {
             BoxWithConstraints(Modifier.fillMaxWidth()) {

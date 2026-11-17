@@ -889,7 +889,7 @@ class MusicService :
             this, CarLyricsSource(database, lyricsHelper), currentMediaMetadata, playerFlow, car.active, sessionPlayer, scope,
         ).also { it.start() }
         floatingLyrics = com.mochyy.mochymusic.floating.FloatingLyrics(
-            this, database, CarLyricsSource(database, lyricsHelper), currentMediaMetadata, playerFlow, scope,
+            this, database, CarLyricsSource(database, lyricsHelper), currentMediaMetadata, playerFlow, crossmixMixing, scope,
         ).also { it.start() }
         player.repeatMode = dataStore.get(RepeatModeKey, REPEAT_MODE_OFF)
 

@@ -57,6 +57,7 @@ internal class StatusWindow(
     private val listener: StatusWindowListener,
     private val savedAnchor: String? = null,
     savedVerticalFraction: Int? = null,
+    private val onDiscTap: () -> Unit = {},
 ) {
     private val windowManager = context.getSystemService(WindowManager::class.java)
     private val density get() = context.resources.displayMetrics.density
@@ -95,6 +96,16 @@ internal class StatusWindow(
     private val heightDp = StatusGeometry.CapsuleHeightDp
     var expanded by mutableStateOf(false)
         private set
+    // Tapping the cover reduces the capsule to a single disc; the saved width is untouched.
+    var discOnly by mutableStateOf(false)
+        private set
+
+    fun applyDiscOnly(value: Boolean) {
+        if (discOnly == value) return
+        discOnly = value
+        if (value && expanded) expanded = false
+        adaptWidth()
+    }
 
     private var anchor = StatusGeometry.Anchor.entries.firstOrNull { it.name == savedAnchor }
         ?: StatusGeometry.Anchor.CENTER
@@ -122,7 +133,7 @@ internal class StatusWindow(
     }
 
     fun changeExpanded(value: Boolean) {
-        if (expanded == value) return
+        if (expanded == value || discOnly) return
         expanded = value
         adaptWidth()
     }
@@ -229,7 +240,7 @@ internal class StatusWindow(
                 return
             }
             widthAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
-                duration = 260L
+                duration = ResizeMs
                 interpolator = AccelerateDecelerateInterpolator()
                 addUpdateListener {
                     if (generation != resizeGeneration) return@addUpdateListener
@@ -265,15 +276,21 @@ internal class StatusWindow(
         fittingWidthDp = StatusGeometry.width(maximumWidthDp, maxWidthDp())
         // The pill's width is whatever the user set; lyrics no longer resize the window.
         val target = px(
-            if (expanded) minOf(280f, maxWidthDp())
-            else StatusGeometry.width(maximumWidthDp, maxWidthDp()),
+            when {
+                discOnly -> StatusGeometry.DiscOnlySizeDp
+                expanded -> minOf(280f, maxWidthDp())
+                else -> StatusGeometry.width(maximumWidthDp, maxWidthDp())
+            },
         ).coerceAtLeast(1)
         // Room for the two-line capsule plus one or two rows of transport buttons.
         val panelHeight = heightDp + if (maxWidthDp() < 240f) 96f else 48f
-        val targetHeight = minOf(px(if (expanded) panelHeight else heightDp), placementBounds().height().coerceAtLeast(1))
+        val targetHeight = minOf(
+            px(if (discOnly) StatusGeometry.DiscOnlySizeDp else if (expanded) panelHeight else heightDp),
+            placementBounds().height().coerceAtLeast(1),
+        )
         if (target == targetWidthPx && targetHeight == targetHeightPx && (localResize || widthAnimator?.isRunning == true)) return
         cancelWidthAnimation()
-        if (animate && root.isAttachedToWindow && !expanded && params.height == targetHeight &&
+        if (animate && root.isAttachedToWindow && !expanded && !discOnly && params.height == targetHeight &&
             (localResize || params.width != target)) {
             animateLocalWidth(target, targetHeight)
             return
@@ -313,7 +330,7 @@ internal class StatusWindow(
         targetWidthPx = target
         targetHeightPx = targetHeight
         widthAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 260L
+            duration = ResizeMs
             interpolator = AccelerateDecelerateInterpolator()
             addUpdateListener { applySize(it.animatedValue as Float) }
             addListener(object : AnimatorListenerAdapter() {
@@ -486,6 +503,7 @@ internal class StatusWindow(
         private var childStream = false
         private var multiTouch = false
         private var ignoredMarginTouch = false
+        private var downLocalX = 0f
 
         override fun dispatchTouchEvent(event: MotionEvent): Boolean {
             if (event.actionMasked == MotionEvent.ACTION_OUTSIDE) {
@@ -506,6 +524,7 @@ internal class StatusWindow(
                         }
                     }
                     touching = true
+                    downLocalX = event.x
                     cancelWidthAnimation()
                     cancelPendingUpdate()
                     refreshGeometry()
@@ -521,7 +540,7 @@ internal class StatusWindow(
                     changedPosition = false
                     firstId = event.getPointerId(0)
                     secondId = -1
-                    grip = !expanded && rawX(event, 0) >= windowLeft() + params.width - px(StatusGeometry.HandleWidthDp)
+                    grip = !expanded && !discOnly && rawX(event, 0) >= windowLeft() + params.width - px(StatusGeometry.HandleWidthDp)
                     multiTouch = false
                     childStream = expanded && event.y >= px(heightDp)
                     rebase(event)
@@ -552,7 +571,7 @@ internal class StatusWindow(
                     val dy = rawY(event, first) - downY
                     if (second >= 0) {
                         val span = span(event, first, second)
-                        if (!expanded && pinchStart > 1f && kotlin.math.abs(span - pinchStart) > slop) resize(widthStart * span / pinchStart, anchoredLeft = false)
+                        if (!expanded && !discOnly && pinchStart > 1f && kotlin.math.abs(span - pinchStart) > slop) resize(widthStart * span / pinchStart, anchoredLeft = false)
                     } else if (grip) {
                         if (dragging || kotlin.math.abs(dx) > slop) {
                             dragging = true
@@ -573,7 +592,10 @@ internal class StatusWindow(
                     val tap = event.actionMasked == MotionEvent.ACTION_UP && !changedPosition && !changedWidth && !multiTouch && !grip && !childStream
                     if (childStream) super.dispatchTouchEvent(event)
                     finish()
-                    if (tap) changeExpanded(!expanded)
+                    if (tap) {
+                        if (discOnly || downLocalX <= px(64f)) onDiscTap()
+                        else changeExpanded(!expanded)
+                    }
                 }
             }
             return true
@@ -590,7 +612,7 @@ internal class StatusWindow(
 
         override fun performClick(): Boolean {
             super.performClick()
-            changeExpanded(!expanded)
+            if (discOnly) onDiscTap() else changeExpanded(!expanded)
             return true
         }
 
@@ -682,6 +704,10 @@ internal class StatusWindow(
         }
     }
 }
+
+// How long the window takes to reach a new size. The capsule and the disc alone are laid out
+// by different content, so both sides of the swap wait for this before switching.
+internal const val ResizeMs = 260L
 
 // overlays have their own window type from android 8; before that the phone type stood in for it
 private fun overlayType(): Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

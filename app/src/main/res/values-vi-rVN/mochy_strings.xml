@@ -1155,7 +1155,10 @@
     <string name="discord_login_note">Mở trang đăng nhập chính thức của Discord trong trình duyệt. Mật khẩu của bạn chỉ được gửi cho Discord.</string>
     <string name="discord_permissions_note">Trang của Discord cũng liệt kê bạn bè và lời mời, vì chúng đi kèm với tính năng chia sẻ trạng thái. Mochy chỉ đọc tên và ảnh của bạn, và hiển thị bài bạn đang phát.</string>
     <string name="floating_lyrics_permission">Cho phép Mochy hiển thị lời bài hát nổi trên ứng dụng khác</string>
-    <string name="floating_lyrics_resize">Kéo để đặt độ rộng tối đa; lời bài hát tự co giãn theo từng dòng</string>
+    <string name="floating_lyrics_resize">Kéo tay nắm để đặt độ rộng viên thuốc. Lời bài hát luôn căn giữa nên dòng dài hay ngắn đều cùng một cỡ chữ.</string>
+    <string name="floating_lyrics_up_next">Tiếp</string>
+    <string name="floating_lyrics_mixing">Đang mix</string>
+    <string name="floating_lyrics_show_capsule">Hiện lại viên thuốc lời bài hát</string>
     <string name="floating_lyrics_expand">Hiện điều khiển phát nhạc</string>
     <string name="floating_lyrics_collapse">Ẩn điều khiển phát nhạc</string>
     <string name="song_share_romanisation_hint">Cách đọc của từ ngữ, ngay dưới mỗi dòng</string>

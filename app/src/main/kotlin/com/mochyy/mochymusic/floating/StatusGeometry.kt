@@ -3,8 +3,10 @@ package com.mochyy.mochymusic.floating
 /** Pure pixel geometry. Stored x remains an offset from the screen's horizontal center. */
 internal object StatusGeometry {
     const val HandleWidthDp = 32f
-    // A two-line capsule (song + lyric, beside the cover) needs room to stay legible.
+    // A three-line capsule (song, lyric, queued track, beside the cover) needs room to stay legible.
     const val CapsuleHeightDp = 64f
+    // The disc alone is square, with a margin the ready ring can breathe into.
+    const val DiscOnlySizeDp = 72f
     const val MinCapsuleWidthDp = 200f
 
     enum class Anchor { LEFT, CENTER, RIGHT }

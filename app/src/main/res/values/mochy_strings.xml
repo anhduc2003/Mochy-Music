@@ -1315,7 +1315,10 @@
     <string name="recent_search_artist">Artist</string>
     <string name="recent_search_remove">Remove from recent searches</string>
     <string name="floating_lyrics_permission">Let Mochy show floating lyrics over other apps</string>
-    <string name="floating_lyrics_resize">Drag to set the maximum width; lyrics automatically fit each line</string>
+    <string name="floating_lyrics_resize">Drag the grip to set the capsule width. Lyrics stay centred in it, so every line keeps the same size.</string>
+    <string name="floating_lyrics_up_next">Next</string>
+    <string name="floating_lyrics_mixing">Mixing</string>
+    <string name="floating_lyrics_show_capsule">Show the lyrics capsule</string>
     <string name="floating_lyrics_open">Open Mochy</string>
     <string name="floating_lyrics_close">Close</string>
     <string name="floating_lyrics_never">Don\'t show again</string>
