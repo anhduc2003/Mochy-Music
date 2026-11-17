@@ -135,6 +135,21 @@ class StatusGeometryTest {
         }
     }
 
+    @Test fun `center anchor stays symmetric throughout resizing with asymmetric insets`() {
+        val screen = 1081
+        val left = 61
+        val right = 1040
+        // Include every integer width used by animation, in both directions.
+        for (width in (120..979).toList() + (979 downTo 120).toList()) {
+            val x = StatusGeometry.anchorX(StatusGeometry.Anchor.CENTER, width, screen, left, right)
+            val clamped = StatusGeometry.centeredX(x, width, screen, left, right)
+            val actualLeft = (screen - width) / 2 + clamped
+            val actualRight = actualLeft + width
+            // Odd widths can put the centre half a pixel from the safe-area centre.
+            assertTrue(kotlin.math.abs(actualLeft + actualRight - left - right) <= 1)
+        }
+    }
+
     @Test fun `vertical fraction survives rotation and stays on screen`() {
         val fraction = StatusGeometry.verticalFraction(500, 38, 48, 1000)
         // same share of the new travel, still inside the bounds

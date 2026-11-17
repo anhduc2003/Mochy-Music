@@ -193,16 +193,14 @@ internal class StatusWindow(
         cancelWidthAnimation()
         val startWidth = params.width
         val startHeight = params.height
-        val startX = params.x
         val startY = params.y
         val bounds = placementBounds()
-        val endX = StatusGeometry.anchorX(anchor, target, screenSize().x, bounds.left, bounds.right)
         val endY = StatusGeometry.anchoredY(verticalFraction ?: 0, targetHeight, bounds.top, bounds.bottom)
         fun applySize(fraction: Float) {
             params.width = (startWidth + (target - startWidth) * fraction).roundToInt()
             params.height = (startHeight + (targetHeight - startHeight) * fraction).roundToInt()
             presentedWidthDp = params.width / density
-            params.x = (startX + (endX - startX) * fraction).roundToInt()
+            params.x = StatusGeometry.anchorX(anchor, params.width, screenSize().x, bounds.left, bounds.right)
             params.y = (startY + (endY - startY) * fraction).roundToInt()
             clampInto(params)
             // One relayout per frame no matter how many animator ticks land in it.
@@ -213,7 +211,11 @@ internal class StatusWindow(
             flushUpdate()
             return
         }
-        if (target == startWidth && targetHeight == startHeight && startX == endX && startY == endY) return
+        if (target == startWidth && targetHeight == startHeight && startY == endY) {
+            applySize(1f)
+            flushUpdate()
+            return
+        }
         targetWidthPx = target
         targetHeightPx = targetHeight
         widthAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
