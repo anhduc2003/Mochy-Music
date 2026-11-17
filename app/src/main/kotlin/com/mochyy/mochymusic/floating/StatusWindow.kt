@@ -282,7 +282,7 @@ internal class StatusWindow(
                 else -> StatusGeometry.width(maximumWidthDp, maxWidthDp())
             },
         ).coerceAtLeast(1)
-        // Room for the two-line capsule plus one or two rows of transport buttons.
+        // Room for the capsule plus one or two rows of transport buttons.
         val panelHeight = heightDp + if (maxWidthDp() < 240f) 96f else 48f
         val targetHeight = minOf(
             px(if (discOnly) StatusGeometry.DiscOnlySizeDp else if (expanded) panelHeight else heightDp),

@@ -113,6 +113,9 @@ jobs:
           ### Floating lyrics improvements
           - The floating capsule keeps the width you set by dragging the right-hand grip; lyrics no longer resize the window.
           - Song title and artist sit above a centred lyric line. Every line uses the same text size, and long lines scroll inside the capsule instead of shrinking.
+          - The track queued next is named under the lyric. While Crossmix runs it turns into a **Mixing** badge naming the song being faded out.
+          - Tap the cover to leave the disc alone, with nothing drawn behind it; tap it again to bring the capsule back. The window narrows around the disc, so the cover stays exactly where it was.
+          - During a crossmix the outgoing cover sits on top of the incoming one and slides away as the two dissolve, then a breathing ring marks the disc that took over and fades once the mix is done.
           - Automatically aligns to the center or the nearest safe screen edge after dragging.
           - Tap the capsule to expand playback controls: previous/next, play/pause, repeat and shuffle. Tap outside to collapse it.
           - Dragging and resizing remain available while touch gestures are in progress.
