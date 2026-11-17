@@ -111,6 +111,26 @@ internal class StatusWindow(
     private var verticalFraction = savedVerticalFraction?.coerceIn(0, 1000)
     private var targetHeightPx = 0
 
+    // Only the temporary host is a native window. The capsule remains an exact-size
+    // child, so lyric animation never resizes and moves an Android surface per frame.
+    private var localResize = false
+    private var visualWidthPx = 0
+    private var visualLeftPx = 0
+    private var resizeGeneration = 0
+    private var settlingLocalResize = false
+
+    private fun windowLeft(width: Int = params.width, x: Int = params.x): Int =
+        (screenSize().x - width) / 2 + x
+
+    private fun settleLocalResize() {
+        if (!localResize) return
+        params.width = visualWidthPx
+        params.x = visualLeftPx - (screenSize().x - visualWidthPx) / 2
+        settlingLocalResize = true
+        flushUpdate()
+        root.requestLayout()
+    }
+
     fun changeExpanded(value: Boolean) {
         if (expanded == value) return
         expanded = value
@@ -172,6 +192,8 @@ internal class StatusWindow(
     }
 
     private fun cancelWidthAnimation() {
+        resizeGeneration++
+        widthAnimator?.removeAllListeners()
         widthAnimator?.removeAllUpdateListeners()
         widthAnimator?.cancel()
         widthAnimator = null
@@ -179,18 +201,108 @@ internal class StatusWindow(
         targetHeightPx = 0
     }
 
+    private fun animateLocalWidth(target: Int, targetHeight: Int) {
+        val generation = resizeGeneration
+        val bounds = placementBounds()
+        val screen = screenSize().x
+        val startWidth = if (localResize) visualWidthPx else params.width
+        val startLeft = if (localResize) visualLeftPx else windowLeft()
+        val endLeft = (screen - target) / 2 + StatusGeometry.anchorX(anchor, target, screen, bounds.left, bounds.right)
+        // Include the existing host when replacing an animation: do not shrink its
+        // surface until the last local frame has been drawn.
+        val hostLeft = minOf(windowLeft(), startLeft, endLeft)
+        val hostRight = maxOf(windowLeft() + params.width, startLeft + startWidth, endLeft + target)
+        localResize = true
+        settlingLocalResize = false
+        visualWidthPx = startWidth
+        visualLeftPx = startLeft
+        params.width = hostRight - hostLeft
+        params.x = hostLeft - (screen - params.width) / 2
+        targetWidthPx = target
+        targetHeightPx = targetHeight
+        flushUpdate()
+        root.requestLayout()
+        // A submitted WindowManager request is not a layout acknowledgement. Wait
+        // until the actual host matches before beginning child-only animation.
+        var layoutWaitFrames = 0
+        fun beginWhenLaidOut() {
+            if (generation != resizeGeneration || removed || touching) return
+            val location = IntArray(2)
+            root.getLocationOnScreen(location)
+            if (root.width != params.width || location[0] != hostLeft || root.isLayoutRequested) {
+                // An OEM may clamp the overlay differently. Never keep an oversized
+                // input window alive indefinitely while waiting for impossible bounds.
+                if (++layoutWaitFrames >= 60) {
+                    cancelWidthAnimation()
+                    params.width = target
+                    params.x = endLeft - (screen - target) / 2
+                    localResize = false
+                    settlingLocalResize = false
+                    presentedWidthDp = target / density
+                    flushUpdate()
+                    root.requestLayout()
+                    return
+                }
+                root.postOnAnimation { beginWhenLaidOut() }
+                return
+            }
+            widthAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = 260L
+                interpolator = AccelerateDecelerateInterpolator()
+                addUpdateListener {
+                    if (generation != resizeGeneration) return@addUpdateListener
+                    val fraction = it.animatedValue as Float
+                    visualWidthPx = (startWidth + (target - startWidth) * fraction).roundToInt()
+                    // Interpolate the rectangle in one coordinate space. Centered
+                    // start/end rectangles have the same centre (apart from 1 px).
+                    visualLeftPx = (startLeft + (endLeft - startLeft) * fraction).roundToInt()
+                    presentedWidthDp = visualWidthPx / density
+                    root.requestLayout()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        if (generation != resizeGeneration) return
+                        visualWidthPx = target
+                        visualLeftPx = endLeft
+                        // Let the final child layout draw inside the old host before
+                        // reducing the input/surface bounds to the capsule rectangle.
+                        root.requestLayout()
+                        root.postOnAnimation {
+                            if (generation == resizeGeneration && !removed) settleLocalResize()
+                        }
+                    }
+                })
+                start()
+            }
+        }
+        root.postOnAnimation { beginWhenLaidOut() }
+    }
+
     private fun adaptWidth(animate: Boolean = true) {
         if (touching || removed) return
         if (widthAnimator?.isRunning != true) refreshGeometry()
         fittingWidthDp = StatusGeometry.width(maximumWidthDp, maxWidthDp())
-        presentedWidthDp = params.width / density
+        presentedWidthDp = (if (localResize) visualWidthPx else params.width) / density
         val target = px(if (expanded) minOf(280f, maxWidthDp()) else StatusGeometry.adaptiveWidth(
             contentWidthDp ?: maximumWidthDp, maximumWidthDp, maxWidthDp(),
         )).coerceAtLeast(1)
         val panelHeight = if (maxWidthDp() < 240f) 144f else 96f
         val targetHeight = minOf(px(if (expanded) panelHeight else heightDp), placementBounds().height().coerceAtLeast(1))
-        if (target == targetWidthPx && targetHeight == targetHeightPx && widthAnimator?.isRunning == true) return
+        if (target == targetWidthPx && targetHeight == targetHeightPx && (localResize || widthAnimator?.isRunning == true)) return
         cancelWidthAnimation()
+        if (animate && root.isAttachedToWindow && !expanded && params.height == targetHeight &&
+            (localResize || params.width != target)) {
+            animateLocalWidth(target, targetHeight)
+            return
+        }
+        if (localResize) {
+            // Expanded controls and direct manipulation use the original exact-size
+            // native layout; carry the current visual rectangle into that path.
+            params.width = visualWidthPx
+            params.x = visualLeftPx - (screenSize().x - visualWidthPx) / 2
+            settlingLocalResize = true
+            root.requestLayout()
+        }
         val startWidth = params.width
         val startHeight = params.height
         val startY = params.y
@@ -262,6 +374,11 @@ internal class StatusWindow(
 
     private fun update() {
         if (removed || !root.isAttachedToWindow) return
+        if (localResize && settlingLocalResize) {
+            visualWidthPx = params.width
+            visualLeftPx = windowLeft()
+            root.requestLayout()
+        }
         val next = SubmittedLayout(params.width, params.height, params.x, params.y,
             params.preferredDisplayModeId, params.preferredRefreshRate)
         if (next == submittedLayout) return
@@ -341,6 +458,35 @@ internal class StatusWindow(
     // The entire stream is consumed even over noninteractive lyrics. Track IDs, not indices:
     // lifting either pinch finger rebases onto the survivors without a jump.
     private inner class DragFrame : FrameLayout(context) {
+        override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+            if (!localResize) {
+                super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+                return
+            }
+            val hostWidth = MeasureSpec.getSize(widthMeasureSpec)
+            val hostHeight = MeasureSpec.getSize(heightMeasureSpec)
+            setMeasuredDimension(hostWidth, hostHeight)
+            compose.measure(
+                MeasureSpec.makeMeasureSpec(visualWidthPx.coerceAtLeast(1), MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(hostHeight, MeasureSpec.EXACTLY),
+            )
+        }
+
+        override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+            if (!localResize) {
+                super.onLayout(changed, left, top, right, bottom)
+                return
+            }
+            val location = IntArray(2)
+            getLocationOnScreen(location)
+            val offset = visualLeftPx - location[0]
+            compose.layout(offset, 0, offset + visualWidthPx, height)
+            if (settlingLocalResize && width == visualWidthPx) {
+                localResize = false
+                settlingLocalResize = false
+            }
+        }
+
         private val slop get() = ViewConfiguration.get(context).scaledTouchSlop
         private var firstId = -1
         private var secondId = -1
@@ -357,27 +503,43 @@ internal class StatusWindow(
         private var pixelWidthStart = 0
         private var childStream = false
         private var multiTouch = false
+        private var ignoredMarginTouch = false
 
         override fun dispatchTouchEvent(event: MotionEvent): Boolean {
             if (event.actionMasked == MotionEvent.ACTION_OUTSIDE) {
                 changeExpanded(false)
                 return true
             }
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) ignoredMarginTouch = false
+            if (ignoredMarginTouch) return true
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
+                    if (localResize) {
+                        val x = rawX(event, 0)
+                        if (x < visualLeftPx || x >= visualLeftPx + visualWidthPx) {
+                            // The temporary union has a transparent margin for at most
+                            // one transition. It must never toggle or drag the pill.
+                            ignoredMarginTouch = true
+                            return true
+                        }
+                    }
                     touching = true
                     cancelWidthAnimation()
                     cancelPendingUpdate()
                     refreshGeometry()
                     // Reconcile the rendered size after interruption; subsequent rebases
                     // use the latest requested size even if traversal has not run yet.
-                    if (width > 0) params.width = width
-                    if (height > 0) params.height = height
+                    if (localResize) {
+                        settleLocalResize()
+                    } else {
+                        if (width > 0) params.width = width
+                        if (height > 0) params.height = height
+                    }
                     changedWidth = false
                     changedPosition = false
                     firstId = event.getPointerId(0)
                     secondId = -1
-                    grip = !expanded && event.x >= width - px(StatusGeometry.HandleWidthDp)
+                    grip = !expanded && rawX(event, 0) >= windowLeft() + params.width - px(StatusGeometry.HandleWidthDp)
                     multiTouch = false
                     childStream = expanded && event.y >= px(heightDp)
                     rebase(event)
@@ -415,6 +577,7 @@ internal class StatusWindow(
                             resize(widthStart + dx / density, anchoredLeft = true)
                         }
                     } else if (dragging || hypot(dx, dy) > slop) {
+                        endLocalGestureLayout()
                         cancelChild(event)
                         dragging = true
                         params.x = fromX + dx.roundToInt()
@@ -449,7 +612,16 @@ internal class StatusWindow(
             return true
         }
 
+        private fun endLocalGestureLayout() {
+            if (!localResize) return
+            // Keep the child exact-sized until the asynchronously resized host
+            // catches up; update() follows the gesture's requested visual rectangle.
+            settlingLocalResize = true
+            requestLayout()
+        }
+
         private fun resize(requested: Float, anchoredLeft: Boolean) {
+            endLocalGestureLayout()
             maximumWidthDp = StatusGeometry.width(requested, maxWidthDp())
             fittingWidthDp = maximumWidthDp
             params.width = px(maximumWidthDp).coerceAtLeast(1)
@@ -467,7 +639,7 @@ internal class StatusWindow(
             downY = rawY(event, first)
             fromX = params.x
             fromY = params.y
-            pixelWidthStart = width.takeIf { it > 0 } ?: params.width
+            pixelWidthStart = params.width
             widthStart = pixelWidthStart / density
             dragging = false
             val second = event.findPointerIndex(secondId)
