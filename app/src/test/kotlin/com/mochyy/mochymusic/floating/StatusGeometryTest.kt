@@ -25,6 +25,17 @@ class StatusGeometryTest {
         }
     }
 
+    @Test fun `fixed content is centred so resize reveals both ends equally`() {
+        val target = 300f
+        for (presented in listOf(120f, 149f, 150f, 151f, 260f, 300f, 380f)) {
+            val offset = StatusGeometry.centeredContentX(presented, target)
+            // Positive means spare room, negative means the capsule clips that much.
+            val leftRoom = offset
+            val rightRoom = presented - (offset + target)
+            assertEquals(leftRoom, rightRoom, 0.001f)
+        }
+    }
+
     @Test fun `width fits even when rotation leaves less than the normal minimum`() {
         assertEquals(80f, StatusGeometry.width(300f, 80f), 0f)
         assertEquals(120f, StatusGeometry.width(10f, 400f), 0f)
