@@ -42,8 +42,6 @@ internal fun StatusPanel(state: PillState, window: StatusWindow, onContentWidth:
                 state = state,
                 fittingWidthDp = if (window.expanded) minOf(280f, window.fittingWidthDp) else window.fittingWidthDp,
                 onContentWidth = onContentWidth,
-                anchor = window.currentAnchor,
-                presentedWidthDp = window.presentedWidthDp,
             )        }
         if (window.expanded) {
             BoxWithConstraints(Modifier.fillMaxWidth()) {

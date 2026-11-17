@@ -87,9 +87,6 @@ internal class StatusWindow(
     private var maximumWidthDp = (savedWidthDp?.toFloat() ?: defaultWidthDp()).coerceAtLeast(120f)
     var fittingWidthDp by mutableFloatStateOf(StatusGeometry.width(maximumWidthDp, maxWidthDp()))
         private set
-    /** Current native window width; read from graphicsLayer so resize does not relayout text. */
-    var presentedWidthDp by mutableFloatStateOf(maximumWidthDp)
-        private set
     private var contentWidthDp: Float? = null
     private var widthAnimator: ValueAnimator? = null
     private var touching = false
@@ -99,15 +96,8 @@ internal class StatusWindow(
     var expanded by mutableStateOf(false)
         private set
 
-    // Read by the capsule so it reveals the fixed-width content from the anchored side.
-    var currentAnchor by mutableStateOf(
-        StatusGeometry.Anchor.entries.firstOrNull { it.name == savedAnchor } ?: StatusGeometry.Anchor.CENTER,
-    )
-        private set
-
     private var anchor = StatusGeometry.Anchor.entries.firstOrNull { it.name == savedAnchor }
         ?: StatusGeometry.Anchor.CENTER
-        set(value) { field = value; currentAnchor = value }
     private var verticalFraction = savedVerticalFraction?.coerceIn(0, 1000)
     private var targetHeightPx = 0
 
@@ -162,7 +152,6 @@ internal class StatusWindow(
         val bounds = placementBounds()
         // Migrate the old free position to the nearest stable anchor once.
         if (savedAnchor == null) anchor = StatusGeometry.snapAnchor(params.x, params.width, screenSize().x, bounds.left, bounds.right, px(36f))
-        currentAnchor = anchor
         if (verticalFraction == null) verticalFraction = StatusGeometry.verticalFraction(params.y, params.height, bounds.top, bounds.bottom)
         applyAnchor()
         clampInto(params)
@@ -238,7 +227,6 @@ internal class StatusWindow(
                     params.x = endLeft - (screen - target) / 2
                     localResize = false
                     settlingLocalResize = false
-                    presentedWidthDp = target / density
                     flushUpdate()
                     root.requestLayout()
                     return
@@ -256,7 +244,6 @@ internal class StatusWindow(
                     // Interpolate the rectangle in one coordinate space. Centered
                     // start/end rectangles have the same centre (apart from 1 px).
                     visualLeftPx = (startLeft + (endLeft - startLeft) * fraction).roundToInt()
-                    presentedWidthDp = visualWidthPx / density
                     root.requestLayout()
                 }
                 addListener(object : AnimatorListenerAdapter() {
@@ -282,7 +269,6 @@ internal class StatusWindow(
         if (touching || removed) return
         if (widthAnimator?.isRunning != true) refreshGeometry()
         fittingWidthDp = StatusGeometry.width(maximumWidthDp, maxWidthDp())
-        presentedWidthDp = (if (localResize) visualWidthPx else params.width) / density
         val target = px(if (expanded) minOf(280f, maxWidthDp()) else StatusGeometry.adaptiveWidth(
             contentWidthDp ?: maximumWidthDp, maximumWidthDp, maxWidthDp(),
         )).coerceAtLeast(1)
@@ -311,7 +297,6 @@ internal class StatusWindow(
         fun applySize(fraction: Float) {
             params.width = (startWidth + (target - startWidth) * fraction).roundToInt()
             params.height = (startHeight + (targetHeight - startHeight) * fraction).roundToInt()
-            presentedWidthDp = params.width / density
             params.x = StatusGeometry.anchorX(anchor, params.width, screenSize().x, bounds.left, bounds.right)
             params.y = (startY + (endY - startY) * fraction).roundToInt()
             clampInto(params)
@@ -653,7 +638,6 @@ internal class StatusWindow(
             if (changedPosition) {
                 val bounds = placementBounds()
                 anchor = StatusGeometry.snapAnchor(params.x, params.width, screenSize().x, bounds.left, bounds.right, px(36f))
-                currentAnchor = anchor
                 verticalFraction = StatusGeometry.verticalFraction(params.y, params.height, bounds.top, bounds.bottom)
                 persistPosition()
             }

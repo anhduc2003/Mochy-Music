@@ -6,14 +6,11 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.ui.AbsoluteAlignment
@@ -47,7 +44,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -88,10 +84,6 @@ internal fun StatusLyrics(
     state: PillState,
     fittingWidthDp: Float,
     onContentWidth: (Float) -> Unit,
-    presentedWidthDp: Float = fittingWidthDp,
-    // Which side stays put while the capsule animates: the content is laid out at the
-    // full width and simply revealed from that side instead of being squeezed.
-    anchor: StatusGeometry.Anchor = StatusGeometry.Anchor.CENTER,
 ) {
     val script = state.script
     var rowIndex by remember(script) {
@@ -181,35 +173,47 @@ internal fun StatusLyrics(
         val room = targetRoom
         LaunchedEffect(contentWidth, onContentWidth) { onContentWidth(contentWidth) }
 
-        // Window anchoring belongs to WindowManager. Internally the disc and text
-        // always share the same vertical centre and keep their normal proportions.
-        Row(
-            Modifier
-                .fillMaxSize()
-                .absolutePadding(right = handleWidth),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Spacer(Modifier.width(edge))
-            CoverDisc(state, cover, progress)
-            Spacer(Modifier.width(gap))
-            key(script, rowIndex) {
-                // Marquee measures the entire unwrapped line, then scrolls its overflow
-                // inside the available viewport. It never stretches glyphs or covers the disc.
-                Box(Modifier.weight(1f)) {
-                    LyricLine(
-                        text = text,
-                        words = row?.words?.takeIf { dots < 0 },
-                        positionProvider = positionProvider,
-                        playing = state.playing,
-                        seekTick = state.seekTick,
-                        appear = { appear.value },
-                        room = room,
-                        modifier = Modifier.basicMarquee(
-                            iterations = Int.MAX_VALUE,
-                            initialDelayMillis = 400,
-                            repeatDelayMillis = 800,
-                        ),
-                    )
+        // Lay the disc and the line out once at the width the capsule is animating towards,
+        // then centre that fixed group inside the current window. The surplus (or missing)
+        // room is split between the two ends, so the pill reads as breathing evenly from
+        // both sides instead of being pulled outward from one side. Nothing is stretched:
+        // glyphs keep their shape, the disc stays circular, and the capsule clips whatever
+        // has not been revealed yet.
+        val contentWidthPx = with(density) { targetWidthDp.dp.toPx() }
+        val capsuleWidthPx = with(density) { maxWidth.toPx() }
+        Box(Modifier.fillMaxSize()) {
+            Row(
+                Modifier
+                    .align(AbsoluteAlignment.CenterLeft)
+                    .requiredWidth(targetWidthDp.dp)
+                    .absolutePadding(right = handleWidth)
+                    .graphicsLayer {
+                        translationX = StatusGeometry.centeredContentX(capsuleWidthPx, contentWidthPx)
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Spacer(Modifier.width(edge))
+                CoverDisc(state, cover, progress)
+                Spacer(Modifier.width(gap))
+                key(script, rowIndex) {
+                    // Marquee measures the entire unwrapped line, then scrolls its overflow
+                    // inside the available viewport. It never stretches glyphs or covers the disc.
+                    Box(Modifier.weight(1f)) {
+                        LyricLine(
+                            text = text,
+                            words = row?.words?.takeIf { dots < 0 },
+                            positionProvider = positionProvider,
+                            playing = state.playing,
+                            seekTick = state.seekTick,
+                            appear = { appear.value },
+                            room = room,
+                            modifier = Modifier.basicMarquee(
+                                iterations = Int.MAX_VALUE,
+                                initialDelayMillis = 400,
+                                repeatDelayMillis = 800,
+                            ),
+                        )
+                    }
                 }
             }
         }

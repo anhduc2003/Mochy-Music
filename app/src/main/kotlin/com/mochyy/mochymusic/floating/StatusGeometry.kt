@@ -17,6 +17,14 @@ internal object StatusGeometry {
         Anchor.RIGHT -> 1f
     }
 
+    /**
+     * Horizontal shift that centres a fixed-size content group inside the capsule that is
+     * animating towards it. While the capsule is narrower the shift is negative, so the
+     * clipped room is split equally between the two ends instead of piling up on one side.
+     */
+    fun centeredContentX(capsuleWidthPx: Float, contentWidthPx: Float): Float =
+        (capsuleWidthPx - contentWidthPx) / 2f
+
     fun snapAnchor(x: Int, width: Int, screenWidth: Int, left: Int, right: Int, threshold: Int): Anchor {
         val center = (screenWidth - width) / 2 + x + width / 2f
         val safeCenter = (left + right) / 2f
