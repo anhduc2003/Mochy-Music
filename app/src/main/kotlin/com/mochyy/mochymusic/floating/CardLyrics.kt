@@ -78,7 +78,13 @@ class CardLyrics(
 
     // only a new line goes out, a plain text change the card shows at once without any picture going over
     private suspend fun sing(metadata: MediaMetadata) {
-        val lyrics = source.load(metadata)?.takeIf { it.synced } ?: return
+        var loaded: com.mochyy.mochymusic.car.CarLyricLines? = null
+        for (attempt in 1..3) {
+            loaded = runCatching { source.load(metadata) }.getOrNull()
+            if (loaded != null) break
+            if (attempt < 3) delay(attempt * 3_000L)
+        }
+        val lyrics = loaded?.takeIf { it.synced } ?: return
         var shownLine = Int.MIN_VALUE
         while (true) {
             // a player that isn't there yet is waited for rather than given up on, the song is still the one that's loaded

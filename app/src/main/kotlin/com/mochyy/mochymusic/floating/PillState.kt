@@ -30,6 +30,7 @@ internal class PillState(private val player: () -> Player?) {
 
     // null while the song's lyrics are still being looked up, the capsule shows its title meanwhile
     var script by mutableStateOf<PillScript?>(null)
+    var lyricsLoading by mutableStateOf(false)
 
     var playing by mutableStateOf(false)
     var playWhenReady by mutableStateOf(false)

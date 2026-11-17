@@ -159,14 +159,14 @@ private fun Capsule(state: PillState, progress: MutableFloatState) {
             if (!state.playing) break
             val next = script.nextChangeMs(stop, position)
             if (next == Long.MAX_VALUE) break
-            val wait = ((next - position) / state.speed()).toLong().coerceAtLeast(16L)
+            val wait = ((next - position) / state.speed()).toLong().coerceIn(16L, 500L)
             delay(wait)
         }
     }
 
     val row = script?.rows?.getOrNull(rowIndex)
     val lyrics = when {
-        row == null -> ""
+        row == null -> if (state.lyricsLoading) "…" else ""
         row.kind == PillRowKind.INTRO || dots >= 0 -> "• ".repeat(dots.coerceAtLeast(1)).trim()
         else -> row.text
     }
@@ -181,8 +181,9 @@ private fun Capsule(state: PillState, progress: MutableFloatState) {
     // Keep the clock identity stable: the shared renderer reads playback time on each frame.
     val positionProvider = remember(state) { { state.lyricsClock() } }
 
-    // Repeated text in different entries still gets its own entrance and karaoke state.
-    val appear = remember(script, rowIndex) { Animatable(0f) }
+    // Key by line identity rather than script instance so background updates don't flash or reset karaoke sweep.
+    val rowKey = Triple(row?.line ?: -1, row?.kind, row?.text.orEmpty())
+    val appear = remember(rowKey) { Animatable(0f) }
     LaunchedEffect(appear) { appear.animateTo(1f, tween(durationMillis = 220)) }
 
     BoxWithConstraints(
@@ -224,7 +225,7 @@ private fun Capsule(state: PillState, progress: MutableFloatState) {
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(2.dp))
-                key(script, rowIndex) {
+                key(rowKey) {
                     // The line is centred in the user's fixed room. Marquee only scrolls
                     // when it really overflows, so its size stays identical for every line.
                     Box(

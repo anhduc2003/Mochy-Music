@@ -33,6 +33,14 @@ class PlaybackClock(
     private var reportedMs = Long.MIN_VALUE
     private var reportedAtMs = 0L
 
+    /** Clear smoothed timing state when switching songs or players so old positions cannot carry over. */
+    fun reset() {
+        frameMs = Long.MIN_VALUE
+        smoothed = 0.0
+        reportedMs = Long.MIN_VALUE
+        reportedAtMs = 0L
+    }
+
     override fun invoke(): Long {
         // choreographer pins this to the vsync while a frame runs, so every reader in a frame sees the same time
         val now = AnimationUtils.currentAnimationTimeMillis()

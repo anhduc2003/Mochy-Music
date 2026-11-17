@@ -159,15 +159,17 @@ private fun infoRows(title: String, artist: String, line: Int) = listOf(
 
 // lead lines in order, each with its reading, its backing vocals (bracketed parts and the background lines under it) and its translation
 private fun groupLines(lines: List<LyricsEntry>, duet: Boolean, mirrored: Boolean, readings: PillReadings?): List<LineGroup> {
+    val ordered = lines.withIndex().sortedBy { it.value.time }
+    val sortedLines = ordered.map { it.value }
     val groups = ArrayList<LineGroup>(lines.size)
-    for (index in lines.indices) {
-        val entry = lines[index]
+    for (sortedPos in ordered.indices) {
+        val (origIndex, entry) = ordered[sortedPos]
         if (entry.text.isBlank()) continue
-        val endMs = LyricsUtils.lineEndMs(lines, index)
+        val endMs = LyricsUtils.lineEndMs(sortedLines, sortedPos)
         val timings = entry.syllables ?: entry.words
         val owner = groups.lastOrNull()
-        if (entry.isBackground && owner != null) {
-            // a background line answers the line before it, so it sits small on that singer's side
+        if ((entry.isBackground || entry.time == owner?.startMs) && owner != null) {
+            // a background or co-timed bilingual line sits under the lead line instead of overwriting its stop
             val parts = splitBackingVocal(entry.text, timings)
             val text = parts.backing?.takeIf { parts.lead.isBlank() } ?: entry.text
             val words = if (parts.lead.isBlank()) parts.backingWords else timings
@@ -175,7 +177,7 @@ private fun groupLines(lines: List<LyricsEntry>, duet: Boolean, mirrored: Boolea
             continue
         }
         val side = alignmentFor(entry, useAgentAlignment = duet, mirrored = mirrored)
-        val reading = readings?.romanized?.getOrNull(index)?.takeIf { !it.text.isNullOrBlank() }
+        val reading = readings?.romanized?.getOrNull(origIndex)?.takeIf { !it.text.isNullOrBlank() }
         val asMain = reading != null && readings?.romanizedAsMain == true
         // with the romanisation as the line, it's sung in its own timed pieces and the original goes under it
         val text = if (asMain) reading?.text.orEmpty() else entry.text
@@ -199,7 +201,7 @@ private fun groupLines(lines: List<LyricsEntry>, duet: Boolean, mirrored: Boolea
                 PillRow(PillRowKind.READING, reading.text.orEmpty(), reading.words, entry.time, endMs, side)
             }
         }
-        group.translation = readings?.translations?.getOrNull(index)?.takeIf { it.isNotBlank() }
+        group.translation = readings?.translations?.getOrNull(origIndex)?.takeIf { it.isNotBlank() }
             ?.let { PillRow(PillRowKind.TRANSLATION, it, null, entry.time, endMs, side) }
         groups += group
     }

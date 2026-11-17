@@ -63,4 +63,23 @@ class PillScriptTest {
         assertFalse(script.stops[nextStop].isBreak)
         assertEquals("next", script.rows[script.stops[nextStop].top].text)
     }
+
+    @Test fun `co-timed bilingual lines preserve primary lead line`() {
+        val primary = LyricsEntry(5_000L, "Primary line")
+        val secondary = LyricsEntry(5_000L, "Translated line")
+        val secondPrimary = LyricsEntry(8_000L, "Second line")
+        val script = PillScript.build(listOf(primary, secondary, secondPrimary), "Title", "Artist", false)
+        assertEquals("Primary line", script.rows[script.stops[script.stopAt(5_500L)].top].text)
+        assertEquals("Second line", script.rows[script.stops[script.stopAt(8_500L)].top].text)
+    }
+
+    @Test fun `out-of-order timestamps do not wipe earlier stops`() {
+        val first = LyricsEntry(4_000L, "First")
+        val second = LyricsEntry(8_000L, "Second")
+        val lateZero = LyricsEntry(1_000L, "Intro credit")
+        val script = PillScript.build(listOf(first, second, lateZero), "Title", "Artist", false)
+        assertEquals("Intro credit", script.rows[script.stops[script.stopAt(1_500L)].top].text)
+        assertEquals("First", script.rows[script.stops[script.stopAt(4_500L)].top].text)
+        assertEquals("Second", script.rows[script.stops[script.stopAt(8_500L)].top].text)
+    }
 }
