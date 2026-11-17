@@ -7,16 +7,8 @@ import android.content.Intent
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.constants.FloatingLyricsKey
 import com.mochyy.mochymusic.utils.rememberPreference
@@ -27,20 +19,11 @@ import com.mochyy.mochymusic.utils.rememberPreference
 fun rememberFloatingLyricsSwitch(): Pair<Boolean, (Boolean) -> Unit> {
     val context = LocalContext.current
     val (wanted, setWanted) = rememberPreference(FloatingLyricsKey, defaultValue = false)
-    var allowed by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
-    // the permission is given on android's own screen, so it's checked again whenever mochy comes back
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    DisposableEffect(lifecycle) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) allowed = Settings.canDrawOverlays(context)
-        }
-        lifecycle.addObserver(observer)
-        onDispose { lifecycle.removeObserver(observer) }
-    }
     val onChange: (Boolean) -> Unit = { on ->
         setWanted(on)
-        if (on && !allowed) askForOverlay(context)
+        if (on && !Settings.canDrawOverlays(context)) askForOverlay(context)
     }
+    // Card lyrics do not require overlay permission; denial must not switch them off.
     return wanted to onChange
 }
 

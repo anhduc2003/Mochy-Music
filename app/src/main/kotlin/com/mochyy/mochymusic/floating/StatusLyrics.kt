@@ -129,7 +129,7 @@ internal fun StatusLyrics(
     val text = when {
         row == null -> state.song?.title.orEmpty()
         // the intro and the long breaks read as dots lighting up one by one
-        row.kind == PillRowKind.INTRO -> "• ".repeat(dots.coerceAtLeast(1)).trim()
+        row.kind == PillRowKind.INTRO || dots >= 0 -> "• ".repeat(dots.coerceAtLeast(1)).trim()
         else -> row.text
     }
 
@@ -198,7 +198,7 @@ internal fun StatusLyrics(
                 Box(Modifier.weight(1f)) {
                     LyricLine(
                         text = text,
-                        words = row?.words,
+                        words = row?.words?.takeIf { dots < 0 },
                         positionProvider = positionProvider,
                         playing = state.playing,
                         seekTick = state.seekTick,

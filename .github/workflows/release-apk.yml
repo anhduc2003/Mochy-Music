@@ -108,7 +108,7 @@ jobs:
           name="${RELEASE_NAME:-Mochy Music $VERSION_NAME}"
 
           cat > notes.md <<EOF
-          Sync with upstream **mochy-8.4.1** (\`eafbbe6\`), keeping this fork's Vietnamese localisation and its own features.
+          Sync with upstream **Mochy 8.4.2** (\`7e590802\`), keeping this fork's Vietnamese localisation, desktop module and floating capsule.
 
           ### Floating lyrics improvements
           - The floating capsule smoothly shrinks for short lyrics and expands for longer lines. Drag the right-hand grip to set its saved maximum width.
@@ -118,18 +118,18 @@ jobs:
           - Style 2 karaoke renderer with per-word timing and display-synchronized animation, replacing the old 60 ms sweep timer.
           - Requests up to 120 Hz while playing when high refresh rate is enabled. Actual frame rate depends on the device and system policy.
 
-          ### What's new from 8.4.1
-          - **InnerTubeX stream backend** with the classic finder as automatic fallback (Settings → Experimental → Stream backend)
-          - **Floating lyrics, in the player and over everything**: the line being sung takes the artist's place in the notification, on the lock screen and in the car, and rides in a black capsule you can drag anywhere and pinch wider or narrower, with the song's progress ring, karaoke sweep and text that steps down to fit the line
-          - **New welcome page**: the mochy girl with an animated rig (eyes, hair, mouth, phone), tap anywhere to continue
-          - **Rotate button** in the player menu, straight from the turntable
-          - **lrc.red lyrics provider** and lyric export fixes
-          - **Romanisation** for song share cards and lyrics (Japanese, Korean, Chinese, Hindi, Cyrillic)
-          - Song share and crossmix fixes, song-share export fixes
-          - \`compileSdk\`/\`targetSdk\` 37, \`ACCESS_LOCAL_NETWORK\` permission
+          ### What's new from 8.4.2
+          - Manual queue entries play in FIFO order ahead of Autoplay; Play next works on a stopped player.
+          - Spotify Canvas integration and configurable Canvas provider order.
+          - Improved landscape, tablet and foldable layouts, including a compact navigation bar on short screens.
+          - Sleep timer presets, live countdown and interactive controls.
+          - DASH segment cache-key fix, FLAC export/remux and local audio/lyrics import improvements.
+          - Module browsing and login improvements, plus updated translations.
+          - Album track ordering and Remove from history fixes; tapping a cover opens song details.
 
           ### Kept from this fork
-          - Vietnamese UI, including the 22 newly translated strings for the 8.4.1 screens
+          - Vietnamese UI with this fork's translations and upstream's new resource-based screens
+          - Separate desktop application module and packaging workflows
           - Crossmix transition mode
           - Neon and Mask karaoke lyric styles
           - Cropped device-image player background, direct video cover toggle

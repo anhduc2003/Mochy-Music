@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="server_error">Lỗi máy chủ (%1$s)</string>
     <string name="playing_status">Đang phát</string>
@@ -81,5 +81,5 @@
     <string name="channel_switch_to_nightly">Chuyển sang bản nightly</string>
     <string name="channel_switch_to_release">Chuyển sang bản phát hành</string>
     <string name="channel_release_waits">Cần bản phát hành mới hơn</string>
-    <!-- 8.4.1 -->
-    <string name="update_allow_unknown_apps">Hãy cho phép mochy “Cài đặt ứng dụng không rõ nguồn gốc” trong Cài đặt, rồi quay lại và nhấn “Cài đặt tại đây” lần nữa.</string></resources>
+    <string name="update_allow_unknown_apps">Hãy cho phép mochy “Cài đặt ứng dụng không rõ nguồn gốc” trong Cài đặt, rồi quay lại và nhấn “Cài đặt tại đây” lần nữa.</string>
+</resources>

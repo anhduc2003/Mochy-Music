@@ -2,6 +2,7 @@
 
 package com.mochyy.mochymusic.ui.menu
 
+import androidx.compose.ui.res.pluralStringResource
 import com.mochyy.mochymusic.ui.component.SheetHeaderGap
 import com.mochyy.mochymusic.ui.component.SheetHeaderButton
 import com.mochyy.mochymusic.ui.component.SheetHeader
@@ -65,7 +66,7 @@ fun ArtistMenu(
     SheetHeader(
         thumbnailUrl = artist.artist.thumbnailUrl,
         title = artist.artist.name,
-        subtitle = if (artist.songCount == 1) "1 bài hát trong thư viện" else "${artist.songCount} bài hát trong thư viện",
+        subtitle = pluralStringResource(R.plurals.pc_artist_songs_in_library, artist.songCount, artist.songCount),
     )
 
     Spacer(Modifier.height(SheetHeaderGap))
@@ -161,7 +162,7 @@ fun ArtistMenu(
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             },
-                            text = if (isPinned) "Bỏ ghim" else "Ghim",
+                            text = stringResource(if (isPinned) R.string.pc_unpin else R.string.pc_pin),
                             onClick = {
                                 coroutineScope.launch(Dispatchers.IO) {
                                     if (isPinned) {

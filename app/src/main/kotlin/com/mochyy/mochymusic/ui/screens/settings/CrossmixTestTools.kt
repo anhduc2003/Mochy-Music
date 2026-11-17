@@ -23,17 +23,17 @@ fun crossmixTestItems(isVisible: Boolean = true): List<SettingsItem> {
     val status by statusFlow.collectAsState()
     return listOf(
         SettingsItem(
-            title = { Text(stringResource(R.string.crossmix_status)) },
-            descriptionText = status.ifBlank { stringResource(R.string.crossmix_status_empty) },
+            title = { Text(stringResource(R.string.xmix_status_title)) },
+            descriptionText = status.ifBlank { stringResource(R.string.xmix_status_empty) },
             icon = painterResource(R.drawable.info),
             iconShape = androidx.compose.foundation.shape.CircleShape,
             isVisible = isVisible,
         ),
         SettingsItem(
-            title = { Text(stringResource(R.string.crossmix_test_song)) },
-            highlightKey = stringResource(R.string.crossmix_test_song),
-            descriptionText = stringResource(R.string.crossmix_test_song_desc),
-            detail = stringResource(R.string.crossmix_test_song_detail),
+            title = { Text(stringResource(R.string.xmix_test_title)) },
+            highlightKey = "Test on this song",
+            descriptionText = stringResource(R.string.xmix_test_desc),
+            detail = stringResource(R.string.xmix_test_detail),
             icon = painterResource(R.drawable.fast_forward),
             iconShape = androidx.compose.foundation.shape.CircleShape,
             enabled = playerConnection != null,

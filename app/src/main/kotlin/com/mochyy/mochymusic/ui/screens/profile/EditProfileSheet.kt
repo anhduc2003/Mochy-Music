@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -87,19 +88,19 @@ private fun EditProfileContent(currentName: String, currentPhoto: Any?, onSaved:
     ) {
         OnboardingPage(
             badge = { PageBadge(painterResource(R.drawable.person)) },
-            title = "Chỉnh sửa hồ sơ",
+            title = stringResource(R.string.profile_edit_title),
             contentTop = 22.dp,
             modifier = Modifier.background(Onb.Page),
             footer = {
                 Text(
-                    "Mochy sẽ không bao giờ lưu dữ liệu của bạn trên mạng!",
+                    stringResource(R.string.profile_data_privacy_hint),
                     color = Onb.Faint,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(start = 4.dp),
                 )
                 OnbButton(
-                    text = "Xong",
+                    text = stringResource(R.string.profile_done),
                     enabled = name.isNotBlank() && !saving,
                     onClick = {
                         saving = true
@@ -111,11 +112,11 @@ private fun EditProfileContent(currentName: String, currentPhoto: Any?, onSaved:
                 )
             },
         ) {
-            Text("Tên người dùng", color = Onb.Muted, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.profile_username_label), color = Onb.Muted, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(10.dp))
-            OnbTextField(value = name, onValueChange = { name = it.take(32) }, placeholder = "Tên người dùng")
+            OnbTextField(value = name, onValueChange = { name = it.take(32) }, placeholder = stringResource(R.string.profile_username_placeholder))
             Spacer(Modifier.height(24.dp))
-            Text("Ảnh hồ sơ", color = Onb.Muted, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.profile_picture_label), color = Onb.Muted, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(12.dp))
             EditablePhoto(photo = cropped ?: currentPhoto, onClick = ::pickPhoto)
         }
@@ -143,14 +144,14 @@ private fun EditablePhoto(photo: Any?, onClick: () -> Unit) {
         if (photo != null) {
             AsyncImage(
                 model = photo,
-                contentDescription = "Ảnh hồ sơ",
+                contentDescription = stringResource(R.string.profile_picture_cd),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
         } else {
             Icon(
                 painterResource(R.drawable.add),
-                contentDescription = "Thêm ảnh hồ sơ",
+                contentDescription = stringResource(R.string.profile_picture_add_cd),
                 tint = Color.White.copy(alpha = 0.7f),
                 modifier = Modifier.size(34.dp),
             )

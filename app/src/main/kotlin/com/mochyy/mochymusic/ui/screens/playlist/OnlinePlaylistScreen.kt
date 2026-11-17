@@ -422,7 +422,7 @@ fun OnlinePlaylistScreen(
             if (relatedItems.isNotEmpty()) {
                 item(key = "related_title") {
                     PlaylistSectionTitle(
-                        title = "Danh sách phát liên quan",
+                        title = stringResource(R.string.playlist_related),
                         modifier = Modifier.padding(top = 28.dp, bottom = 8.dp),
                     )
                 }

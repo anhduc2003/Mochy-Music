@@ -2,6 +2,7 @@
 
 package com.mochyy.mochymusic.ui.menu
 
+import androidx.compose.ui.res.pluralStringResource
 import com.mochyy.mochymusic.ui.component.SheetHeaderGap
 import com.mochyy.mochymusic.ui.component.SheetHeaderButton
 import com.mochyy.mochymusic.ui.component.SheetHeader
@@ -235,7 +236,7 @@ fun PlaylistMenu(
     SheetHeader(
         thumbnailUrl = playlist.thumbnails.firstOrNull(),
         title = playlist.playlist.name,
-        subtitle = if (playlist.songCount == 1) "1 bài hát" else "${playlist.songCount} bài hát",
+        subtitle = pluralStringResource(R.plurals.pc_detail_songs, playlist.songCount, playlist.songCount),
         trailing = if (playlist.playlist.isEditable != true) {
             {
                 SheetHeaderButton(
@@ -423,7 +424,7 @@ fun PlaylistMenu(
                         Material3MenuItemData(
                             title = {
                                 Text(
-                                    text = if (isPinned) "Bỏ ghim khỏi thư viện" else "Ghim vào thư viện"
+                                    text = stringResource(if (isPinned) R.string.unpin_from_speed_dial else R.string.pin_to_speed_dial)
                                 )
                             },
                             icon = {

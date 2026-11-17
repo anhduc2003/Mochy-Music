@@ -115,7 +115,7 @@ fun TransportFadeSection() {
         LabCollapsible(enabled || blendSkips) {
             Box(Modifier.padding(horizontal = 6.dp)) {
                 LabSlider(
-                    label = stringResource(R.string.crossfade_length),
+                    label = stringResource(R.string.xmix_length),
                     valueText = secondsText(seconds),
                     value = seconds,
                     onValueChange = { onSecondsChange((it * 2f).roundToInt() / 2f) },
@@ -131,9 +131,9 @@ fun TransportFadeSection() {
         LabCollapsible(enabled) {
             Spacer(Modifier.height(14.dp))
             Column(Modifier.padding(horizontal = 6.dp)) {
-                Text(stringResource(R.string.transport_fade_layered), fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = LabColors.Primary)
+                Text(stringResource(R.string.xmix_layered_effect), fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = LabColors.Primary)
                 Text(
-                    stringResource(R.string.transport_fade_layered_desc),
+                    stringResource(R.string.xmix_layered_effect_desc),
                     fontFamily = InterFontFamily,
                     fontSize = 12.sp,
                     lineHeight = 15.sp,
@@ -142,10 +142,10 @@ fun TransportFadeSection() {
             }
             Spacer(Modifier.height(12.dp))
             LabSelect(
-                options = TransportEffect.entries.map { it.label },
+                options = TransportEffect.entries.map { stringResource(it.labelRes) },
                 selectedIndex = effect.ordinal,
                 onSelect = { onEffectChange(TransportEffect.entries[it]) },
-                contentDescription = "Choose an effect",
+                contentDescription = stringResource(R.string.xmix_choose_effect),
             )
             Spacer(Modifier.height(4.dp))
         }

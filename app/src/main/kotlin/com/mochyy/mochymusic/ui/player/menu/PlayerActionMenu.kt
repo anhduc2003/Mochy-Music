@@ -48,6 +48,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -184,12 +185,11 @@ fun PlayerActionMenu(
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            text = buildString {
-                                append("by ")
-                                append(trackInfo.artist.ifBlank { "unknown" })
+                            text = trackInfo.artist.ifBlank { stringResource(R.string.ps_menu_unknown) }.let { artist ->
                                 if (trackInfo.album.isNotBlank()) {
-                                    append(" on ")
-                                    append(trackInfo.album)
+                                    stringResource(R.string.ps_menu_by_artist_on_album, artist, trackInfo.album)
+                                } else {
+                                    stringResource(R.string.ps_menu_by_artist, artist)
                                 }
                             },
                             color = Color(0xFFB3B3B3),
@@ -208,7 +208,7 @@ fun PlayerActionMenu(
                     SheetActionCardRow {
                         SheetActionCard(
                             icon = R.drawable.translate,
-                            title = "Dịch bằng AI",
+                            title = stringResource(R.string.menu_ai_translation),
                             // Greyed out until the AI translation settings are filled in — an
                             // enabled button that silently does nothing is worse than a disabled
                             // one that says so.
@@ -218,7 +218,7 @@ fun PlayerActionMenu(
                         )
                         SheetActionCard(
                             icon = R.drawable.edit,
-                            title = "Chỉnh sửa lời bài hát",
+                            title = stringResource(R.string.edit_lyrics),
                             onClick = { showLyricsEditor = true },
                             modifier = Modifier.weight(1f),
                         )
@@ -231,7 +231,7 @@ fun PlayerActionMenu(
                     // outcome.
                     MenuRow(
                         icon = R.drawable.lyrics,
-                        title = "Nguồn lời bài hát",
+                        title = stringResource(R.string.video_mode_lyrics_provider),
                         onClick = { showLyricsProvider = true },
                     )
 
@@ -239,7 +239,7 @@ fun PlayerActionMenu(
 
                     MenuRow(
                         icon = R.drawable.fast_forward,
-                        title = "Độ lệch lời bài hát",
+                        title = stringResource(R.string.video_mode_lyrics_offset),
                         onClick = { showLyricsOffset = true },
                     )
 
@@ -247,7 +247,7 @@ fun PlayerActionMenu(
 
                     MenuRow(
                         icon = R.drawable.translate,
-                        title = "Dịch lời bài hát",
+                        title = stringResource(R.string.video_mode_lyrics_translation),
                         onClick = { showLyricsTranslation = true },
                     )
 
@@ -269,7 +269,7 @@ fun PlayerActionMenu(
                     )
                     SheetActionCard(
                         icon = R.drawable.playlist_add,
-                        title = "Thêm vào danh sách phát",
+                        title = stringResource(R.string.add_to_playlist),
                         enabled = currentMetadata != null,
                         onClick = { showChoosePlaylistDialog = true },
                         modifier = Modifier.weight(1f),
@@ -348,7 +348,7 @@ fun PlayerActionMenu(
                 Spacer(modifier = Modifier.height(8.dp))
                 MenuRow(
                     icon = R.drawable.cast,
-                    title = "Đổi thiết bị đầu ra",
+                    title = stringResource(R.string.menu_change_output),
                     onClick = { showAudioDevices = true },
                 )
                 // a linked tv with mochy open: play there, line it up there, or work it as a remote
@@ -362,7 +362,7 @@ fun PlayerActionMenu(
                 Spacer(modifier = Modifier.height(8.dp))
                 MenuRow(
                     icon = R.drawable.speed,
-                    title = "Tốc độ và nhịp phát",
+                    title = stringResource(R.string.video_mode_speed),
                     onClick = { showPlaybackSpeed = true },
                 )
                 if (onEqualizer != null) {
@@ -381,14 +381,14 @@ fun PlayerActionMenu(
 
                 MenuRow(
                     icon = if (trackInfo.liked) R.drawable.ic_untitled_heart else R.drawable.ic_untitled_heart_unfill,
-                    title = if (trackInfo.liked) "Xóa khỏi bài hát đã thích" else "Thêm vào bài hát đã thích",
+                    title = if (trackInfo.liked) stringResource(R.string.menu_remove_from_liked) else stringResource(R.string.menu_add_to_liked),
                     onClick = { playerConnection.toggleLike() },
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 val inLibrary = librarySong?.song?.inLibrary != null
                 MenuRow(
                     icon = if (inLibrary) R.drawable.library_add_check else R.drawable.library_add,
-                    title = if (inLibrary) "Xóa khỏi thư viện" else "Thêm vào thư viện",
+                    title = if (inLibrary) stringResource(R.string.remove_from_library) else stringResource(R.string.add_to_library),
                     enabled = currentMetadata != null,
                     onClick = { playerConnection.toggleLibrary() },
                 )
@@ -415,7 +415,7 @@ fun PlayerActionMenu(
 
                 MenuRow(
                     icon = R.drawable.edit,
-                    title = "Chỉnh sửa trình phát",
+                    title = stringResource(R.string.menu_edit_player),
                     onClick = {
                         onDismiss()
                         onEditPlayer()
@@ -527,7 +527,7 @@ private fun KeepScreenOnRow() {
     val (keepScreenOn, setKeepScreenOn) = rememberPreference(KeepScreenOn, defaultValue = false)
     MenuRow(
         icon = R.drawable.lock_open,
-        title = "Giữ màn hình luôn bật",
+        title = stringResource(R.string.menu_keep_screen_on),
         onClick = { setKeepScreenOn(!keepScreenOn) },
         trailing = { AppSwitch(checked = keepScreenOn, onCheckedChange = setKeepScreenOn) },
     )
@@ -550,11 +550,12 @@ private fun SleepTimerRow(onClick: () -> Unit) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val sleepTimer = playerConnection.service.sleepTimer
 
+    val endsWithSongLabel = stringResource(R.string.ps_menu_ends_with_song)
     var remainingLabel by remember { mutableStateOf("") }
-    LaunchedEffect(sleepTimer.triggerTime, sleepTimer.pauseWhenSongEnd) {
+    LaunchedEffect(sleepTimer.triggerTime, sleepTimer.pauseWhenSongEnd, endsWithSongLabel) {
         while (true) {
             remainingLabel = when {
-                sleepTimer.pauseWhenSongEnd -> "kết thúc cùng bài hát"
+                sleepTimer.pauseWhenSongEnd -> endsWithSongLabel
                 sleepTimer.triggerTime > 0L -> {
                     val left = sleepTimer.triggerTime - System.currentTimeMillis()
                     if (left <= 0L) "" else formatRemaining(left)
@@ -565,15 +566,24 @@ private fun SleepTimerRow(onClick: () -> Unit) {
             kotlinx.coroutines.delay(1000)
         }
     }
+    // a paused timer doesn't count down, so it needs no ticking label
+    val pausedLabel = if (sleepTimer.isPaused) {
+        stringResource(R.string.sleep_timer_paused_left, formatRemaining(sleepTimer.remainingMillisWhenPaused))
+    } else null
 
     MenuRow(
         icon = R.drawable.sleep_timer,
-        title = "Hẹn giờ ngủ",
+        title = stringResource(R.string.sleep_timer),
         onClick = onClick,
         trailing = {
-            if (remainingLabel.isNotEmpty()) {
+            val label = pausedLabel ?: when {
+                remainingLabel.isEmpty() -> null
+                sleepTimer.pauseWhenSongEnd -> remainingLabel
+                else -> stringResource(R.string.ps_menu_remaining, remainingLabel)
+            }
+            if (label != null) {
                 Text(
-                    text = "còn $remainingLabel",
+                    text = label,
                     color = Color(0xFF9A9A9A),
                     fontSize = 12.sp,
                 )
@@ -620,7 +630,7 @@ private fun DeviceVolumeRow() {
             SheetIcon(R.drawable.volume_up)
             Spacer(modifier = Modifier.width(14.dp))
             Text(
-                text = android.os.Build.MODEL ?: "thiết bị này",
+                text = android.os.Build.MODEL ?: stringResource(R.string.ps_device_this_device),
                 color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,

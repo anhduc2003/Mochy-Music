@@ -5,6 +5,8 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -51,6 +53,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -571,11 +574,11 @@ fun BoxScope.StyleMenu(
         val transport = connection?.uiState?.transportState?.collectAsState()?.value
         // the styles have no shuffle or repeat buttons of their own, so each is a row of the list here, staying open when tapped so the change shows
         val shuffleAndRepeat = if (connection != null && transport != null) listOf(
-            MenuItem("Phát ngẫu nhiên", R.drawable.shuffle, active = transport.shuffleModeEnabled) {
+            MenuItem(androidx.compose.ui.res.stringResource(R.string.shuffle), R.drawable.shuffle, active = transport.shuffleModeEnabled) {
                 connection.player.shuffleModeEnabled = !connection.player.shuffleModeEnabled
             },
             MenuItem(
-                label = if (transport.repeatMode == Player.REPEAT_MODE_ONE) "Lặp lại bài hát" else "Lặp lại",
+                label = androidx.compose.ui.res.stringResource(if (transport.repeatMode == Player.REPEAT_MODE_ONE) R.string.ps_style_repeat_one else R.string.repeat),
                 icon = if (transport.repeatMode == Player.REPEAT_MODE_ONE) R.drawable.repeat_one else R.drawable.repeat,
                 active = transport.repeatMode != Player.REPEAT_MODE_OFF,
             ) { connection.player.toggleRepeatMode() },
@@ -584,8 +587,11 @@ fun BoxScope.StyleMenu(
         val turnLabel = androidx.compose.ui.res.stringResource(
             if (actions.turn?.isTurned?.invoke() == true) R.string.player_turn_upright else R.string.player_rotate,
         )
-        val rows = listOfNotNull(
-            actions.onLyrics?.let { open -> MenuItem("Lời bài hát", R.drawable.lyrics) { onOpenChange(false); open() } },
+        val lyricsLabel = androidx.compose.ui.res.stringResource(R.string.lyrics)
+        val otherMenuLabel = androidx.compose.ui.res.stringResource(R.string.ps_action_other_menu)
+        val editPlayerLabel = androidx.compose.ui.res.stringResource(R.string.menu_edit_player)
+        val menu = listOfNotNull(
+            actions.onLyrics?.let { open -> MenuItem(lyricsLabel, R.drawable.lyrics) { onOpenChange(false); open() } },
             actions.onQueue?.takeIf { queue }?.let { open -> MenuItem(queueLabel, R.drawable.queue_music) { onOpenChange(false); open() } },
         ) + shuffleAndRepeat + extras.map { extra ->
             MenuItem(extra.label, extra.icon, extra.active, extra.picture) {
@@ -593,13 +599,18 @@ fun BoxScope.StyleMenu(
                 extra.onClick()
             }
         } + listOf(
-            MenuItem("Menu khác", R.drawable.more_horiz) { onOpenChange(false); actions.onOtherMenu() },
-        ) + listOfNotNull(
-            actions.turn?.let { turn -> MenuItem(turnLabel, R.drawable.screen_rotation) { onOpenChange(false); turn.toggle() } },
-        ) + listOf(
-            MenuItem("Chỉnh trình phát", R.drawable.tune) { onOpenChange(false); actions.onEditPlayer() },
+            MenuItem(otherMenuLabel, R.drawable.more_horiz) { onOpenChange(false); actions.onOtherMenu() },
         )
+        val turnItem = actions.turn?.let { turn -> MenuItem(turnLabel, R.drawable.screen_rotation) { onOpenChange(false); turn.toggle() } }
+        val editItem = MenuItem(editPlayerLabel, R.drawable.tune) { onOpenChange(false); actions.onEditPlayer() }
+        // turned sideways the screen is short, so the way back upright sits right by the button instead of at the far end of the list
+        val rows = when {
+            turnItem == null -> menu + editItem
+            actions.turn?.isTurned?.invoke() == true -> if (atBottom) menu + editItem + turnItem else listOf(turnItem) + menu + editItem
+            else -> menu + turnItem + editItem
+        }
         val itemGap = 10.dp
+        val roomForRows = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp - edge - buttonSize - itemGap
         Column(
             modifier = Modifier
                 .align(corner)
@@ -608,7 +619,9 @@ fun BoxScope.StyleMenu(
                     end = if (atStart) 0.dp else end - 3.dp,
                     top = if (atBottom) 0.dp else edge + buttonSize + itemGap,
                     bottom = if (atBottom) edge + buttonSize + itemGap else 0.dp,
-                ),
+                )
+                // only a list too tall for the screen scrolls, from the button's end; a scroll would clip the rows sliding in
+                .then(if ((buttonSize + 6.dp + itemGap) * rows.size > roomForRows) Modifier.verticalScroll(rememberScrollState(), reverseScrolling = atBottom) else Modifier),
             horizontalAlignment = if (atStart) Alignment.Start else Alignment.End,
             verticalArrangement = Arrangement.spacedBy(itemGap),
         ) {

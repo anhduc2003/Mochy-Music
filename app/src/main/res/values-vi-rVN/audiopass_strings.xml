@@ -1,6 +1,5 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <string name="audiopass_hub_title">Audio Pass</string>
     <string name="audiopass_title_first">Các DAC</string>
     <string name="audiopass_title_second">Thông tin khác</string>

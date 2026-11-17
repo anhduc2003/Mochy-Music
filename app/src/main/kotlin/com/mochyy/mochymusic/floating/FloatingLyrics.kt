@@ -19,7 +19,10 @@ import com.mochyy.mochymusic.constants.FloatingLyricsWidthKey
 import com.mochyy.mochymusic.constants.FloatingLyricsXKey
 import com.mochyy.mochymusic.constants.FloatingLyricsYKey
 import com.mochyy.mochymusic.db.MusicDatabase
+import com.mochyy.mochymusic.db.entities.LyricsEntity
+import com.mochyy.mochymusic.lyrics.LyricsTranslationHelper
 import com.mochyy.mochymusic.models.MediaMetadata
+import com.mochyy.mochymusic.ui.player.LineReading
 import com.mochyy.mochymusic.utils.dataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -48,6 +51,8 @@ class FloatingLyrics(
     private val scope: CoroutineScope,
 ) {
     private val appVisible = MutableStateFlow(true)
+    // Include the saved lyrics in the key so edits cannot reuse an older translation.
+    private var translationMemo: Pair<TranslationKey, List<String?>>? = null
     private val state = PillState { player.value }
     private var job: Job? = null
     private var window: StatusWindow? = null
@@ -159,23 +164,57 @@ class FloatingLyrics(
         song.distinctUntilChangedBy { it?.id }.collectLatest { metadata ->
             state.song = metadata
             state.script = null
-            if (metadata == null) return@collectLatest
-            val artist = metadata.artists.joinToString { it.name }
-            val appRtl = context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
-            val offset = database.song(metadata.id).map { it?.song?.lyricsOffset ?: 0 }
-            // follows the saved lyrics, so a fix or a new source in the app reaches the capsule straight away
-            combine(database.lyrics(metadata.id), offset) { lyrics, shift -> lyrics?.lyrics to shift }
-                .distinctUntilChanged()
-                .collectLatest { (raw, shift) ->
-                    state.offsetMs = shift
-                    if (raw == null) {
-                        // nothing saved yet: fetched once and saved, and the saved copy comes back through here
-                        source.fetch(metadata)
-                        return@collectLatest
-                    }
-                    state.script = withContext(Dispatchers.Default) { PillScript.build(raw, metadata.title, artist, appRtl) }
-                }
+            if (metadata != null) followLyrics(metadata)
         }
+    }
+
+    // Follow lyrics and reading settings only while this song's capsule is visible.
+    private suspend fun followLyrics(metadata: MediaMetadata) = coroutineScope {
+        val artist = metadata.artists.joinToString { it.name }
+        val appRtl = context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
+        val offset = database.song(metadata.id).map { it?.song?.lyricsOffset ?: 0 }
+        // follows the saved lyrics, so a fix, a new source or a saved translation in the app reaches the pill straight away
+        combine(
+            database.lyrics(metadata.id),
+            offset,
+            readingSettings(context),
+            LyricsTranslationHelper.translationOn,
+        ) { saved, shift, settings, translate -> SongLyrics(saved, shift, settings, translate) }
+            .distinctUntilChanged()
+            .collectLatest { found ->
+                state.offsetMs = found.shift
+                val raw = found.saved?.lyrics
+                if (raw == null) {
+                    // nothing saved yet: fetched once and saved, and the saved copy comes back through here
+                    source.fetch(metadata)
+                    return@collectLatest
+                }
+                showLyrics(metadata.id, raw, metadata.title, artist, appRtl, found)
+            }
+    }
+
+    // the plain lines go up first; the romanisation and then the translation swap in as each is ready
+    private suspend fun showLyrics(songId: String, raw: String, title: String, artist: String, appRtl: Boolean, found: SongLyrics) {
+        val lines = withContext(Dispatchers.Default) { PillScript.lines(raw) }
+        val plain = withContext(Dispatchers.Default) { PillScript.build(lines, title, artist, appRtl) }
+        // after a song's first lines, its rows stay up until the new ones are ready, so a setting change doesn't shrink the bubble and grow it back
+        if (state.script == null || !plain.sung) state.script = plain
+        if (!plain.sung) return
+        val settings = found.settings
+        val withReadings: suspend (List<LineReading?>, List<String?>) -> PillScript = { romanized, translated ->
+            withContext(Dispatchers.Default) {
+                PillScript.build(lines, title, artist, appRtl, PillReadings(romanized, translated, settings.romanizedAsMain))
+            }
+        }
+        val romanized = romanizedLines(lines, settings)
+        val key = TranslationKey(songId, raw, found.saved, settings.language, settings.sourceLanguage, settings.mode)
+        val remembered = translationMemo?.takeIf { found.translate && it.first == key }?.second
+        if (remembered == null) state.script = if (romanized == null) plain else withReadings(romanized, emptyList())
+        if (!found.translate) return
+        val translated = remembered
+            ?: translatedLines(lines, found.saved, settings)?.also { translationMemo = key to it }
+            ?: return
+        state.script = withReadings(romanized.orEmpty(), translated)
     }
 
     // a crossfade hands over to a new player, so the listener moves with it
@@ -211,3 +250,21 @@ class FloatingLyrics(
         }
     }
 }
+
+
+private data class TranslationKey(
+    val songId: String,
+    val raw: String,
+    val saved: LyricsEntity?,
+    val language: String,
+    val sourceLanguage: String,
+    val mode: String,
+)
+
+// everything the capsule's lyrics are built from; a change to any of it lays them out again
+private data class SongLyrics(
+    val saved: LyricsEntity?,
+    val shift: Int,
+    val settings: ReadingSettings,
+    val translate: Boolean,
+)

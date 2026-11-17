@@ -27,6 +27,7 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -213,14 +214,14 @@ fun PlaylistScreenHeader(
                     AnimatedContent(targetState = isPlaying, label = "PlayPause") { playing ->
                         Icon(
                             painter = painterResource(if (playing) R.drawable.ic_untitled_pause else R.drawable.ic_untitled_play),
-                            contentDescription = if (playing) "Tạm dừng" else "Phát",
+                            contentDescription = stringResource(if (playing) R.string.pause else R.string.play),
                             tint = contentColor,
                             modifier = Modifier.size(16.dp)
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (isPlaying) "Tạm dừng" else "Phát",
+                        text = stringResource(if (isPlaying) R.string.pause else R.string.play),
                         style = MaterialTheme.typography.titleMedium,
                         color = contentColor,
                         fontWeight = FontWeight.Bold
@@ -239,7 +240,7 @@ fun PlaylistScreenHeader(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.shuffle),
-                        contentDescription = "Phát ngẫu nhiên",
+                        contentDescription = stringResource(R.string.shuffle),
                         tint = contentColor,
                         modifier = Modifier.size(22.dp)
                     )
@@ -257,7 +258,7 @@ fun PlaylistScreenHeader(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.more_vert),
-                        contentDescription = "Tùy chọn",
+                        contentDescription = stringResource(R.string.options),
                         tint = contentColor,
                         modifier = Modifier.size(22.dp)
                     )

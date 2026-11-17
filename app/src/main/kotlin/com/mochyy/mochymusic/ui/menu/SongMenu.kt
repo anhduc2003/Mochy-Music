@@ -490,7 +490,7 @@ fun SongMenu(
                         Material3MenuItemData(
                             title = {
                                 Text(
-                                    text = if (isPinned) "Bỏ ghim khỏi thư viện" else "Ghim vào thư viện"
+                                    text = stringResource(if (isPinned) R.string.unpin_from_speed_dial else R.string.pin_to_speed_dial)
                                 )
                             },
                             icon = {
@@ -641,8 +641,8 @@ fun SongMenu(
                     importMatch?.let { match ->
                         add(
                             Material3MenuItemData(
-                                title = { Text(text = "Chọn phiên bản khác") },
-                                description = { Text(text = "Bản thu không đúng? Hãy chọn bản phù hợp trong danh sách") },
+                                title = { Text(text = stringResource(R.string.menu_choose_version)) },
+                                description = { Text(text = stringResource(R.string.menu_choose_version_desc)) },
                                 icon = {
                                     Icon(
                                         painter = painterResource(R.drawable.tune),
@@ -660,7 +660,7 @@ fun SongMenu(
                             title = { Text(text = stringResource(R.string.refetch)) },
                             description = {
                                 Text(
-                                    text = if (importMatch != null) "Tìm lại phiên bản phù hợp của bài hát này"
+                                    text = if (importMatch != null) stringResource(R.string.pc_refetch_import_desc)
                                     else stringResource(R.string.refetch_desc)
                                 )
                             },
@@ -724,10 +724,10 @@ private fun refetchImported(context: android.content.Context, database: com.moch
     ImportedVersions.scope.launch {
         val switched = ImportedVersions.refetch(context.applicationContext, database, match)
         if (switched != null) {
-            TopToaster.show(text = "Đã tìm thấy bản phù hợp hơn: ${switched.title}", thumbnail = switched.thumbnail, iconRes = R.drawable.sync)
+            TopToaster.show(text = context.getString(R.string.pc_closer_match, switched.title), thumbnail = switched.thumbnail, iconRes = R.drawable.sync)
         } else {
             TopToaster.show(
-                text = "Đây đã là bản phù hợp nhất mà chúng tôi tìm thấy. Hãy thử chọn phiên bản khác.",
+                text = context.getString(R.string.pc_closest_match),
                 iconRes = R.drawable.sync,
                 durationMs = 4000L,
             )

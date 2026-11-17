@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_language_search">Tìm ngôn ngữ</string>
     <string name="app_language_follow_device">Theo ngôn ngữ thiết bị</string>
@@ -9,6 +9,11 @@
     <string name="settings_updates_notice_desc">Thông báo bật lên sẽ chỉ xuất hiện khi bạn mở trình cập nhật.</string>
     <string name="settings_offline_mode">Chế độ ngoại tuyến</string>
     <string name="settings_offline_mode_desc">Chỉ phát nhạc đã tải xuống</string>
+    <string name="settings_data_saver">Tiết kiệm dữ liệu</string>
+    <string name="settings_data_saver_desc">Luồng nhẹ hơn, không có nền canvas hay video</string>
+    <string name="settings_data_saver_detail">YouTube phát luồng nhẹ nhất và các module phát ở mức High thay vì Lossless. Ảnh bìa canvas và nền video bị tắt, nhưng chế độ video đầy đủ vẫn phát khi bạn mở.</string>
+    <string name="settings_data_saver_mobile">Chỉ trên dữ liệu di động</string>
+    <string name="settings_data_saver_mobile_desc">Trên Wi-Fi mọi thứ phát như bình thường</string>
     <string name="settings_local_auto_metadata">Tự động lấy siêu dữ liệu cho bài hát trên thiết bị</string>
     <string name="settings_local_auto_metadata_desc">Tự động đối chiếu các bài hát trên thiết bị với siêu dữ liệu trực tuyến.</string>
     <string name="settings_disable_video_autoplay">Tắt tự động phát video YouTube</string>
@@ -33,6 +38,7 @@
     <string name="settings_modules_category">Mô-đun</string>
     <string name="settings_recommended_item">Mục được đề xuất</string>
     <string name="settings_nothing_matches">Không có kết quả nào khớp với “%1$s”.</string>
+    <string name="settings_pane_hint">Chọn một mục cài đặt ở bên trái để mở tại đây.</string>
     <string name="settings_search_placeholder">Tìm trong cài đặt</string>
     <string name="settings_clear_search">Xóa tìm kiếm</string>
     <string name="library_local_search">Tìm trong nhạc trên thiết bị</string>
@@ -49,7 +55,9 @@
     <string name="library_empty_import">Chưa có nội dung nào ở đây. Hãy nhập nhạc của bạn ở phía trên để thêm vào thư viện.</string>
     <string name="library_pinned">Đã ghim</string>
     <string name="library_recently_added">Mới thêm</string>
+    <string name="library_albums_subtitle">Các album bạn đã lưu và những album chứa bài hát bạn đã thêm.</string>
+    <string name="library_albums_search">Tìm một album trong danh sách này</string>
+    <string name="library_imported_albums_subtitle">Các album có bài hát bạn đã nhập từ %1$s.</string>
     <string name="search_top_result">Kết quả phù hợp nhất</string>
     <string name="search_offline_no_matches">Chế độ ngoại tuyến: không có nội dung phù hợp trong thư viện của bạn</string>
-    <string name="settings_data_saver">Tiết kiệm dữ liệu</string>
 </resources>

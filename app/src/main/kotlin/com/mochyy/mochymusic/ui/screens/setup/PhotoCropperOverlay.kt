@@ -25,10 +25,12 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mochyy.mochymusic.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -53,7 +55,7 @@ fun PhotoCropperContainer(
     onDone: (Uri) -> Unit,
     onCancel: () -> Unit,
     onSelectNewImage: () -> Unit,
-    title: String = "Điều chỉnh ảnh hồ sơ của bạn",
+    title: String = stringResource(R.string.onb_adjust_photo),
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
@@ -275,7 +277,7 @@ fun PhotoCropperContainer(
                 .fillMaxWidth()
                 .height(48.dp)
         ) {
-            Text("Chọn ảnh mới", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(stringResource(R.string.onb_select_new_image), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
 
         Button(
@@ -327,7 +329,7 @@ fun PhotoCropperContainer(
                 .fillMaxWidth()
                 .height(48.dp)
         ) {
-            Text("Xong", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(stringResource(R.string.onb_done), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
         }
     }

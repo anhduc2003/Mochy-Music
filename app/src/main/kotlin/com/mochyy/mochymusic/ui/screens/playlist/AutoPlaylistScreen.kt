@@ -142,12 +142,12 @@ fun AutoPlaylistScreen(
         "liked" -> stringResource(R.string.liked)
         "uploaded" -> stringResource(R.string.uploaded_playlist)
         "downloaded" -> stringResource(R.string.offline)
-        "local" -> "Trên thiết bị"
-        "local_liked" -> "Bài hát đã thích trên thiết bị"
-        "cached" -> "Trong bộ nhớ đệm"
-        "cached_liked" -> "Bài hát đã thích trong bộ nhớ đệm"
-        "songs" -> "Tất cả bài hát"
-        "recently_added" -> "Mới thêm gần đây"
+        "local" -> stringResource(R.string.library_tab_local)
+        "local_liked" -> "Local liked songs"
+        "cached" -> "Cached"
+        "cached_liked" -> "Cached liked songs"
+        "songs" -> "All Songs"
+        "recently_added" -> "Recently Added"
         else -> viewModel.playlist
     }
 

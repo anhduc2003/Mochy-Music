@@ -54,6 +54,8 @@ class VideoDashTest {
     private fun streams(vararg tracks: VideoTrack, durationMs: Long = 200_000L) =
         VideoStreams("abc", tracks.toList(), emptyMap(), Long.MAX_VALUE, durationMs)
 
+    private fun manifest(s: VideoStreams) = VideoDash.manifest(s.tracks, s.durationMs)
+
     @Test
     fun `h264 wins over vp9 and audio, one per size, the steadier frame rate first`() {
         val formats = listOf(
@@ -78,8 +80,7 @@ class VideoDashTest {
 
     @Test
     fun `the manifest lists every size with its byte ranges and escapes the links`() {
-        val source = streams(track(134, 360), track(136, 720))
-        val xml = VideoDash.manifest(source.tracks, source.durationMs)!!
+        val xml = manifest(streams(track(134, 360), track(136, 720)))!!
         assertTrue(xml.contains("<Representation id=\"134\""))
         assertTrue(xml.contains("<Representation id=\"136\""))
         assertTrue(xml.contains("<SegmentBase indexRange=\"741-1500\"><Initialization range=\"0-740\"/>"))
@@ -89,10 +90,8 @@ class VideoDashTest {
 
     @Test
     fun `a video youtube only serves whole gets no manifest`() {
-        val whole = streams(track(18, 360, chunked = false))
-        assertNull(VideoDash.manifest(whole.tracks, whole.durationMs))
-        val noDuration = streams(track(136, 720), durationMs = 0L)
-        assertNull(VideoDash.manifest(noDuration.tracks, noDuration.durationMs))
+        assertNull(manifest(streams(track(18, 360, chunked = false))))
+        assertNull(manifest(streams(track(136, 720), durationMs = 0L)))
     }
 
     @Test
