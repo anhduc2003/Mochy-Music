@@ -97,9 +97,11 @@ private const val NextTextSp = 9f
 // slot never changes size, so a blend costs no layout pass on the capsule.
 private const val DiscSlotFactor = 1.30f
 
-// How long the two discs take to dissolve into one, and one breath of the ready ring.
-private const val MixBlendMs = 1500
-private const val ReadyRingMs = 1600
+// How long the outgoing disc takes to dissolve into the new one, and how long the ready ring
+// breathes for once it has taken over.
+private const val HandoverMs = 1200
+private const val ReadyRingMs = 1400
+private const val ReadyRingCycles = 3
 
 // Where the capsule puts its disc from its own left edge. The disc-only view starts there, so
 // the window narrowing around it reads as the capsule collapsing instead of the disc jumping.
@@ -320,49 +322,44 @@ private fun UpNext(state: PillState) {
     }
 }
 
-// The cover with its progress ring. During a crossmix the outgoing disc sits on top of it and
-// slides away as the two dissolve, then a breathing ring says the new one is ready to play.
+// The cover with its progress ring. When the song changes the outgoing disc sits on top of it
+// and slides away as the two dissolve, then a breathing ring says the new one is ready to play.
 @Composable
 private fun DiscStage(state: PillState, progress: MutableFloatState, cover: Dp) {
     val blend = remember { Animatable(0f) }
     val ring = remember { Animatable(0f) }
     val ringLevel = remember { Animatable(0f) }
 
-    // The service promotes the new song before it reports the mix, so waiting for both means
-    // the disc being faded out is always the one that was actually on screen.
-    val previous = state.previousSong
-    val mixingNow = state.mixing && previous != null && previous.id != state.song?.id
+    // What was on screen a moment ago. Crossmix promotes the incoming song the instant the two
+    // overlap, so this is also the disc a mix has to fade out — and on a plain skip it is just
+    // the cover that has to leave. Either way the change of song is what drives the hand-over,
+    // so the capsule animates whether or not crossfade is switched on.
+    val leaving = state.previousSong?.takeIf { it.id != state.song?.id }
 
     var ghost by remember { mutableStateOf<MediaMetadata?>(null) }
-    LaunchedEffect(mixingNow) {
-        if (mixingNow) {
-            ghost = previous
-            blend.snapTo(0f)
-            ringLevel.snapTo(0f)
-            blend.animateTo(1f, tween(MixBlendMs, easing = FastOutSlowInEasing))
-            // The mix is still running, so the disc that took over is only queued to play.
-            ringLevel.animateTo(1f, tween(320, easing = LinearEasing))
-            while (true) {
-                ring.snapTo(0f)
-                ring.animateTo(1f, tween(ReadyRingMs, easing = LinearEasing))
-            }
-        } else {
-            // A mix cut short still lets the outgoing disc finish leaving.
-            if (ghost != null) {
-                if (blend.value < 1f) blend.animateTo(1f, tween(300, easing = LinearEasing))
-                ghost = null
-            }
-            ringLevel.animateTo(0f, tween(420, easing = LinearEasing))
+    LaunchedEffect(leaving?.id) {
+        val gone = leaving ?: return@LaunchedEffect
+        ghost = gone
+        blend.snapTo(0f)
+        ringLevel.snapTo(0f)
+        blend.animateTo(1f, tween(HandoverMs, easing = FastOutSlowInEasing))
+        ghost = null
+        // The disc that took over is ready to play: let the ring breathe, then let it go.
+        ringLevel.animateTo(1f, tween(200, easing = LinearEasing))
+        repeat(ReadyRingCycles) {
             ring.snapTo(0f)
+            ring.animateTo(1f, tween(ReadyRingMs, easing = LinearEasing))
         }
+        ringLevel.animateTo(0f, tween(420, easing = LinearEasing))
+        ring.snapTo(0f)
     }
 
     Box(Modifier.size(cover), contentAlignment = Alignment.Center) {
         CoverDisc(url = state.song?.thumbnailUrl, cover = cover, progress = progress)
-        val leaving = ghost
-        if (leaving != null) {
+        val outgoing = ghost
+        if (outgoing != null) {
             CoverDisc(
-                url = leaving.thumbnailUrl,
+                url = outgoing.thumbnailUrl,
                 cover = cover,
                 progress = null,
                 modifier = Modifier.graphicsLayer {
