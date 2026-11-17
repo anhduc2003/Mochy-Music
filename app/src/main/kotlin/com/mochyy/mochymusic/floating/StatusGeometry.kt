@@ -25,6 +25,14 @@ internal object StatusGeometry {
     fun centeredContentX(capsuleWidthPx: Float, contentWidthPx: Float): Float =
         (capsuleWidthPx - contentWidthPx) / 2f
 
+    /**
+     * Size multiplier for the cover while the capsule width catches up to a new lyric.
+     * The cover grows and shrinks with the pill instead of sitting at a fixed size; the
+     * bounds keep it from swallowing the text or collapsing to a dot on large changes.
+     */
+    fun capsuleScale(capsuleWidthPx: Float, contentWidthPx: Float): Float =
+        if (contentWidthPx <= 0f) 1f else (capsuleWidthPx / contentWidthPx).coerceIn(0.6f, 1.2f)
+
     fun snapAnchor(x: Int, width: Int, screenWidth: Int, left: Int, right: Int, threshold: Int): Anchor {
         val center = (screenWidth - width) / 2 + x + width / 2f
         val safeCenter = (left + right) / 2f

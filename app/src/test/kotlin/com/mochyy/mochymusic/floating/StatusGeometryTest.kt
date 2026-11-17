@@ -36,6 +36,13 @@ class StatusGeometryTest {
         }
     }
 
+    @Test fun `cover scale follows the capsule within safe bounds`() {
+        assertEquals(0.6f, StatusGeometry.capsuleScale(120f, 300f), 0f)
+        assertEquals(1f, StatusGeometry.capsuleScale(250f, 250f), 0f)
+        assertEquals(1.2f, StatusGeometry.capsuleScale(400f, 200f), 0f)
+        assertEquals(1f, StatusGeometry.capsuleScale(100f, 0f), 0f)
+    }
+
     @Test fun `width fits even when rotation leaves less than the normal minimum`() {
         assertEquals(80f, StatusGeometry.width(300f, 80f), 0f)
         assertEquals(120f, StatusGeometry.width(10f, 400f), 0f)

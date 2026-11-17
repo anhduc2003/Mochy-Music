@@ -2,7 +2,10 @@
 
 package com.mochyy.mochymusic.floating
 
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -44,6 +47,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -181,6 +185,17 @@ internal fun StatusLyrics(
         // has not been revealed yet.
         val contentWidthPx = with(density) { targetWidthDp.dp.toPx() }
         val capsuleWidthPx = with(density) { maxWidth.toPx() }
+        // The cover follows the capsule as it breathes. A spring smooths the coarse
+        // WindowManager width steps so the disc glides instead of jumping with them.
+        val discScaleTarget = StatusGeometry.capsuleScale(capsuleWidthPx, contentWidthPx)
+        val discScale by animateFloatAsState(
+            targetValue = discScaleTarget,
+            animationSpec = spring(
+                stiffness = Spring.StiffnessMedium,
+                dampingRatio = Spring.DampingRatioNoBouncy,
+            ),
+            label = "capsuleDiscScale",
+        )
         Box(Modifier.fillMaxSize()) {
             Row(
                 Modifier
@@ -193,7 +208,14 @@ internal fun StatusLyrics(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Spacer(Modifier.width(edge))
-                CoverDisc(state, cover, progress)
+                CoverDisc(
+                    state, cover, progress,
+                    Modifier.graphicsLayer {
+                        scaleX = discScale
+                        scaleY = discScale
+                        transformOrigin = TransformOrigin(0.5f, 0.5f)
+                    },
+                )
                 Spacer(Modifier.width(gap))
                 key(script, rowIndex) {
                     // Marquee measures the entire unwrapped line, then scrolls its overflow
@@ -312,13 +334,13 @@ private fun LyricLine(
 
 // the song's cover in a circle, with how far along it is drawn around it
 @Composable
-private fun CoverDisc(state: PillState, cover: Dp, progress: MutableFloatState) {
+private fun CoverDisc(state: PillState, cover: Dp, progress: MutableFloatState, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val coverPx = with(LocalDensity.current) { cover.roundToPx() }
     val url = state.song?.thumbnailUrl
     val request = remember(url, coverPx) { ImageRequest.Builder(context).data(url).size(coverPx).build() }
     Box(
-        Modifier
+        modifier
             .size(cover)
             .drawBehind {
                 val stroke = RingStroke.toPx()
