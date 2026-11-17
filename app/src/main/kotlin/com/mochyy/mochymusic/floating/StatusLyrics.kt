@@ -144,7 +144,7 @@ private fun DiscOnly(state: PillState, progress: MutableFloatState) {
 private fun Capsule(state: PillState, progress: MutableFloatState) {
     val script = state.script
     var rowIndex by remember(script) {
-        mutableIntStateOf(script?.let { it.stops[it.stopAt(state.lyricsClock())].top } ?: 0)
+        mutableIntStateOf(script?.let { it.stops.getOrNull(it.stopAt(state.lyricsClock()))?.top } ?: 0)
     }
     var dots by remember(script) { mutableIntStateOf(-1) }
 
@@ -154,12 +154,13 @@ private fun Capsule(state: PillState, progress: MutableFloatState) {
         while (true) {
             val position = state.lyricsClock()
             val stop = script.stopAt(position)
-            rowIndex = script.stops[stop].top
+            script.stops.getOrNull(stop)?.let { rowIndex = it.top }
             dots = script.dotsLit(stop, position)
             if (!state.playing) break
             val next = script.nextChangeMs(stop, position)
             if (next == Long.MAX_VALUE) break
-            delay(((next - position) / state.speed()).toLong().coerceAtLeast(1L))
+            val wait = ((next - position) / state.speed()).toLong().coerceAtLeast(16L)
+            delay(wait)
         }
     }
 

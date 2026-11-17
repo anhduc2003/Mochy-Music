@@ -31,6 +31,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -39,6 +40,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -58,6 +60,7 @@ class FloatingLyrics(
     private var translationMemo: Pair<TranslationKey, List<String?>>? = null
     private val state = PillState { player.value }
     private var job: Job? = null
+    private var openJob: Job? = null
     private var window: StatusWindow? = null
     private var follow: Job? = null
 
@@ -88,13 +91,23 @@ class FloatingLyrics(
     // call on the main thread, the app's lifecycle is watched from there
     fun start() {
         if (job != null) return
+        appVisible.value = ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
         ProcessLifecycleOwner.get().lifecycle.addObserver(visibility)
         job = scope.launch {
             val wanted = context.dataStore.data.map { it[FloatingLyricsKey] ?: false }.distinctUntilChanged()
             val hasSong = song.map { it != null }.distinctUntilChanged()
             combine(wanted, appVisible, hasSong) { on, visible, playing -> on && !visible && playing }
                 .distinctUntilChanged()
-                .collect { show -> if (show && Settings.canDrawOverlays(context)) open() else close() }
+                .collectLatest { show ->
+                    if (!show) {
+                        close()
+                        return@collectLatest
+                    }
+                    while (!Settings.canDrawOverlays(context)) {
+                        delay(1000)
+                    }
+                    open()
+                }
         }
     }
 
@@ -105,56 +118,65 @@ class FloatingLyrics(
         close()
     }
 
-    private suspend fun open() {
-        if (window != null) return
-        val prefs = context.dataStore.data.first()
-        val bar = StatusWindow(
-            context,
-            prefs[FloatingLyricsXKey],
-            prefs[FloatingLyricsYKey],
-            prefs[FloatingLyricsWidthKey],
-            windowListener,
-            prefs[FloatingLyricsAnchorKey],
-            prefs[FloatingLyricsVerticalFractionKey],
-            onDiscTap = { state.discOnly = !state.discOnly },
-        )
-        val host = object : StatusPlaybackHost {
-            override fun command(command: Int) {
-                val current = player.value ?: return
-                if (!current.isCommandAvailable(command)) return
-                when (command) {
-                    Player.COMMAND_PLAY_PAUSE -> if (current.playWhenReady) current.pause() else {
-                        if (current.playbackState == Player.STATE_IDLE && current.isCommandAvailable(Player.COMMAND_PREPARE)) current.prepare()
-                        if (current.playbackState == Player.STATE_ENDED && current.isCommandAvailable(Player.COMMAND_SEEK_TO_DEFAULT_POSITION)) current.seekToDefaultPosition()
-                        current.play()
+    private fun open() {
+        if (window != null || openJob?.isActive == true) return
+        openJob = scope.launch {
+            val prefs = context.dataStore.data.first()
+            if (!isActive || window != null) return@launch
+            val bar = StatusWindow(
+                context,
+                prefs[FloatingLyricsXKey],
+                prefs[FloatingLyricsYKey],
+                prefs[FloatingLyricsWidthKey],
+                windowListener,
+                prefs[FloatingLyricsAnchorKey],
+                prefs[FloatingLyricsVerticalFractionKey],
+                onDiscTap = { state.discOnly = !state.discOnly },
+            )
+            val host = object : StatusPlaybackHost {
+                override fun command(command: Int) {
+                    val current = player.value ?: return
+                    if (!current.isCommandAvailable(command)) return
+                    when (command) {
+                        Player.COMMAND_PLAY_PAUSE -> if (current.playWhenReady) current.pause() else {
+                            if (current.playbackState == Player.STATE_IDLE && current.isCommandAvailable(Player.COMMAND_PREPARE)) current.prepare()
+                            if (current.playbackState == Player.STATE_ENDED && current.isCommandAvailable(Player.COMMAND_SEEK_TO_DEFAULT_POSITION)) current.seekToDefaultPosition()
+                            current.play()
+                        }
+                        Player.COMMAND_SEEK_TO_PREVIOUS -> current.seekToPrevious()
+                        Player.COMMAND_SEEK_TO_NEXT -> current.seekToNext()
+                        Player.COMMAND_SET_REPEAT_MODE -> current.repeatMode = when (current.repeatMode) {
+                            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                            else -> Player.REPEAT_MODE_OFF
+                        }
+                        Player.COMMAND_SET_SHUFFLE_MODE -> current.shuffleModeEnabled = !current.shuffleModeEnabled
                     }
-                    Player.COMMAND_SEEK_TO_PREVIOUS -> current.seekToPrevious()
-                    Player.COMMAND_SEEK_TO_NEXT -> current.seekToNext()
-                    Player.COMMAND_SET_REPEAT_MODE -> current.repeatMode = when (current.repeatMode) {
-                        Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                        Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                        else -> Player.REPEAT_MODE_OFF
-                    }
-                    Player.COMMAND_SET_SHUFFLE_MODE -> current.shuffleModeEnabled = !current.shuffleModeEnabled
                 }
             }
-        }
-        if (!bar.show { StatusPanel(state, bar, host) }) return
-        window = bar
-        follow = scope.launch {
-            launch {
-                combine(
-                    context.dataStore.data.map { it[com.mochyy.mochymusic.constants.EnableHighRefreshRateKey] ?: true }.distinctUntilChanged(),
-                    androidx.compose.runtime.snapshotFlow { state.playing },
-                ) { enabled, playing -> enabled && playing }
-                    .distinctUntilChanged()
-                    .collect { bar.setHighRefreshRate(it) }
+            if (!bar.show { StatusPanel(state, bar, host) }) return@launch
+            if (!isActive) {
+                bar.remove()
+                return@launch
             }
-            followSong()
+            window = bar
+            follow = launch {
+                launch {
+                    combine(
+                        context.dataStore.data.map { it[com.mochyy.mochymusic.constants.EnableHighRefreshRateKey] ?: true }.distinctUntilChanged(),
+                        androidx.compose.runtime.snapshotFlow { state.playing },
+                    ) { enabled, playing -> enabled && playing }
+                        .distinctUntilChanged()
+                        .collect { bar.setHighRefreshRate(it) }
+                }
+                followSong()
+            }
         }
     }
 
     private fun close() {
+        openJob?.cancel()
+        openJob = null
         follow?.cancel()
         follow = null
         window?.remove()
@@ -191,7 +213,7 @@ class FloatingLyrics(
                 val raw = found.saved?.lyrics
                 if (raw == null) {
                     // nothing saved yet: fetched once and saved, and the saved copy comes back through here
-                    source.fetch(metadata)
+                    runCatching { source.fetch(metadata) }
                     return@collectLatest
                 }
                 showLyrics(metadata.id, raw, metadata.title, artist, appRtl, found)
@@ -229,7 +251,7 @@ class FloatingLyrics(
             current.nextMediaItemIndex
         }
         if (index !in 0 until current.mediaItemCount) return null
-        return current.getMediaItemAt(index).metadata
+        return runCatching { current.getMediaItemAt(index).metadata }.getOrNull()
     }
 
     // a crossfade hands over to a new player, so the listener moves with it

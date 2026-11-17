@@ -61,7 +61,7 @@ internal suspend fun translatedLines(lines: List<LyricsEntry>, saved: LyricsEnti
     )
     val stored = saved?.takeIf { it.translatedLyrics.isNotBlank() && it.translationMode == settings.mode && it.translationLanguage in tags }
     val texts = stored?.translatedLyrics?.lines()
-        ?: GoogleTranslateEngine.translate(sung.map { it.value.text }, target, settings.sourceLanguage)
+        ?: runCatching { GoogleTranslateEngine.translate(sung.map { it.value.text }, target, settings.sourceLanguage) }.getOrNull()
         ?: return null
     val out = arrayOfNulls<String>(lines.size)
     sung.forEachIndexed { k, (index, entry) ->

@@ -16,6 +16,9 @@ on:
         type: boolean
         required: false
         default: false
+  push:
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
@@ -92,17 +95,17 @@ jobs:
           if-no-files-found: error
 
       - name: Publish GitHub Release
-        if: inputs.tag != ''
+        if: inputs.tag != '' || startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ inputs.tag != '' && inputs.tag || github.ref_name }}
           RELEASE_NAME: ${{ inputs.release_name }}
           VERSION_NAME: ${{ steps.meta.outputs.version_name }}
           VERSION_CODE: ${{ steps.meta.outputs.version_code }}
           APK_SIZE: ${{ steps.meta.outputs.size }}
           APK_SHA: ${{ steps.meta.outputs.sha256 }}
           SHORT_SHA: ${{ steps.meta.outputs.short_sha }}
-          PRERELEASE: ${{ inputs.prerelease }}
+          PRERELEASE: ${{ inputs.prerelease || false }}
         run: |
           set -euo pipefail
           name="${RELEASE_NAME:-Mochy Music $VERSION_NAME}"
@@ -121,6 +124,7 @@ jobs:
           - Dragging and resizing remain available while touch gestures are in progress.
           - Style 2 karaoke renderer with per-word timing and display-synchronized animation, replacing the old 60 ms sweep timer.
           - Requests up to 120 Hz while playing when high refresh rate is enabled. Actual frame rate depends on the device and system policy.
+          - Rock-solid stability: reactive overlay permission detection without app restarts, safe compose composition disposal, defensive lyric indexing, and leak-free window lifecycle.
 
           ### What's new from 8.4.2
           - Manual queue entries play in FIFO order ahead of Autoplay; Play next works on a stopped player.

@@ -173,16 +173,29 @@ internal class StatusWindow(
         root.addView(compose, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         owner.start()
         return runCatching { windowManager.addView(root, params) }
-            .onFailure { owner.destroy() }
+            .onFailure {
+                owner.destroy()
+                runCatching { compose.disposeComposition() }
+                runCatching { root.removeAllViews() }
+            }
             .isSuccess
     }
 
     fun remove() {
+        if (removed) return
         removed = true
         cancelPendingUpdate()
         cancelWidthAnimation()
         owner.destroy()
-        runCatching { windowManager.removeView(root) }
+        runCatching { compose.disposeComposition() }
+        runCatching {
+            if (root.isAttachedToWindow || root.parent != null) {
+                windowManager.removeViewImmediate(root)
+            }
+        }.onFailure {
+            runCatching { windowManager.removeView(root) }
+        }
+        runCatching { root.removeAllViews() }
     }
 
     private fun cancelWidthAnimation() {
@@ -383,6 +396,11 @@ internal class StatusWindow(
         if (next == submittedLayout) return
         runCatching { windowManager.updateViewLayout(root, params) }
             .onSuccess { submittedLayout = next }
+            .onFailure {
+                if (it is IllegalArgumentException || it is WindowManager.BadTokenException) {
+                    remove()
+                }
+            }
     }
 
     private fun persistPosition() {
@@ -673,10 +691,24 @@ internal class StatusWindow(
 
         // rawX/rawY belong to index zero on older Android. Its raw-local offset maps
         // any pointer into screen space without depending on the asynchronously moved window.
-        private fun rawX(event: MotionEvent, index: Int) = event.rawX + event.getX(index) - event.getX(0)
-        private fun rawY(event: MotionEvent, index: Int) = event.rawY + event.getY(index) - event.getY(0)
-        private fun span(event: MotionEvent, first: Int, second: Int): Float =
-            hypot(event.getX(first) - event.getX(second), event.getY(first) - event.getY(second))
+        private fun rawX(event: MotionEvent, index: Int): Float =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && index in 0 until event.pointerCount) {
+                event.getRawX(index)
+            } else {
+                event.rawX + (if (index in 0 until event.pointerCount) event.getX(index) else 0f) - event.getX(0)
+            }
+
+        private fun rawY(event: MotionEvent, index: Int): Float =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && index in 0 until event.pointerCount) {
+                event.getRawY(index)
+            } else {
+                event.rawY + (if (index in 0 until event.pointerCount) event.getY(index) else 0f) - event.getY(0)
+            }
+
+        private fun span(event: MotionEvent, first: Int, second: Int): Float {
+            if (first !in 0 until event.pointerCount || second !in 0 until event.pointerCount) return 0f
+            return hypot(event.getX(first) - event.getX(second), event.getY(first) - event.getY(second))
+        }
 
         override fun onConfigurationChanged(newConfig: Configuration?) {
             super.onConfigurationChanged(newConfig)

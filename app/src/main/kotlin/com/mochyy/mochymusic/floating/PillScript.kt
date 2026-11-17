@@ -80,6 +80,7 @@ internal class PillScript(
 
     // the stop that holds at positionMs
     fun stopAt(positionMs: Long): Int {
+        if (stops.isEmpty()) return 0
         var low = 0
         var high = stops.lastIndex
         while (low < high) {
@@ -91,7 +92,7 @@ internal class PillScript(
 
     // how many of a break's dots are lit at positionMs, or -1 outside a break; the first one lights straight away
     fun dotsLit(stop: Int, positionMs: Long): Int {
-        val s = stops[stop]
+        val s = stops.getOrNull(stop) ?: return -1
         if (!s.isBreak) return -1
         val span = (s.breakToMs - s.breakFromMs).coerceAtLeast(1L)
         val through = ((positionMs - s.breakFromMs) * PillDots / span).toInt()
@@ -101,7 +102,7 @@ internal class PillScript(
     // the next moment after positionMs where the pill changes anything: the next stop, or a break's next dot
     fun nextChangeMs(stop: Int, positionMs: Long): Long {
         val next = stops.getOrNull(stop + 1)?.timeMs ?: Long.MAX_VALUE
-        val s = stops[stop]
+        val s = stops.getOrNull(stop) ?: return next
         if (!s.isBreak) return next
         val span = (s.breakToMs - s.breakFromMs).coerceAtLeast(1L)
         for (dot in 1 until PillDots) {
