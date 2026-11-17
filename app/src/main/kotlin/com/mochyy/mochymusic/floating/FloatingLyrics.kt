@@ -114,7 +114,6 @@ class FloatingLyrics(
             prefs[FloatingLyricsAnchorKey],
             prefs[FloatingLyricsVerticalFractionKey],
         )
-        val onContentWidth: (Float) -> Unit = bar::setContentWidth
         val host = object : StatusPlaybackHost {
             override fun command(command: Int) {
                 val current = player.value ?: return
@@ -136,7 +135,7 @@ class FloatingLyrics(
                 }
             }
         }
-        if (!bar.show { StatusPanel(state, bar, onContentWidth, host) }) return
+        if (!bar.show { StatusPanel(state, bar, host) }) return
         window = bar
         follow = scope.launch {
             launch {

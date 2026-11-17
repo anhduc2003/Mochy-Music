@@ -84,15 +84,15 @@ internal class StatusWindow(
 
     // Only user resizing changes this preference. Rotation and automatic sizing merely
     // constrain its current presentation, so returning to a wider screen restores it.
-    private var maximumWidthDp = (savedWidthDp?.toFloat() ?: defaultWidthDp()).coerceAtLeast(120f)
+    private var maximumWidthDp = (savedWidthDp?.toFloat() ?: defaultWidthDp())
+        .coerceAtLeast(StatusGeometry.MinCapsuleWidthDp)
     var fittingWidthDp by mutableFloatStateOf(StatusGeometry.width(maximumWidthDp, maxWidthDp()))
         private set
-    private var contentWidthDp: Float? = null
     private var widthAnimator: ValueAnimator? = null
     private var touching = false
     private var removed = false
     private var targetWidthPx = 0
-    private val heightDp = 38f
+    private val heightDp = StatusGeometry.CapsuleHeightDp
     var expanded by mutableStateOf(false)
         private set
 
@@ -172,12 +172,6 @@ internal class StatusWindow(
         cancelWidthAnimation()
         owner.destroy()
         runCatching { windowManager.removeView(root) }
-    }
-
-    fun setContentWidth(widthDp: Float) {
-        if (!widthDp.isFinite() || removed) return
-        contentWidthDp = widthDp
-        adaptWidth()
     }
 
     private fun cancelWidthAnimation() {
@@ -269,10 +263,13 @@ internal class StatusWindow(
         if (touching || removed) return
         if (widthAnimator?.isRunning != true) refreshGeometry()
         fittingWidthDp = StatusGeometry.width(maximumWidthDp, maxWidthDp())
-        val target = px(if (expanded) minOf(280f, maxWidthDp()) else StatusGeometry.adaptiveWidth(
-            contentWidthDp ?: maximumWidthDp, maximumWidthDp, maxWidthDp(),
-        )).coerceAtLeast(1)
-        val panelHeight = if (maxWidthDp() < 240f) 144f else 96f
+        // The pill's width is whatever the user set; lyrics no longer resize the window.
+        val target = px(
+            if (expanded) minOf(280f, maxWidthDp())
+            else StatusGeometry.width(maximumWidthDp, maxWidthDp()),
+        ).coerceAtLeast(1)
+        // Room for the two-line capsule plus one or two rows of transport buttons.
+        val panelHeight = heightDp + if (maxWidthDp() < 240f) 96f else 48f
         val targetHeight = minOf(px(if (expanded) panelHeight else heightDp), placementBounds().height().coerceAtLeast(1))
         if (target == targetWidthPx && targetHeight == targetHeightPx && (localResize || widthAnimator?.isRunning == true)) return
         cancelWidthAnimation()

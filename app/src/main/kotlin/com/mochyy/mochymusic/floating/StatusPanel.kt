@@ -32,17 +32,14 @@ internal interface StatusPlaybackHost {
 }
 
 @Composable
-internal fun StatusPanel(state: PillState, window: StatusWindow, onContentWidth: (Float) -> Unit, host: StatusPlaybackHost) {
+internal fun StatusPanel(state: PillState, window: StatusWindow, host: StatusPlaybackHost) {
     Column(Modifier.fillMaxSize().clip(RoundedCornerShape(19.dp)).background(Color(0xF2000000))) {
         val action = stringResource(if (window.expanded) R.string.floating_lyrics_collapse else R.string.floating_lyrics_expand)
-        Box(Modifier.fillMaxWidth().height(38.dp).semantics {
+        Box(Modifier.fillMaxWidth().height(StatusGeometry.CapsuleHeightDp.dp).semantics {
             onClick(label = action) { window.changeExpanded(!window.expanded); true }
         }) {
-            StatusLyrics(
-                state = state,
-                fittingWidthDp = if (window.expanded) minOf(280f, window.fittingWidthDp) else window.fittingWidthDp,
-                onContentWidth = onContentWidth,
-            )        }
+            StatusLyrics(state = state)
+        }
         if (window.expanded) {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 val buttons: @Composable (Boolean) -> Unit = { transport ->

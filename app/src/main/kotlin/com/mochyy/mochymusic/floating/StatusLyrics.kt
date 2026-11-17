@@ -2,43 +2,38 @@
 
 package com.mochyy.mochymusic.floating
 
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.absolutePadding
-import androidx.compose.ui.AbsoluteAlignment
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.requiredWidth
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.key
-import androidx.compose.runtime.withFrameNanos
-import androidx.compose.ui.text.style.TextAlign
-import com.mochyy.mochymusic.constants.LyricsMotionStyle
-import com.mochyy.mochymusic.lyrics.WordTimestamp
-import com.mochyy.mochymusic.ui.player.KaraokeSweepText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableFloatState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,7 +42,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -56,46 +50,48 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import com.mochyy.mochymusic.R
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import com.mochyy.mochymusic.R
+import com.mochyy.mochymusic.constants.LyricsMotionStyle
+import com.mochyy.mochymusic.lyrics.WordTimestamp
+import com.mochyy.mochymusic.ui.player.KaraokeSweepText
 import kotlinx.coroutines.delay
 
-// the capsule is black like the phone's island and a touch shorter than the bar, so it sits in the row without touching its edges
+// The capsule is black like the phone's island and a touch shorter than the bar, so it sits
+// in the row without touching its edges.
 private val CapsuleColor = Color(0xF2000000)
 private val RingTrack = Color(0x33FFFFFF)
 private val CoverPlaceholder = Color(0xFF2A2B2D)
+private val MetaInk = Color.White.copy(alpha = 0.66f)
+// The part of the line that hasn't been sung yet, so the karaoke sweep has somewhere to go.
+private val UnsungInk = Color.White.copy(alpha = 0.58f)
 private val RingStroke = 1.5.dp
 private val RingInset = 3.dp
 
-// the part of the line that hasn't been sung yet, so the karaoke sweep has somewhere to go
-private val UnsungInk = Color.White.copy(alpha = 0.58f)
+// One size for every line: long and short lyrics read the same, and overflow scrolls inside
+// the user's fixed capsule instead of shrinking only the long ones.
+private const val LyricTextSp = 14f
+private const val MetaTextSp = 10.5f
 
-// the line is laid out as big as it fits: a long one steps down until it sits inside the capsule instead of running out of it
-private const val MaxTextSp = 13f
-private const val MinTextSp = 8f
-private const val SizeStepSp = 0.5f
-
-// the line being sung in a black capsule: the cover with how far along the song is as a ring, then the line itself sweeping as it's sung
+// Song above, the line being sung below, with the cover and its progress ring at the left.
+// The window's width is the user's own setting and never changes because of a lyric.
 @Composable
-internal fun StatusLyrics(
-    state: PillState,
-    fittingWidthDp: Float,
-    onContentWidth: (Float) -> Unit,
-) {
+internal fun StatusLyrics(state: PillState) {
     val script = state.script
     var rowIndex by remember(script) {
         mutableIntStateOf(script?.let { it.stops[it.stopAt(state.lyricsClock())].top } ?: 0)
     }
     var dots by remember(script) { mutableIntStateOf(-1) }
 
-    // wakes only when the next line or dot is due, so nothing runs between lines
+    // Wakes only when the next line or dot is due, so nothing runs between lines.
     LaunchedEffect(script, state.playing, state.seekTick) {
         val script = script ?: return@LaunchedEffect
         while (true) {
@@ -122,11 +118,17 @@ internal fun StatusLyrics(
     }
 
     val row = script?.rows?.getOrNull(rowIndex)
-    val text = when {
-        row == null -> state.song?.title.orEmpty()
-        // the intro and the long breaks read as dots lighting up one by one
+    val lyrics = when {
+        row == null -> ""
         row.kind == PillRowKind.INTRO || dots >= 0 -> "• ".repeat(dots.coerceAtLeast(1)).trim()
         else -> row.text
+    }
+    val title = state.song?.title.orEmpty()
+    val artist = state.song?.artists?.joinToString { it.name }.orEmpty()
+    val meta = when {
+        title.isBlank() -> ""
+        artist.isBlank() -> title
+        else -> "$title  ·  $artist"
     }
 
     // Keep the clock identity stable: the shared renderer reads playback time on each frame.
@@ -142,98 +144,58 @@ internal fun StatusLyrics(
             .clip(RoundedCornerShape(percent = 50))
             .background(CapsuleColor),
     ) {
-        val density = LocalDensity.current
-        val cover = (maxHeight - 10.dp).coerceAtLeast(16.dp)
-        val edge = 5.dp
-        val gap = 7.dp
+        val cover = (maxHeight - 16.dp).coerceAtLeast(24.dp)
+        val edge = 6.dp
+        val gap = 10.dp
         val handleWidth = StatusGeometry.HandleWidthDp.dp
-        val measurer = rememberTextMeasurer()
-        val preferredStyle = MaterialTheme.typography.headlineSmall.copy(
-            fontWeight = FontWeight.Bold,
-            fontSize = MaxTextSp.sp,
-        )
-        // Keep the lyric's measured width stable for the whole resize animation, but size
-        // it to this line's target capsule width instead of the user's saved maximum.
-        // Otherwise short lyrics leave a wide requiredWidth child centered in a narrow
-        // adaptive capsule and get clipped at both ends.
-        val contentWidth = remember(text, preferredStyle, measurer, density.density, density.fontScale, cover) {
-            val measured = measurer.measure(
-                text = AnnotatedString(text),
-                style = preferredStyle,
-                softWrap = false,
-                maxLines = 1,
-            ).size.width
-            StatusGeometry.contentWidthDp(
-                measured.toFloat(), density.density, cover.value, edge.value,
-                gap.value, handleWidth.value, paddingDp = 4f,
-            )
-        }
-        // This target is independent of the animated WindowManager width. The font and
-        // text child therefore stay stable while the capsule grows or shrinks.
-        val targetWidthDp = StatusGeometry.adaptiveWidth(contentWidth, fittingWidthDp, fittingWidthDp)
-        val targetRoom = with(density) {
-            (targetWidthDp.dp - edge - cover - gap - handleWidth).toPx().coerceAtLeast(1f)
-        }
-        val room = targetRoom
-        LaunchedEffect(contentWidth, onContentWidth) { onContentWidth(contentWidth) }
-
-        // Lay the disc and the line out once at the width the capsule is animating towards,
-        // then centre that fixed group inside the current window. The surplus (or missing)
-        // room is split between the two ends, so the pill reads as breathing evenly from
-        // both sides instead of being pulled outward from one side. Nothing is stretched:
-        // glyphs keep their shape, the disc stays circular, and the capsule clips whatever
-        // has not been revealed yet.
-        val contentWidthPx = with(density) { targetWidthDp.dp.toPx() }
-        val capsuleWidthPx = with(density) { maxWidth.toPx() }
-        // The cover follows the capsule as it breathes. A spring smooths the coarse
-        // WindowManager width steps so the disc glides instead of jumping with them.
-        val discScaleTarget = StatusGeometry.capsuleScale(capsuleWidthPx, contentWidthPx)
-        val discScale by animateFloatAsState(
-            targetValue = discScaleTarget,
-            animationSpec = spring(
-                stiffness = Spring.StiffnessMedium,
-                dampingRatio = Spring.DampingRatioNoBouncy,
-            ),
-            label = "capsuleDiscScale",
-        )
-        Box(Modifier.fillMaxSize()) {
-            Row(
-                Modifier
-                    .align(AbsoluteAlignment.CenterLeft)
-                    .requiredWidth(targetWidthDp.dp)
-                    .absolutePadding(right = handleWidth)
-                    .graphicsLayer {
-                        translationX = StatusGeometry.centeredContentX(capsuleWidthPx, contentWidthPx)
-                    },
-                verticalAlignment = Alignment.CenterVertically,
+        Row(
+            Modifier
+                .fillMaxSize()
+                .absolutePadding(right = handleWidth),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Spacer(Modifier.width(edge))
+            CoverDisc(state, cover, progress)
+            Spacer(Modifier.width(gap))
+            Column(
+                Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
             ) {
-                Spacer(Modifier.width(edge))
-                CoverDisc(
-                    state, cover, progress,
-                    Modifier.graphicsLayer {
-                        scaleX = discScale
-                        scaleY = discScale
-                        transformOrigin = TransformOrigin(0.5f, 0.5f)
-                    },
+                BasicText(
+                    text = meta,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = MetaInk,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = MetaTextSp.sp,
+                        lineHeight = TextUnit.Unspecified,
+                        textAlign = TextAlign.Center,
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth(),
                 )
-                Spacer(Modifier.width(gap))
+                Spacer(Modifier.height(3.dp))
                 key(script, rowIndex) {
-                    // Marquee measures the entire unwrapped line, then scrolls its overflow
-                    // inside the available viewport. It never stretches glyphs or covers the disc.
-                    Box(Modifier.weight(1f)) {
+                    // The line is centred in the user's fixed room. Marquee only scrolls
+                    // when it really overflows, so its size stays identical for every line.
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .basicMarquee(
+                                iterations = Int.MAX_VALUE,
+                                initialDelayMillis = 400,
+                                repeatDelayMillis = 800,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
                         LyricLine(
-                            text = text,
+                            text = lyrics,
                             words = row?.words?.takeIf { dots < 0 },
                             positionProvider = positionProvider,
                             playing = state.playing,
                             seekTick = state.seekTick,
                             appear = { appear.value },
-                            room = room,
-                            modifier = Modifier.basicMarquee(
-                                iterations = Int.MAX_VALUE,
-                                initialDelayMillis = 400,
-                                repeatDelayMillis = 800,
-                            ),
                         )
                     }
                 }
@@ -263,7 +225,7 @@ internal fun StatusLyrics(
     }
 }
 
-// the line itself: as large as it fits the room it's given, with the part already sung drawn over the part that isn't
+// One fixed size, centred. The part already sung is drawn over the part that isn't.
 @Composable
 private fun LyricLine(
     text: String,
@@ -272,34 +234,15 @@ private fun LyricLine(
     playing: Boolean,
     seekTick: Int,
     appear: () -> Float,
-    room: Float,
-    modifier: Modifier = Modifier,
 ) {
-    val measurer = rememberTextMeasurer()
-    val density = LocalDensity.current
-    // One line in a fixed-height capsule: the default 1.25x line height puts the glyphs
-    // visibly below the cover disc's centre. Matching the box to the type keeps the two centred.
+    val fontSize = LyricTextSp.sp
     val baseStyle = MaterialTheme.typography.headlineSmall.copy(
         fontWeight = FontWeight.Bold,
-        lineHeight = androidx.compose.ui.unit.TextUnit.Unspecified,
+        fontSize = fontSize,
+        lineHeight = TextUnit.Unspecified,
     )
-    val fontSize = remember(text, room, baseStyle, density.density, density.fontScale, measurer) {
-        var size = MaxTextSp
-        while (size > MinTextSp) {
-            val width = measurer.measure(
-                text = AnnotatedString(text),
-                style = baseStyle.copy(fontSize = size.sp),
-                softWrap = false,
-                maxLines = 1,
-            ).size.width
-            if (width <= room) break
-            size -= SizeStepSp
-        }
-        size.sp
-    }
-
     Box(
-        modifier.graphicsLayer {
+        Modifier.graphicsLayer {
             val fraction = appear()
             alpha = fraction
             translationY = (1f - fraction) * 6.dp.toPx()
@@ -315,7 +258,7 @@ private fun LyricLine(
                 highlightColor = Color.White,
                 fontSize = fontSize,
                 lineHeight = fontSize,
-                textAlign = TextAlign.Start,
+                textAlign = TextAlign.Center,
                 motionStyle = LyricsMotionStyle.LEGACY,
                 singleLine = true,
                 animationRunning = playing,
@@ -324,7 +267,7 @@ private fun LyricLine(
         } else {
             BasicText(
                 text = text,
-                style = baseStyle.copy(fontSize = fontSize, color = Color.White),
+                style = baseStyle.copy(color = Color.White, textAlign = TextAlign.Center),
                 maxLines = 1,
                 softWrap = false,
             )
@@ -332,15 +275,15 @@ private fun LyricLine(
     }
 }
 
-// the song's cover in a circle, with how far along it is drawn around it
+// The song's cover in a circle, with how far along it is drawn around it.
 @Composable
-private fun CoverDisc(state: PillState, cover: Dp, progress: MutableFloatState, modifier: Modifier = Modifier) {
+private fun CoverDisc(state: PillState, cover: Dp, progress: MutableFloatState) {
     val context = LocalContext.current
     val coverPx = with(LocalDensity.current) { cover.roundToPx() }
     val url = state.song?.thumbnailUrl
     val request = remember(url, coverPx) { ImageRequest.Builder(context).data(url).size(coverPx).build() }
     Box(
-        modifier
+        Modifier
             .size(cover)
             .drawBehind {
                 val stroke = RingStroke.toPx()

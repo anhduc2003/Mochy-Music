@@ -25,27 +25,9 @@ class StatusGeometryTest {
         }
     }
 
-    @Test fun `fixed content is centred so resize reveals both ends equally`() {
-        val target = 300f
-        for (presented in listOf(120f, 149f, 150f, 151f, 260f, 300f, 380f)) {
-            val offset = StatusGeometry.centeredContentX(presented, target)
-            // Positive means spare room, negative means the capsule clips that much.
-            val leftRoom = offset
-            val rightRoom = presented - (offset + target)
-            assertEquals(leftRoom, rightRoom, 0.001f)
-        }
-    }
-
-    @Test fun `cover scale follows the capsule within safe bounds`() {
-        assertEquals(0.6f, StatusGeometry.capsuleScale(120f, 300f), 0f)
-        assertEquals(1f, StatusGeometry.capsuleScale(250f, 250f), 0f)
-        assertEquals(1.2f, StatusGeometry.capsuleScale(400f, 200f), 0f)
-        assertEquals(1f, StatusGeometry.capsuleScale(100f, 0f), 0f)
-    }
-
     @Test fun `width fits even when rotation leaves less than the normal minimum`() {
         assertEquals(80f, StatusGeometry.width(300f, 80f), 0f)
-        assertEquals(120f, StatusGeometry.width(10f, 400f), 0f)
+        assertEquals(200f, StatusGeometry.width(10f, 400f), 0f)
         assertEquals(400f, StatusGeometry.width(900f, 400f), 0f)
     }
 
@@ -58,8 +40,8 @@ class StatusGeometryTest {
     }
 
     @Test fun `adaptive width grows to content but never exceeds saved maximum or screen`() {
-        assertEquals(120f, StatusGeometry.adaptiveWidth(82f, 300f, 400f), 0f)
-        assertEquals(172f, StatusGeometry.adaptiveWidth(172f, 300f, 400f), 0f)
+        assertEquals(200f, StatusGeometry.adaptiveWidth(82f, 300f, 400f), 0f)
+        assertEquals(200f, StatusGeometry.adaptiveWidth(172f, 300f, 400f), 0f)
         assertEquals(300f, StatusGeometry.adaptiveWidth(900f, 300f, 400f), 0f)
         assertEquals(80f, StatusGeometry.adaptiveWidth(900f, 300f, 80f), 0f)
         // Reusing the same saved maximum after rotation restores the larger limit.

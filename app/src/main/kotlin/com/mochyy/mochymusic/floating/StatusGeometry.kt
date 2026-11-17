@@ -3,6 +3,9 @@ package com.mochyy.mochymusic.floating
 /** Pure pixel geometry. Stored x remains an offset from the screen's horizontal center. */
 internal object StatusGeometry {
     const val HandleWidthDp = 32f
+    // A two-line capsule (song + lyric, beside the cover) needs room to stay legible.
+    const val CapsuleHeightDp = 64f
+    const val MinCapsuleWidthDp = 200f
 
     enum class Anchor { LEFT, CENTER, RIGHT }
 
@@ -16,22 +19,6 @@ internal object StatusGeometry {
         Anchor.CENTER -> 0.5f
         Anchor.RIGHT -> 1f
     }
-
-    /**
-     * Horizontal shift that centres a fixed-size content group inside the capsule that is
-     * animating towards it. While the capsule is narrower the shift is negative, so the
-     * clipped room is split equally between the two ends instead of piling up on one side.
-     */
-    fun centeredContentX(capsuleWidthPx: Float, contentWidthPx: Float): Float =
-        (capsuleWidthPx - contentWidthPx) / 2f
-
-    /**
-     * Size multiplier for the cover while the capsule width catches up to a new lyric.
-     * The cover grows and shrinks with the pill instead of sitting at a fixed size; the
-     * bounds keep it from swallowing the text or collapsing to a dot on large changes.
-     */
-    fun capsuleScale(capsuleWidthPx: Float, contentWidthPx: Float): Float =
-        if (contentWidthPx <= 0f) 1f else (capsuleWidthPx / contentWidthPx).coerceIn(0.6f, 1.2f)
 
     fun snapAnchor(x: Int, width: Int, screenWidth: Int, left: Int, right: Int, threshold: Int): Anchor {
         val center = (screenWidth - width) / 2 + x + width / 2f
@@ -63,7 +50,7 @@ internal object StatusGeometry {
 
     fun width(requested: Float, available: Float): Float {
         val maximum = available.coerceAtLeast(1f)
-        return requested.coerceIn(minOf(120f, maximum), maximum)
+        return requested.coerceIn(minOf(MinCapsuleWidthDp, maximum), maximum)
     }
 
     /** Window width needed for one measured line, before clamping to the user's maximum. */
