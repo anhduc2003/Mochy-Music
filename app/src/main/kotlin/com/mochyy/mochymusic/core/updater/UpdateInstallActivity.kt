@@ -22,9 +22,10 @@ class UpdateInstallActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // the manifest keeps configuration changes from rebuilding this screen at all, so this only
-        // catches a restore after the process was killed: the install it was in the middle of is
-        // gone, and staging the same APK from scratch would raise a second confirmation for nothing.
+        // the manifest's configChanges covers every rebuild a person can trigger here (rotation,
+        // theme, font size and weight, locale, density), so what reaches this line is a restore after
+        // the process was killed: the install it was in the middle of is gone, and staging the same
+        // APK from scratch would raise a second confirmation for nothing.
         if (savedInstanceState != null) {
             finish()
             return
