@@ -255,8 +255,11 @@ extensions.configure<ApplicationExtension> {
 
     lint {
         lintConfig = file("lint.xml")
+        // Errors fail the build so a broken resource, manifest entry or API usage cannot ship.
+        // Warnings stay non-blocking: there is no lint baseline yet, and turning every warning
+        // into an error would fail the first CI run instead of guarding against regressions.
         warningsAsErrors = false
-        abortOnError = false
+        abortOnError = true
         checkDependencies = false
     }
 
