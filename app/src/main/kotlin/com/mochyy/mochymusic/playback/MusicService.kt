@@ -4444,29 +4444,9 @@ class MusicService :
         }
     }
 
-    /**
-     * Writes [value] so that a kill mid-write can't destroy the copy already there: the object goes to
-     * a scratch file that only takes the real one's place once it is whole and on the disk. Written
-     * straight into the target, a save cut short left a file that threw on the next start, and the
-     * restore path answered that by deleting the whole saved session.
-     */
-    private fun writePersisted(name: String, value: Any) {
-        val target = java.io.File(filesDir, name)
-        val scratch = java.io.File(filesDir, "$name.tmp")
-        try {
-            java.io.FileOutputStream(scratch).use { fos ->
-                java.io.ObjectOutputStream(fos).use { it.writeObject(value) }
-                fos.fd.sync()
-            }
-            if (!scratch.renameTo(target)) {
-                // a rename over an existing file is refused on some volumes
-                target.delete()
-                if (!scratch.renameTo(target)) throw java.io.IOException("could not replace $name")
-            }
-        } finally {
-            scratch.delete()
-        }
-    }
+    /** One saved file, written whole or not at all — see [com.mochyy.mochymusic.utils.AtomicObjectFile]. */
+    private fun writePersisted(name: String, value: Any) =
+        com.mochyy.mochymusic.utils.AtomicObjectFile.write(java.io.File(filesDir, name), value)
 
     override fun onDestroy() {
         isRunning = false

@@ -2052,7 +2052,11 @@ private fun rememberKaraokeHead(
                 // sweep is put where the playback clock says and the next look waits for a slow tick.
                 // Every visible line held a frame callback of its own, which kept the app rendering at
                 // the display's rate for as long as this page stayed composed, screen off included.
-                head.advance(timed, positionProvider() / 1000.0, 0f, wordMotion)
+                //
+                // The step is the tick's own length, not zero: the letter rise and swell are springs
+                // that need time to travel, so a zero step left them where the seek found them and a
+                // paused seek showed the old line's letters still up.
+                head.advance(timed, positionProvider() / 1000.0, LyricsIdleStepMs / 1000f, wordMotion)
                 lastFrameNanos = -1L
                 delay(LyricsIdleStepMs)
             } else {
