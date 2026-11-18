@@ -116,6 +116,8 @@ import com.music.innertube.models.YTItem
 import com.mochyy.mochymusic.constants.HomeStyle
 import com.mochyy.mochymusic.constants.HomeStyleKey
 import com.mochyy.mochymusic.constants.ProfilePicUriKey
+import com.mochyy.mochymusic.constants.UsernameKey
+import com.mochyy.mochymusic.ui.component.LocalHasCustomAppBackground
 import com.mochyy.mochymusic.constants.ThumbnailCornerRadius
 import com.mochyy.mochymusic.db.entities.Album
 import com.mochyy.mochymusic.db.entities.Artist
@@ -416,10 +418,11 @@ fun CommunityPlaylistCard(
                 Text(
                     text = item.playlist.title,
                     style = MaterialTheme.typography.titleLarge,
-                    fontSize = 32.sp,
+                    fontSize = 22.sp,
+                    lineHeight = 26.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
                 Text(
@@ -442,7 +445,7 @@ fun AllTimeHitsCard(
     val artistName = when (item) {
         is SongItem -> item.artists.joinToString(", ") { it.name }
         is AlbumItem -> item.artists?.joinToString(", ") { it.name } ?: ""
-        is ArtistItem -> item.title
+        is ArtistItem -> ""
         is PlaylistItem -> item.author?.name ?: ""
     }
 
@@ -462,20 +465,33 @@ fun AllTimeHitsCard(
                 .fillMaxSize()
                 .background(
                     brush = Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f))
+                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))
                     )
                 )
         )
-        Text(
-            text = artistName,
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-            color = Color.White,
-            maxLines = 1,
-            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(12.dp)
-        )
+        ) {
+            Text(
+                text = item.title,
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                color = Color.White,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+            if (artistName.isNotBlank() && artistName != item.title) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = artistName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.75f),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+            }
+        }
     }
 }
 
@@ -709,6 +725,7 @@ fun HomeScreen(
     val startListeningGridState = rememberTrackGridState()
     val quickPicksLazyGridState = rememberTrackGridState()
     val forgottenFavoritesLazyGridState = rememberTrackGridState()
+    val historyLazyGridState = rememberTrackGridState()
     val homeStyle by rememberEnumPreference(HomeStyleKey, defaultValue = HomeStyle.MOCHYY)
 
     val startListeningSongs = remember(keepListening, recentHistorySongs, mostPlayedSongsForHome, forgottenFavorites) {
@@ -734,6 +751,11 @@ fun HomeScreen(
     }
 
     val accountName by viewModel.accountName.collectAsState()
+    val (localUsername) = rememberPreference(UsernameKey, "")
+    val defaultAccountLabel = stringResource(R.string.account)
+    val displayAccountName = accountName.takeIf { it.isNotBlank() && it != "Guest" }
+        ?: localUsername.takeIf { it.isNotBlank() }
+        ?: defaultAccountLabel
     val accountImageUrl by viewModel.accountImageUrl.collectAsState()
     val profilePicUri by rememberPreference(ProfilePicUriKey, "")
 
@@ -1185,6 +1207,10 @@ fun HomeScreen(
         forgottenFavoritesLazyGridState.scrollToItem(0)
     }
 
+    LaunchedEffect(recentHistorySongs) {
+        historyLazyGridState.scrollToItem(0)
+    }
+
     val baseTypography = MaterialTheme.typography
     val homeTypography = remember(baseTypography) {
         val tightenSp = 0.6f
@@ -1295,12 +1321,14 @@ fun HomeScreen(
             }
 
             val homeGlassState = remember { GlassState() }
+            val hasCustomAppBg = LocalHasCustomAppBackground.current
+            val backgroundColor = if (hasCustomAppBg) Color.Transparent else Color.Black
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(backgroundColor)
             ) {
-                val backgroundColor = Color.Black
                 CompositionLocalProvider(
                     com.mochyy.mochymusic.ui.component.LocalGridItemPadding provides 0.dp
                 ) {
@@ -1397,7 +1425,6 @@ fun HomeScreen(
                                         }
                                     }
                                 }
-                                Spacer(Modifier.height(34.dp))
                             }
                         }
                     }
@@ -1405,9 +1432,11 @@ fun HomeScreen(
 
                 // nothing but bones while the launch intro plays; the rows reveal once it lands
                 if (!launchHold) homeSections.forEach { section ->
+                    var sectionRendered = false
                     when (section) {
                         HomeSection.SpeedDial -> {
                             speedDialItems.takeIf { it.isNotEmpty() }?.let { items ->
+                                sectionRendered = true
                                 homeItem("speed_dial_title", revealSeen, "title") {
                                     HomeSectionTitle(
                                         title = stringResource(R.string.speed_dial),
@@ -1421,6 +1450,7 @@ fun HomeScreen(
                         }
                         HomeSection.RecentlyPlayed -> {
                             recentlyPlayed?.takeIf { it.isNotEmpty() }?.let { items ->
+                                sectionRendered = true
                                 homeItem("recently_played_title", revealSeen, "title") {
                                     HomeSectionTitle(
                                         title = stringResource(R.string.recently_played),
@@ -1434,6 +1464,7 @@ fun HomeScreen(
                         }
                         HomeSection.MostPlayed -> {
                             mostPlayedSongsForHome?.takeIf { it.isNotEmpty() }?.let { mostPlayed ->
+                                sectionRendered = true
                                 homeItem("most_played_title", revealSeen, "title") {
                                     HomeSectionTitle(
                                         title = stringResource(R.string.home_most_played),
@@ -1454,6 +1485,7 @@ fun HomeScreen(
                         }
                         HomeSection.History -> {
                             recentHistorySongs?.takeIf { it.isNotEmpty() }?.let { history ->
+                                sectionRendered = true
                                 homeItem("history_title", revealSeen, "title") {
                                     HomeSectionTitle(
                                         title = stringResource(R.string.home_history),
@@ -1463,7 +1495,7 @@ fun HomeScreen(
                                 homeItem("history_list", revealSeen, "trackGrid") {
                                     HomeTrackGrid(
                                         items = history,
-                                        state = rememberTrackGridState(),
+                                        state = historyLazyGridState,
                                         rowSpacing = 6.dp,
                                         columnWidth = trackColumnWidth,
                                         key = { index, song -> "history_${index}_${song.id}" },
@@ -1474,6 +1506,7 @@ fun HomeScreen(
                         }
                         HomeSection.FromTheCommunity -> {
                             communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
+                                sectionRendered = true
                                 homeItem("community_playlists_title", revealSeen, "title") {
                                     HomeSectionTitle(
                                         title = stringResource(R.string.from_the_community),
@@ -1487,6 +1520,7 @@ fun HomeScreen(
                         }
                         HomeSection.ArtistList -> {
                             artistListItems?.takeIf { it.isNotEmpty() }?.let { items ->
+                                sectionRendered = true
                                 homeItem("artist_list_title", revealSeen, "title") {
                                     // just a title: each box below is its own artist's page
                                     HomeSectionTitle(title = stringResource(R.string.artist_list))
@@ -1498,6 +1532,7 @@ fun HomeScreen(
                         }
                         HomeSection.AllTimeHits -> {
                             allTimeHits?.takeIf { it.isNotEmpty() }?.let { hits ->
+                                sectionRendered = true
                                 homeItem("all_time_hits_title", revealSeen, "title") {
                                     HomeSectionTitle(
                                         title = stringResource(R.string.all_time_hits),
@@ -1512,6 +1547,7 @@ fun HomeScreen(
                         HomeSection.LiveShows, HomeSection.MusicVideos -> {
                             val isLive = section == HomeSection.LiveShows
                             (if (isLive) liveRow else musicVideoRow)?.takeIf { it.isNotEmpty() }?.let { videos ->
+                                sectionRendered = true
                                 homeItem("${section.id}_title", revealSeen, "title") {
                                     HomeSectionTitle(
                                         title = stringResource(if (isLive) R.string.live_shows else R.string.music_videos_for_you),
@@ -1525,61 +1561,65 @@ fun HomeScreen(
                         }
                         is HomeSection.Category -> {
                             homeCategories?.firstOrNull { it.id == section.categoryId }?.let { category ->
-                                homeItem("${section.id}_title", revealSeen, "title") {
-                                    val title = when (category.kind) {
-                                        HomeCategory.Kind.NewFromArtists -> stringResource(R.string.home_new_from_your_artists)
-                                        else -> category.title
-                                    }
-                                    HomeSectionTitle(
-                                        label = when (category.kind) {
-                                            HomeCategory.Kind.BecauseYouLike -> stringResource(R.string.home_because_you_like)
-                                            HomeCategory.Kind.MoreLikeArtist -> stringResource(R.string.home_more_like)
-                                            HomeCategory.Kind.YourGenre -> stringResource(R.string.home_because_you_listen_to)
-                                            HomeCategory.Kind.NewGenre -> stringResource(R.string.home_try_something_new)
-                                            HomeCategory.Kind.NewFromArtists -> null
-                                        },
-                                        title = title,
-                                        thumbnail = category.thumbnailUrl?.let { thumbnailUrl ->
-                                            {
-                                                AsyncImage(
-                                                    model = thumbnailUrl.resize(90, 90),
-                                                    contentDescription = null,
-                                                    contentScale = ContentScale.Crop,
-                                                    modifier = Modifier
-                                                        .size(30.dp)
-                                                        .clip(
-                                                            if (category.kind == HomeCategory.Kind.MoreLikeArtist) {
-                                                                CircleShape
-                                                            } else {
-                                                                RoundedCornerShape(ThumbnailCornerRadius)
-                                                            }
-                                                        )
-                                                )
-                                            }
-                                        },
-                                        onClick = category.endpoint?.let { endpoint ->
-                                            {
-                                                if (category.kind == HomeCategory.Kind.MoreLikeArtist) {
-                                                    navController.navigate("artist/${endpoint.browseId}")
-                                                } else {
-                                                    navController.navigate("genre/${endpoint.browseId}?params=${endpoint.params}")
+                                if (category.items.isNotEmpty()) {
+                                    sectionRendered = true
+                                    homeItem("${section.id}_title", revealSeen, "title") {
+                                        val title = when (category.kind) {
+                                            HomeCategory.Kind.NewFromArtists -> stringResource(R.string.home_new_from_your_artists)
+                                            else -> category.title
+                                        }
+                                        HomeSectionTitle(
+                                            label = when (category.kind) {
+                                                HomeCategory.Kind.BecauseYouLike -> stringResource(R.string.home_because_you_like)
+                                                HomeCategory.Kind.MoreLikeArtist -> stringResource(R.string.home_more_like)
+                                                HomeCategory.Kind.YourGenre -> stringResource(R.string.home_because_you_listen_to)
+                                                HomeCategory.Kind.NewGenre -> stringResource(R.string.home_try_something_new)
+                                                HomeCategory.Kind.NewFromArtists -> null
+                                            },
+                                            title = title,
+                                            thumbnail = category.thumbnailUrl?.let { thumbnailUrl ->
+                                                {
+                                                    AsyncImage(
+                                                        model = thumbnailUrl.resize(90, 90),
+                                                        contentDescription = null,
+                                                        contentScale = ContentScale.Crop,
+                                                        modifier = Modifier
+                                                            .size(30.dp)
+                                                            .clip(
+                                                                if (category.kind == HomeCategory.Kind.MoreLikeArtist) {
+                                                                    CircleShape
+                                                                } else {
+                                                                    RoundedCornerShape(ThumbnailCornerRadius)
+                                                                }
+                                                            )
+                                                    )
                                                 }
-                                            }
-                                        },
-                                    )
-                                }
-                                homeItem("${section.id}_list", revealSeen, "cardRow") {
-                                    HomeCardRow(section.id, category.items, revealSeen, key = { it.id }, content = ytItemCard)
+                                            },
+                                            onClick = category.endpoint?.let { endpoint ->
+                                                {
+                                                    if (category.kind == HomeCategory.Kind.MoreLikeArtist) {
+                                                        navController.navigate("artist/${endpoint.browseId}")
+                                                    } else {
+                                                        navController.navigate("genre/${endpoint.browseId}?params=${endpoint.params}")
+                                                    }
+                                                }
+                                            },
+                                        )
+                                    }
+                                    homeItem("${section.id}_list", revealSeen, "cardRow") {
+                                        HomeCardRow(section.id, category.items, revealSeen, key = { it.id }, content = ytItemCard)
+                                    }
                                 }
                             }
                         }
                         HomeSection.AccountPlaylists -> {
                             if (!localPlaylists.isNullOrEmpty() || !accountPlaylists.isNullOrEmpty()) {
+                                sectionRendered = true
                                 homeItem("account_playlists_title", revealSeen, "title") {
                                     Box {
                                         HomeSectionTitle(
                                             label = stringResource(R.string.home_your_playlists),
-                                            title = accountName,
+                                            title = displayAccountName,
                                             thumbnail = {
                                                 if (profileImageUrl != null) {
                                                     AsyncImage(
@@ -1628,6 +1668,7 @@ fun HomeScreen(
                         }
                         HomeSection.DontForgetTheseSongs -> {
                             forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { forgottenFavorites ->
+                                sectionRendered = true
                                 homeItem("forgotten_favorites_title", revealSeen, "title") {
                                     HomeSectionTitle(
                                         title = stringResource(R.string.dont_forget_these_songs),
@@ -1648,7 +1689,8 @@ fun HomeScreen(
                         }
                         is HomeSection.HomePageSection -> {
                             val sectionData = homePage?.sections?.getOrNull(section.index)
-                            sectionData?.let {
+                            if (sectionData != null && sectionData.items.isNotEmpty()) {
+                                sectionRendered = true
                                 homeItem("home_section_title_${section.id}", revealSeen, "title") {
                                     HomeSectionTitle(
                                         title = sectionData.title,
@@ -1702,8 +1744,10 @@ fun HomeScreen(
                         }
                     }
 
-                    item(key = "section_spacer_${section.id}", contentType = "spacer") {
-                        Spacer(modifier = Modifier.height(34.dp))
+                    if (sectionRendered) {
+                        item(key = "section_spacer_${section.id}", contentType = "spacer") {
+                            Spacer(modifier = Modifier.height(34.dp))
+                        }
                     }
                 }
 
@@ -1767,13 +1811,13 @@ fun HomeScreen(
                                 // every stop is black, so the fade is built once and only its alpha follows the scroll
                                 val fade = if (progressiveBar) {
                                     Brush.verticalGradient(
-                                        0f to Color.Black.copy(alpha = 0.9f),
-                                        0.3f to Color.Black.copy(alpha = 0.6f),
-                                        0.6f to Color.Black.copy(alpha = 0.3f),
+                                        0f to (if (hasCustomAppBg) Color.Black.copy(alpha = 0.5f) else Color.Black.copy(alpha = 0.9f)),
+                                        0.3f to (if (hasCustomAppBg) Color.Black.copy(alpha = 0.3f) else Color.Black.copy(alpha = 0.6f)),
+                                        0.6f to (if (hasCustomAppBg) Color.Black.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.3f)),
                                         1f to Color.Transparent
                                     )
                                 } else {
-                                    androidx.compose.ui.graphics.SolidColor(Color.Black.copy(alpha = com.mochyy.mochymusic.ui.component.FlatBarScrimAlpha))
+                                    androidx.compose.ui.graphics.SolidColor(Color.Black.copy(alpha = if (hasCustomAppBg) 0.3f else com.mochyy.mochymusic.ui.component.FlatBarScrimAlpha))
                                 }
                                 onDrawBehind {
                                     drawRect(brush = fade, alpha = heroScrollProgressProvider().coerceIn(0f, 1f))
@@ -1817,7 +1861,7 @@ fun HomeScreen(
                                     scaleX = scale
                                     scaleY = scale
                                     transformOrigin = TransformOrigin(0f, 0.5f)
-                                    renderEffect = BlurEffectCache.element(topBarProgress * 15f)
+                                    renderEffect = if (topBarProgress > 0.01f) BlurEffectCache.element(topBarProgress * 15f) else null
                                 }
                         )
 
@@ -1833,7 +1877,7 @@ fun HomeScreen(
                             maxLines = 1,
                             modifier = Modifier.graphicsLayer {
                                 alpha = topBarProgress
-                                renderEffect = BlurEffectCache.element((1f - topBarProgress) * 15f)
+                                renderEffect = if (topBarProgress < 0.99f) BlurEffectCache.element((1f - topBarProgress) * 15f) else null
                             }
                         )
                     }

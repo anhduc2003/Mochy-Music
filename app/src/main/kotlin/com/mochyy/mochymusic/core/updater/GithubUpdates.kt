@@ -12,7 +12,7 @@ import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
-const val GithubOwner = "realidkroo"
+const val GithubOwner = "anhduc2003"
 const val GithubRepo = "Mochy-Music"
 
 const val GithubProfileUrl = "https://github.com/$GithubOwner"

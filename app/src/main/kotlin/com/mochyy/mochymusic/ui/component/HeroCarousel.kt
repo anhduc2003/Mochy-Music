@@ -1111,6 +1111,7 @@ private fun BoxScope.HeroBlurBand(
  */
 @Composable
 private fun BoxScope.HeroScrims() {
+    val hasCustomAppBg = LocalHasCustomAppBackground.current
     Box(
         modifier = Modifier
             .matchParentSize()
@@ -1119,13 +1120,13 @@ private fun BoxScope.HeroScrims() {
                 val bottomStart = 0.533f
                 val bottomEnd = 0.989f
                 val scrim = Brush.verticalGradient(
-                    0f to heroScrimBlack(0.86f),
-                    0.475f * topEnd to heroScrimBlack(0.59f),
-                    topEnd to heroScrimBlack(0f),
-                    bottomStart to heroScrimBlack(0f),
-                    bottomStart + 0.457f * (bottomEnd - bottomStart) to heroScrimBlack(0.59f),
-                    bottomEnd to heroScrimBlack(1f),
-                    1f to heroScrimBlack(1f),
+                    0f to (if (hasCustomAppBg) Color.Black.copy(alpha = 0.6f) else heroScrimBlack(0.86f)),
+                    0.475f * topEnd to (if (hasCustomAppBg) Color.Black.copy(alpha = 0.35f) else heroScrimBlack(0.59f)),
+                    topEnd to Color.Transparent,
+                    bottomStart to Color.Transparent,
+                    bottomStart + 0.457f * (bottomEnd - bottomStart) to (if (hasCustomAppBg) Color.Black.copy(alpha = 0.35f) else heroScrimBlack(0.59f)),
+                    bottomEnd to (if (hasCustomAppBg) Color.Transparent else heroScrimBlack(1f)),
+                    1f to (if (hasCustomAppBg) Color.Transparent else heroScrimBlack(1f)),
                     startY = 0f,
                     endY = size.height,
                 )
@@ -1139,6 +1140,7 @@ private const val HeroDim = 0.36f
 // a tv's hero: dark behind the words at the left and into the rows below, the cover at the right left as bright as it is
 @Composable
 private fun BoxScope.TvHeroScrims() {
+    val hasCustomAppBg = LocalHasCustomAppBackground.current
     Box(
         modifier = Modifier
             .matchParentSize()
@@ -1151,7 +1153,7 @@ private fun BoxScope.TvHeroScrims() {
                 )
                 val intoRows = Brush.verticalGradient(
                     0.8f to Color.Transparent,
-                    1f to Color.Black,
+                    1f to (if (hasCustomAppBg) Color.Transparent else Color.Black),
                     endY = size.height,
                 )
                 onDrawBehind {
