@@ -62,8 +62,11 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
+import com.mochyy.mochymusic.LocalPlayerConnection
 import com.mochyy.mochymusic.lyrics.LyricsEntry
+import com.mochyy.mochymusic.playback.PlayerConnection
 import com.mochyy.mochymusic.ui.component.agslRenderEffect
 import com.mochyy.mochymusic.ui.component.createAgslShader
 import com.mochyy.mochymusic.ui.component.damageBoundary
@@ -2011,6 +2014,16 @@ internal fun karaokeAnnotated(
     }
 }
 
+// how often a line that is not moving still looks at the playback clock: quick enough to follow a
+// seek, a fraction of the cost of a frame
+private const val LyricsIdleStepMs = 250L
+
+/** Nothing moves between frames: the player is stopped, or the app is behind another screen. */
+private fun lyricsAtRest(connection: PlayerConnection?): Boolean {
+    if (connection == null) return false
+    return runCatching { !connection.player.isPlaying || !connection.isUiVisible.value }.getOrDefault(false)
+}
+
 @Composable
 private fun rememberKaraokeHead(
     text: String,
@@ -2023,6 +2036,9 @@ private fun rememberKaraokeHead(
 ): KaraokeHead {
     val timed = remember(text, words) { karaokeTimedRanges(text, words) }
     val head = remember(text, words) { karaokeHeadFor(text) }
+    // the screen's own player, when the line is drawn inside the app; the floating overlay draws
+    // outside its composition and gates itself through animationRunning instead
+    val connection = LocalPlayerConnection.current
 
     LaunchedEffect(text, timed, positionProvider, wordMotion, animationRunning, animationSeekTick) {
         if (!animationRunning) {
@@ -2031,11 +2047,21 @@ private fun rememberKaraokeHead(
         }
         var lastFrameNanos = -1L
         while (true) {
-            withFrameNanos { frameNanos ->
-                val dt = if (lastFrameNanos < 0L) 0.016f else ((frameNanos - lastFrameNanos) / 1_000_000_000f).coerceIn(0f, 0.064f)
-                // the provider is a playback clock that already moves on the frame's own time, so no guessing between polls
-                head.advance(timed, positionProvider() / 1000.0, dt, wordMotion)
-                lastFrameNanos = frameNanos
+            if (lyricsAtRest(connection)) {
+                // stopped, or the app is not the thing on screen: nothing moves between frames, so the
+                // sweep is put where the playback clock says and the next look waits for a slow tick.
+                // Every visible line held a frame callback of its own, which kept the app rendering at
+                // the display's rate for as long as this page stayed composed, screen off included.
+                head.advance(timed, positionProvider() / 1000.0, 0f, wordMotion)
+                lastFrameNanos = -1L
+                delay(LyricsIdleStepMs)
+            } else {
+                withFrameNanos { frameNanos ->
+                    val dt = if (lastFrameNanos < 0L) 0.016f else ((frameNanos - lastFrameNanos) / 1_000_000_000f).coerceIn(0f, 0.064f)
+                    // the provider is a playback clock that already moves on the frame's own time, so no guessing between polls
+                    head.advance(timed, positionProvider() / 1000.0, dt, wordMotion)
+                    lastFrameNanos = frameNanos
+                }
             }
         }
     }

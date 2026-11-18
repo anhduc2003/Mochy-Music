@@ -915,8 +915,9 @@ class MainActivity : ComponentActivity() {
                 }
 
                 val pauseListenHistory by rememberPreference(PauseListenHistoryKey, defaultValue = false)
-                // only whether there's any history at all: the count itself grows with every song played, and collecting it here recomposed the whole app on each song change
-                val hasEvents by remember(database) { database.eventCount().map { it > 0 }.distinctUntilChanged() }.collectAsState(initial = true)
+                // only whether there's any history at all: the count itself grows with every song played
+                // and walked the whole event table on each insert, for a yes or no
+                val hasEvents by remember(database) { database.hasAnyEvent().distinctUntilChanged() }.collectAsState(initial = true)
                 val showHistoryButton = remember(pauseListenHistory, hasEvents) {
                     !(pauseListenHistory && !hasEvents)
                 }
@@ -1712,7 +1713,9 @@ val SubSettingsRoutes = setOf(
 )
 
 val LocalDatabase = staticCompositionLocalOf<MusicDatabase> { error("No database provided") }
-val LocalPlayerConnection = staticCompositionLocalOf<PlayerConnection?> { error("No PlayerConnection provided") }
+// null rather than a crash outside the app's own composition (the floating lyrics, the TV link):
+// every reader already handles a null connection, and a surface drawn without one is not a bug
+val LocalPlayerConnection = staticCompositionLocalOf<PlayerConnection?> { null }
 val LocalGlassState = staticCompositionLocalOf<GlassState?> { null }
 
 /**

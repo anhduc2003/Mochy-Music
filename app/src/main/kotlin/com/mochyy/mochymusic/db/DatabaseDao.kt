@@ -1390,8 +1390,9 @@ interface DatabaseDao {
     @Query("SELECT * FROM event ORDER BY rowId ASC LIMIT 1")
     fun firstEvent(): Flow<EventWithSong?>
 
-    @Query("SELECT COUNT(*) FROM event")
-    fun eventCount(): Flow<Int>
+    /** Whether there is any history at all: EXISTS stops at the first row, COUNT(*) walks the table. */
+    @Query("SELECT EXISTS(SELECT 1 FROM event)")
+    fun hasAnyEvent(): Flow<Boolean>
 
     /** Every play in [fromTimeStamp, toTimeStamp), bare - the monthly recap and Stats aggregate these themselves. */
     @Query("SELECT songId, timestamp, playTime FROM event WHERE timestamp >= :fromTimeStamp AND timestamp < :toTimeStamp")

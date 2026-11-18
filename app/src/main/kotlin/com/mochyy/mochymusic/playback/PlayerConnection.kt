@@ -635,6 +635,9 @@ class PlayerConnection(
 
     fun seekTo(position: Long) {
         try {
+            // a seek into a stream that failed is the listener taking it over: the skip it was
+            // counting down to would otherwise fire seconds later and jump the queue
+            service.userSeekedIntoFailedStream()
             val castHandler = service.castConnectionHandler
             if (castHandler?.isCasting?.value == true) {
                 castHandler.seekTo(position)
