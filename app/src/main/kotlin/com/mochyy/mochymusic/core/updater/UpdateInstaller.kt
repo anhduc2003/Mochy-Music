@@ -50,8 +50,9 @@ object UpdateInstaller {
     }
 
     /**
-     * What [apk] is, and whether it can go over the installed app. Reads the archive only; nothing
-     * is installed and nothing is changed.
+     * What [apk] is, and whether it can go over the installed app. Reads the archive only — the
+     * package manager hands back the manifest block of the zip, not the APK — so it is cheap enough
+     * to run before a dialog opens; nothing is installed and nothing is changed.
      */
     fun check(context: Context, apk: File): Verdict {
         val archive = runCatching {
