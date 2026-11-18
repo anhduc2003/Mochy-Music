@@ -1013,8 +1013,7 @@
         <!-- the system installer's answer to an update session, delivered while this app is being replaced -->
         <receiver
             android:name=".core.updater.UpdateInstallReceiver"
-            android:exported="false"
-            android:directBootAware="false">
+            android:exported="false">
             <intent-filter>
                 <action android:name="com.mochyy.mochymusic.UPDATE_INSTALL_STATUS" />
             </intent-filter>
