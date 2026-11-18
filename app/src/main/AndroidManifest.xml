@@ -1010,6 +1010,16 @@
                 android:resource="@xml/shortcuts" />
         </activity-alias>
 
+        <!-- the system installer's answer to an update session, delivered while this app is being replaced -->
+        <receiver
+            android:name=".core.updater.UpdateInstallReceiver"
+            android:exported="false"
+            android:directBootAware="false">
+            <intent-filter>
+                <action android:name="com.mochyy.mochymusic.UPDATE_INSTALL_STATUS" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.FileProvider"

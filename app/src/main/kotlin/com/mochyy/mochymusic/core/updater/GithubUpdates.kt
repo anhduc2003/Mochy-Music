@@ -2,7 +2,6 @@ package com.mochyy.mochymusic.core.updater
 
 import android.content.Context
 import android.content.Intent
-import androidx.core.content.FileProvider
 import com.mochyy.mochymusic.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -314,19 +313,13 @@ fun requestInstallPermission(context: Context) {
     }
 }
 
-fun installApk(context: Context, apk: File): Boolean {
-    if (!canInstallPackages(context)) {
-        requestInstallPermission(context)
-        return false
-    }
-    val uri = FileProvider.getUriForFile(context, "${context.packageName}.FileProvider", apk)
-    val intent = Intent(Intent.ACTION_VIEW).apply {
-        setDataAndType(uri, "application/vnd.android.package-archive")
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    }
-    return runCatching { context.startActivity(intent); true }.getOrDefault(false)
-}
+/**
+ * Installs [apk] over the copy already on the phone. The download is checked against what is
+ * installed first — see [UpdateInstaller] — because a build from another key cannot replace this
+ * one, and the system's own dialog only says "App not installed" when it refuses.
+ */
+fun installApk(context: Context, apk: File): UpdateInstaller.Start =
+    UpdateInstaller.install(context, apk)
 
 fun formatBytes(bytes: Long): String = when {
     bytes <= 0 -> "unknown size"

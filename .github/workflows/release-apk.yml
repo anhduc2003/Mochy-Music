@@ -46,18 +46,24 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Generate signing keystore
+      - name: Restore the signing key every build is signed with
+        env:
+          MOCHY_KEYSTORE_B64: ${{ secrets.MOCHY_KEYSTORE_B64 }}
         run: |
-          mkdir -p ~/.android
-          keytool -genkeypair -v \
-            -keystore ~/.android/debug.keystore \
-            -storepass android \
-            -alias androiddebugkey \
-            -keypass android \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=Android Debug,O=Android,C=US"
+          # one key for every build, so a new APK installs over the one already on the phone and
+          # keeps its library; a key generated per run makes each build a different app to Android
+          if [ -n "${MOCHY_KEYSTORE_B64}" ]; then
+            mkdir -p app/keystore
+            printf '%s' "${MOCHY_KEYSTORE_B64}" | base64 -d > app/keystore/persistent-debug.keystore
+            echo "Signing with the repository's persistent key."
+          else
+            echo "::warning title=No persistent signing key::MOCHY_KEYSTORE_B64 is not set, so this APK cannot install over builds from other runs. See scripts/persistent-signing-key.sh."
+            mkdir -p ~/.android
+            [ -f ~/.android/debug.keystore ] || keytool -genkey -v \
+              -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey \
+              -keypass android -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
 
       - name: Build Universal FOSS Release APK
         env:
@@ -106,7 +112,14 @@ jobs:
           APK_SHA: ${{ steps.meta.outputs.sha256 }}
           SHORT_SHA: ${{ steps.meta.outputs.short_sha }}
           PRERELEASE: ${{ inputs.prerelease || false }}
+          MOCHY_KEYSTORE_B64: ${{ secrets.MOCHY_KEYSTORE_B64 }}
         run: |
+          # the note in the release body has to match how the APK was actually signed
+          if [ -n "${MOCHY_KEYSTORE_B64}" ]; then
+            export SIGNING_NOTE="Signed with this repository's persistent key: a new release installs over the previous one and keeps your library."
+          else
+            export SIGNING_NOTE="Signed with a key generated for this run: **for testing only**. It cannot upgrade an install signed by a different key. Add the MOCHY_KEYSTORE_B64 secret (see scripts/persistent-signing-key.sh) to make releases install in place."
+          fi
           set -euo pipefail
           name="${RELEASE_NAME:-Mochy Music $VERSION_NAME}"
 
@@ -148,7 +161,7 @@ jobs:
           ### Build
           - \`versionCode $VERSION_CODE\`, \`versionName $VERSION_NAME\`
           - Universal FOSS, minSdk 24, targetSdk 37
-          - Signed with a debug keystore generated at build time: **for testing only**. It cannot go on Play Store and cannot upgrade an install signed with a different key.
+          - $SIGNING_NOTE
           - SHA-256 \`$APK_SHA\`
 
           Built by the \`Build Release APK\` workflow on \`$SHORT_SHA\`. APK size: $APK_SIZE.

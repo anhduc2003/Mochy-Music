@@ -528,8 +528,12 @@ private fun ColumnScope.UpdateDetailContent(
     }
 
     val startInstall: (java.io.File) -> Unit = { file ->
-        if (!installApk(context, file)) {
-            error = context.getString(R.string.update_allow_unknown_apps)
+        when (val start = installApk(context, file)) {
+            is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.Started -> Unit
+            is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.NeedsPermission ->
+                error = context.getString(R.string.update_allow_unknown_apps)
+            is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.Refused ->
+                error = com.mochyy.mochymusic.core.updater.UpdateInstaller.describe(context, start.verdict)
         }
     }
 

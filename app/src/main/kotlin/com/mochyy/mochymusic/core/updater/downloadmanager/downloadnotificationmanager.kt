@@ -159,25 +159,7 @@ object DownloadNotificationManager {
 
     @RequiresApi(Build.VERSION_CODES.BAKLAVA)
     private fun showDownloadCompleteModern(version: String, filePath: String) {
-        val installIntent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(
-                androidx.core.content.FileProvider.getUriForFile(
-                    appContext,
-                    "${appContext.packageName}.FileProvider",
-                    java.io.File(filePath)
-                ),
-                "application/vnd.android.package-archive"
-            )
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-
-        val pendingIntent = PendingIntent.getActivity(
-            appContext,
-            0,
-            installIntent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
+        val pendingIntent = installPendingIntent(version, filePath)
 
         val progressStyle = Notification.ProgressStyle()
             .also {
@@ -270,26 +252,27 @@ object DownloadNotificationManager {
         notificationManager.notify(NOTIFICATION_ID, notification)
     }
 
-    private fun showDownloadCompleteLegacy(version: String, filePath: String) {
-        val installIntent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(
-                androidx.core.content.FileProvider.getUriForFile(
-                    appContext,
-                    "${appContext.packageName}.FileProvider",
-                    java.io.File(filePath)
-                ),
-                "application/vnd.android.package-archive"
-            )
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    /**
+     * Tapping the finished download starts an update session rather than a bare VIEW intent: the
+     * session installs over the copy on the phone and keeps its data, and [UpdateInstallReceiver]
+     * reports what Android said when it refuses.
+     */
+    private fun installPendingIntent(version: String, filePath: String): PendingIntent {
+        val trigger = Intent(appContext, com.mochyy.mochymusic.core.updater.UpdateInstallReceiver::class.java).apply {
+            action = com.mochyy.mochymusic.core.updater.UpdateInstallReceiver.ACTION_TRIGGER
+            putExtra(com.mochyy.mochymusic.core.updater.UpdateInstallReceiver.EXTRA_VERSION, version)
+            putExtra(com.mochyy.mochymusic.core.updater.UpdateInstallReceiver.EXTRA_APK, filePath)
         }
-
-        val pendingIntent = PendingIntent.getActivity(
+        return PendingIntent.getBroadcast(
             appContext,
             0,
-            installIntent,
+            trigger,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
+    }
+
+    private fun showDownloadCompleteLegacy(version: String, filePath: String) {
+        val pendingIntent = installPendingIntent(version, filePath)
 
         val notification = NotificationCompat.Builder(appContext, CHANNEL_ID)
             .setSmallIcon(R.drawable.updated)
