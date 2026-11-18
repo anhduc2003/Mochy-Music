@@ -336,7 +336,7 @@ fun MochySettingsScreen(navController: NavController, pane: SettingsPane? = null
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(if (com.mochyy.mochymusic.ui.component.LocalHasCustomAppBackground.current) Color.Transparent else Color.Black),
     ) {
         Box(
             modifier = Modifier

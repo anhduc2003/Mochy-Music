@@ -371,4 +371,26 @@
     <string name="video_find">Tìm video</string>
     <string name="video_wrong">Sai video?</string>
     <string name="no_internet_next_on_phone">Không có mạng, nên đây là bài tiếp theo đã lưu trên điện thoại của bạn</string>
+
+    <string name="custom_icon_gallery_title">Biểu tượng từ Bộ sưu tập</string>
+    <string name="custom_icon_gallery_subtitle">Nhập ảnh bất kỳ từ bộ sưu tập trên thiết bị làm icon</string>
+    <string name="custom_icon_gallery_pick">Chọn ảnh từ bộ sưu tập</string>
+    <string name="custom_icon_gallery_change">Đổi ảnh khác</string>
+    <string name="custom_icon_gallery_pin">Ghim ra Màn hình chính</string>
+    <string name="custom_icon_gallery_reset">Đặt lại</string>
+    <string name="custom_icon_gallery_adjust">Căn chỉnh biểu tượng ứng dụng</string>
+    <string name="custom_icon_gallery_pinned_hint">Android hỗ trợ đặt ảnh tùy chỉnh từ bộ sưu tập lên Màn hình chính và tự cập nhật khi bạn đổi ảnh mới.</string>
+    <string name="custom_icon_gallery_updated">Đã lưu và cập nhật biểu tượng tùy chỉnh</string>
+
+    <string name="custom_app_bg_title">Nền ứng dụng tùy chỉnh</string>
+    <string name="custom_app_bg_desc">Thay đổi hình nền toàn bộ ứng dụng (Trang chủ, Thư viện, Tìm kiếm, Cài đặt)</string>
+    <string name="custom_app_bg_default">Mặc định</string>
+    <string name="custom_app_bg_image">Ảnh thiết bị</string>
+    <string name="custom_app_bg_ambient">Theo ảnh bìa nhạc</string>
+    <string name="custom_app_bg_gradient">Dải màu Gradient</string>
+    <string name="custom_app_bg_pick">Chọn ảnh nền từ bộ sưu tập</string>
+    <string name="custom_app_bg_change">Đổi ảnh nền khác</string>
+    <string name="custom_app_bg_blur">Độ mờ nền (Blur)</string>
+    <string name="custom_app_bg_dim">Độ tối lớp phủ</string>
+    <string name="custom_app_bg_adjust">Căn chỉnh nền ứng dụng</string>
 </resources>

@@ -119,7 +119,8 @@ fun GestureScreen(navController: NavController) = CustomisationScreen(navControl
 
 // the customize page's parts in order, with what a search or a settings result can find each one by
 private enum class CustomiseSection(@StringRes val titleRes: Int, val keys: List<String>, val words: String) {
-    ICONS(R.string.customise_icons, listOf("Icons", "App icon"), "icon icons app launcher home screen mochy outline anime material you white black dark transparent"),
+    ICONS(R.string.customise_icons, listOf("Icons", "App icon"), "icon icons app launcher home screen mochy outline anime material you white black dark transparent gallery photo biểu tượng bộ sưu tập"),
+    APP_BACKGROUND(R.string.custom_app_bg_title, listOf("App background", "Wallpaper"), "app background wallpaper photo image blur dim gradient nền ứng dụng hình nền ảnh nền thiết bị"),
     ROUNDING(R.string.customise_cover_rounding, listOf("Cover rounding"), "cover rounding corner radius square rounded art"),
     PLAYLIST(R.string.customise_playlist_styles, listOf("Playlist styles"), "playlist styles flow classic minimal header"),
     PLAYER(R.string.customise_player_styles, listOf("Player styles"), "player styles flagship turntable ipod poster timeline lyrics editor customize landscape sideways full cover square"),
@@ -162,7 +163,7 @@ fun CustomisationScreen(navController: NavController) {
             contentAlignment = Alignment.TopCenter,
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black)
+                .background(if (com.mochyy.mochymusic.ui.component.LocalHasCustomAppBackground.current) Color.Transparent else Color.Black)
                 .verticalScroll(scroll),
         ) {
             Column(
@@ -204,6 +205,7 @@ private fun CustomiseSectionContent(section: CustomiseSection) {
     val pagerBleed = Modifier.bleedHorizontally(CustomisePageMargin)
     when (section) {
         CustomiseSection.ICONS -> IconsSection()
+        CustomiseSection.APP_BACKGROUND -> AppBackgroundSection()
         CustomiseSection.ROUNDING -> {
             val (coverRadiusPx, onCoverRadiusChange) = rememberPreference(ThumbnailCornerRadiusKey, defaultValue = DefaultCoverRadius)
             CoverRoundingSection(

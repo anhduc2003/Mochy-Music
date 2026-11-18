@@ -61,13 +61,22 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import coil3.imageLoader
 import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.toBitmap
 import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.constants.LyricsMotionStyle
+import com.mochyy.mochymusic.constants.LyricsMotionStyleKey
 import com.mochyy.mochymusic.lyrics.WordTimestamp
 import com.mochyy.mochymusic.models.MediaMetadata
 import com.mochyy.mochymusic.ui.player.KaraokeSweepText
+import com.mochyy.mochymusic.ui.player.SmartLyricPalette
+import com.mochyy.mochymusic.ui.theme.extractThemeColor
+import com.mochyy.mochymusic.utils.rememberEnumPreference
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 // The capsule is black like the phone's island and a touch shorter than the bar, so it sits
 // in the row without touching its edges.
@@ -180,6 +189,34 @@ private fun Capsule(state: PillState, progress: MutableFloatState) {
 
     // Keep the clock identity stable: the shared renderer reads playback time on each frame.
     val positionProvider = remember(state) { { state.lyricsClock() } }
+    val (motionStyle) = rememberEnumPreference(LyricsMotionStyleKey, LyricsMotionStyle.LEGACY)
+    val context = LocalContext.current
+    var coverAccent by remember { mutableStateOf(Color.White) }
+    LaunchedEffect(state.song?.thumbnailUrl) {
+        val url = state.song?.thumbnailUrl
+        if (url.isNullOrBlank()) {
+            coverAccent = Color.White
+            return@LaunchedEffect
+        }
+        coverAccent = withContext(Dispatchers.IO) {
+            runCatching {
+                val req = ImageRequest.Builder(context).data(url).size(96, 96).allowHardware(false).build()
+                context.imageLoader.execute(req).image?.toBitmap()?.extractThemeColor() ?: Color.White
+            }.getOrDefault(Color.White)
+        }
+    }
+
+    val effectiveWords = remember(row, dots, motionStyle) {
+        if (dots >= 0 || row == null || row.kind != PillRowKind.LEAD) {
+            null
+        } else if (!row.words.isNullOrEmpty()) {
+            row.words
+        } else if ((motionStyle.isNeon || motionStyle.isMask) && row.text.isNotBlank() && row.endMs > row.startMs) {
+            SmartLyricPalette.smartSynthesizedWords(row.text, row.startMs, row.endMs)
+        } else {
+            null
+        }
+    }
 
     // Key by line identity rather than script instance so background updates don't flash or reset karaoke sweep.
     val rowKey = Triple(row?.line ?: -1, row?.kind, row?.text.orEmpty())
@@ -240,10 +277,12 @@ private fun Capsule(state: PillState, progress: MutableFloatState) {
                     ) {
                         LyricLine(
                             text = lyrics,
-                            words = row?.words?.takeIf { dots < 0 },
+                            words = effectiveWords,
                             positionProvider = positionProvider,
                             playing = state.playing,
                             seekTick = state.seekTick,
+                            motionStyle = if (motionStyle.isNeon || motionStyle.isMask) motionStyle else LyricsMotionStyle.LEGACY,
+                            accentColor = coverAccent,
                             appear = { appear.value },
                         )
                     }
@@ -404,6 +443,8 @@ private fun LyricLine(
     positionProvider: () -> Long,
     playing: Boolean,
     seekTick: Int,
+    motionStyle: LyricsMotionStyle,
+    accentColor: Color,
     appear: () -> Float,
 ) {
     val fontSize = LyricTextSp.sp
@@ -427,10 +468,11 @@ private fun LyricLine(
                 waveAmplitudeProvider = { 1f },
                 baseColor = { UnsungInk },
                 highlightColor = Color.White,
+                accentColor = accentColor,
                 fontSize = fontSize,
                 lineHeight = fontSize,
                 textAlign = TextAlign.Center,
-                motionStyle = LyricsMotionStyle.LEGACY,
+                motionStyle = motionStyle,
                 singleLine = true,
                 animationRunning = playing,
                 animationSeekTick = seekTick,

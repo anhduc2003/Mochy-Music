@@ -312,6 +312,7 @@ internal fun LyricsStylePreview(style: LyricsMotionStyle) {
                             blurStage = if (AppMotion.elementBlur) abs(distance).coerceAtMost(2) else 0,
                             positionProvider = position,
                             accentColor = Color.White,
+                            lineEndMs = PreviewLyrics.getOrNull(index + 1)?.first?.time ?: LyricsLoopMs.toLong(),
                             onClick = {},
                             waveEnabled = style.shaded,
                             highBloom = highBloom,

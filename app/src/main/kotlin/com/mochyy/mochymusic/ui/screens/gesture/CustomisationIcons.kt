@@ -2,6 +2,11 @@
 
 package com.mochyy.mochymusic.ui.screens.gesture
 
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -19,9 +24,12 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -35,6 +43,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,17 +69,24 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.CachePolicy
 import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.ui.component.pressBounce
 import com.mochyy.mochymusic.ui.component.rememberResourcePainter
 import com.mochyy.mochymusic.ui.player.findActivity
 import com.mochyy.mochymusic.ui.screens.audiolab.LabColors
+import com.mochyy.mochymusic.ui.screens.setup.PhotoCropperContainer
 import com.mochyy.mochymusic.utils.AppIcon
 import com.mochyy.mochymusic.utils.AppIconColor
 import com.mochyy.mochymusic.utils.AppIconFamily
 import com.mochyy.mochymusic.utils.AppIcons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.mochyy.mochymusic.ui.component.RemoteFocus
 
 private val TileSize = 66.dp
@@ -89,18 +105,28 @@ internal fun IconsSection() {
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     var picked by remember { mutableStateOf(AppIcons.current(context)) }
+    var galleryActive by remember { mutableStateOf(AppIcons.isCustomGalleryActive(context)) }
+    var hasGalleryIcon by remember { mutableStateOf(AppIcons.hasCustomGalleryIcon(context)) }
+    var galleryVersion by remember { mutableLongStateOf(AppIcons.customGalleryVersion(context)) }
+    var pendingCropUri by remember { mutableStateOf<Uri?>(null) }
     var expanded by rememberSaveable { mutableStateOf(false) }
     // the family whose colours are open under its customize button
     var customizing by remember { mutableStateOf<AppIconFamily?>(null) }
     // each family's custom tile keeps the colour last picked for it, starting from the one in use
     val customColors = remember { mutableStateMapOf<AppIconFamily, AppIconColor>().apply { picked.color?.let { put(picked.family, it) } } }
     val art = rememberIconArt()
+    val savedToast = stringResource(R.string.custom_icon_gallery_updated)
+
+    val galleryPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) pendingCropUri = uri
+    }
 
     fun pick(icon: AppIcon) {
         icon.color?.let { customColors[icon.family] = it }
-        if (icon == picked) return
+        if (icon == picked && !galleryActive) return
         haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
         picked = icon
+        galleryActive = false
         // the next launch's splash goes with it: the icon itself for an anime one, the bare mark for the rest
         context.findActivity()?.let { AppIcons.syncSplash(it, icon) }
         // the package manager is a call to the system, kept off the main thread
@@ -114,17 +140,51 @@ internal fun IconsSection() {
             .background(LabColors.Card)
             .padding(top = CardTextInset, bottom = 20.dp),
     ) {
-        PickedIcon(icon = picked, art = art, expanded = expanded, onToggle = { expanded = !expanded })
+        PickedIcon(
+            icon = picked,
+            galleryActive = galleryActive,
+            galleryVersion = galleryVersion,
+            art = art,
+            expanded = expanded,
+            onToggle = { expanded = !expanded },
+        )
         AnimatedVisibility(
             visible = expanded,
             enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
             exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
         ) {
             Column {
+                GalleryIconSection(
+                    hasGalleryIcon = hasGalleryIcon,
+                    galleryActive = galleryActive,
+                    galleryVersion = galleryVersion,
+                    onPickPhoto = {
+                        galleryPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    },
+                    onSelectExisting = {
+                        if (hasGalleryIcon) {
+                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                            AppIcons.activateCustomGalleryIcon(context)
+                            galleryActive = true
+                        }
+                    },
+                    onPinHome = {
+                        scope.launch(Dispatchers.IO) {
+                            AppIcons.pinCustomGalleryIcon(context.applicationContext)
+                        }
+                    },
+                    onReset = {
+                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                        AppIcons.clearCustomGalleryIcon(context)
+                        hasGalleryIcon = false
+                        galleryActive = false
+                        galleryVersion = System.currentTimeMillis()
+                    },
+                )
                 AppIconFamily.entries.forEach { family ->
                     FamilyIcons(
                         family = family,
-                        picked = picked,
+                        picked = picked.takeUnless { galleryActive },
                         customColor = customColors[family] ?: AppIconColor.entries.first(),
                         art = art,
                         customizing = customizing == family,
@@ -141,6 +201,38 @@ internal fun IconsSection() {
             }
         }
     }
+
+    if (pendingCropUri != null) {
+        Dialog(
+            onDismissRequest = { pendingCropUri = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+        ) {
+            Box(Modifier.fillMaxSize()) {
+                PhotoCropperContainer(
+                    uri = pendingCropUri,
+                    onDone = { croppedUri ->
+                        scope.launch(Dispatchers.IO) {
+                            val ok = AppIcons.saveCustomGalleryIcon(context.applicationContext, croppedUri, autoPinIfNeeded = true)
+                            withContext(Dispatchers.Main) {
+                                pendingCropUri = null
+                                if (ok) {
+                                    hasGalleryIcon = true
+                                    galleryActive = true
+                                    galleryVersion = AppIcons.customGalleryVersion(context)
+                                    Toast.makeText(context, savedToast, Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    },
+                    onCancel = { pendingCropUri = null },
+                    onSelectNewImage = {
+                        galleryPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    },
+                    title = stringResource(R.string.custom_icon_gallery_adjust),
+                ) {}
+            }
+        }
+    }
 }
 
 // each piece of art loaded once and shared by every tile, through coil so the anime bitmap decodes off the main thread (it cost 20 ms on the page's first frame)
@@ -152,7 +244,14 @@ private fun rememberIconArt(): Map<Int, Painter> {
 
 // the icon in use with its name and family, and the chevron that opens every other choice
 @Composable
-private fun PickedIcon(icon: AppIcon, art: Map<Int, Painter>, expanded: Boolean, onToggle: () -> Unit) {
+private fun PickedIcon(
+    icon: AppIcon,
+    galleryActive: Boolean,
+    galleryVersion: Long,
+    art: Map<Int, Painter>,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+) {
     val turn by animateFloatAsState(if (expanded) 180f else 0f, tween(260), label = "iconsChevron")
     val interaction = remember { MutableInteractionSource() }
     Column(
@@ -168,11 +267,15 @@ private fun PickedIcon(icon: AppIcon, art: Map<Int, Painter>, expanded: Boolean,
         )
         Spacer(Modifier.height(16.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconArt(icon = icon, art = art, picked = true)
+            if (galleryActive) {
+                GalleryIconArt(version = galleryVersion, picked = true)
+            } else {
+                IconArt(icon = icon, art = art, picked = true)
+            }
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(icon.label),
+                    text = stringResource(if (galleryActive) R.string.custom_icon_gallery_title else icon.label),
                     style = CardLabelStyle,
                     color = Color.White,
                     maxLines = 1,
@@ -180,9 +283,11 @@ private fun PickedIcon(icon: AppIcon, art: Map<Int, Painter>, expanded: Boolean,
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = stringResource(icon.family.title),
+                    text = stringResource(if (galleryActive) R.string.custom_icon_gallery_subtitle else icon.family.title),
                     style = CaptionStyle,
                     color = Color.White.copy(alpha = 0.5f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             Box(
@@ -206,11 +311,139 @@ private fun PickedIcon(icon: AppIcon, art: Map<Int, Painter>, expanded: Boolean,
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun GalleryIconSection(
+    hasGalleryIcon: Boolean,
+    galleryActive: Boolean,
+    galleryVersion: Long,
+    onPickPhoto: () -> Unit,
+    onSelectExisting: () -> Unit,
+    onPinHome: () -> Unit,
+    onReset: () -> Unit,
+) {
+    Spacer(Modifier.height(18.dp))
+    Text(
+        text = stringResource(R.string.custom_icon_gallery_title),
+        style = CaptionStyle,
+        color = Color.White.copy(alpha = 0.7f),
+        modifier = Modifier.padding(horizontal = CardTextInset),
+    )
+    Spacer(Modifier.height(10.dp))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = CardTextInset),
+    ) {
+        if (hasGalleryIcon) {
+            GalleryIconArt(
+                version = galleryVersion,
+                picked = galleryActive,
+                modifier = Modifier.clickable(onClick = onSelectExisting),
+            )
+        } else {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(TileSize)
+                    .clip(TileShape)
+                    .background(Color.White.copy(alpha = 0.06f))
+                    .border(1.dp, TileRing, TileShape)
+                    .clickable(onClick = onPickPhoto),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.image),
+                    contentDescription = stringResource(R.string.custom_icon_gallery_pick),
+                    tint = Color.White.copy(alpha = 0.75f),
+                    modifier = Modifier.size(26.dp),
+                )
+            }
+        }
+        Spacer(Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                ActionPillButton(
+                    text = stringResource(if (hasGalleryIcon) R.string.custom_icon_gallery_change else R.string.custom_icon_gallery_pick),
+                    emphasized = !hasGalleryIcon,
+                    onClick = onPickPhoto,
+                )
+                if (hasGalleryIcon) {
+                    ActionPillButton(
+                        text = stringResource(R.string.custom_icon_gallery_pin),
+                        emphasized = true,
+                        onClick = onPinHome,
+                    )
+                    ActionPillButton(
+                        text = stringResource(R.string.custom_icon_gallery_reset),
+                        emphasized = false,
+                        onClick = onReset,
+                    )
+                }
+            }
+            Text(
+                text = stringResource(R.string.custom_icon_gallery_pinned_hint),
+                style = CaptionStyle,
+                color = Color.White.copy(alpha = 0.45f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ActionPillButton(text: String, emphasized: Boolean, onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    Text(
+        text = text,
+        style = CaptionStyle,
+        color = if (emphasized) Color.Black else Color.White.copy(alpha = 0.9f),
+        maxLines = 1,
+        modifier = Modifier
+            .pressBounce(interaction, pressedScale = 0.94f)
+            .clip(CircleShape)
+            .background(if (emphasized) Color.White.copy(alpha = 0.92f) else Color.White.copy(alpha = 0.12f))
+            .clickable(interactionSource = interaction, indication = RemoteFocus, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+    )
+}
+
+@Composable
+private fun GalleryIconArt(version: Long, picked: Boolean, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val ring by animateColorAsState(if (picked) TileRingPicked else TileRing, tween(220), label = "galleryIconRing")
+    val model = remember(version) {
+        val file = AppIcons.customIconFile(context)
+        ImageRequest.Builder(context)
+            .data(file)
+            .memoryCacheKey("custom_app_icon_$version")
+            .diskCachePolicy(CachePolicy.DISABLED)
+            .build()
+    }
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .size(TileSize)
+            .clip(TileShape)
+            .background(Color(0xFF1C1C1F))
+            .border(if (picked) 2.dp else 1.dp, ring, TileShape),
+    ) {
+        AsyncImage(
+            model = model,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+}
+
 // one family: its ready-made icons swiped sideways with its custom one last, and its colours under customize
 @Composable
 private fun FamilyIcons(
     family: AppIconFamily,
-    picked: AppIcon,
+    picked: AppIcon?,
     customColor: AppIconColor,
     art: Map<Int, Painter>,
     customizing: Boolean,

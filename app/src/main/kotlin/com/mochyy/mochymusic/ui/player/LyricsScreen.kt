@@ -770,6 +770,7 @@ fun LyricsScreen(
                                     suppressEffects = suppressEffects,
                                     positionProvider = positionProvider,
                                     accentColor = accent,
+                                    lineEndMs = if (!unsynced) LyricsUtils.lineEndMs(lines, index) else null,
                                     subLine = shown.subLine,
                                     ruby = shown.ruby,
                                     // Readings sit under the line normally. With a translation on

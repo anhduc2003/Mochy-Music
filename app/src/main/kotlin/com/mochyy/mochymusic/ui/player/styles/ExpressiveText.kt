@@ -26,12 +26,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
+import com.mochyy.mochymusic.constants.LyricsMotionStyle
+import com.mochyy.mochymusic.ui.player.MaskLyricPalette
+import com.mochyy.mochymusic.ui.player.NeonLyricPalette
+import com.mochyy.mochymusic.ui.player.SmartLyricPalette
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.drawBehind
@@ -783,7 +790,6 @@ fun ExpressiveLyrics(
     val glowColor = remember(color, accentColor, motionStyleNow) {
         val accent = accentColor
         if (!motionStyleNow.accentFill) color else {
-            // lifted toward white when the cover's tone is dark, or it sinks into the page
             val r = accent.red
             val g = accent.green
             val b = accent.blue
@@ -796,6 +802,12 @@ fun ExpressiveLyrics(
                 alpha = color.alpha,
             )
         }
+    }
+    val neonPalette = remember(accentColor, motionStyleNow) {
+        if (motionStyleNow.isNeon) SmartLyricPalette.neonOf(accentColor) else null
+    }
+    val maskPalette = remember(accentColor, motionStyleNow) {
+        if (motionStyleNow.isMask) SmartLyricPalette.maskOf(accentColor) else null
     }
     val density = LocalDensity.current
     val fontFamilyResolver = LocalFontFamilyResolver.current
@@ -928,6 +940,9 @@ fun ExpressiveLyrics(
                             glowColor = glowColor,
                             glowEnabled = motionStyleNow.shaded,
                             dimAlpha = dimAlpha,
+                            motionStyle = motionStyleNow,
+                            neonPalette = neonPalette,
+                            maskPalette = maskPalette,
                             offsetY = { t ->
                                 var y = 0f
                                 for (k in pushers.indices) {
@@ -1008,6 +1023,9 @@ private fun LyricLine(
     glowColor: Color,
     glowEnabled: Boolean,
     dimAlpha: Float,
+    motionStyle: LyricsMotionStyle = LyricsMotionStyle.MOTION,
+    neonPalette: NeonLyricPalette? = null,
+    maskPalette: MaskLyricPalette? = null,
     /** how far down the overlapping lines above push this one, this frame */
     offsetY: (Long) -> Float = { 0f },
 ) {
@@ -1069,7 +1087,7 @@ private fun LyricLine(
                             p.placeWithLayer(0, 0) {
                                 val t = position.positionMs()
                                 cells.frameAt(t)
-                                motion(w, t, cell.sizePx, cells.x[w], cells.y[w], cell.bleed, mayGlow = stage.value == WordStage.Live)
+                                motion(w, t, cell.sizePx, cells.x[w], cells.y[w], cell.bleed, mayGlow = stage.value == WordStage.Live || neonPalette != null)
                             }
                         }
                     }
@@ -1080,9 +1098,11 @@ private fun LyricLine(
                         val t = cells.drawTimeOf(w, now, clock)
                         cells.frameAt(t)
                         if (moving && blurLayer != null) {
-                            drawBlurred(blurLayer, blurOf(w, clock)) { drawWord(cell, cells.scale[w], cells.headAt(t), t, sungColor, glowColor, dim, glowEnabled, glowLayer) }
+                            drawBlurred(blurLayer, blurOf(w, clock)) {
+                                drawWord(cell, cells.scale[w], cells.headAt(t), t, sungColor, glowColor, dim, glowEnabled, glowLayer, motionStyle, neonPalette, maskPalette)
+                            }
                         } else {
-                            drawWord(cell, cells.scale[w], cells.headAt(t), t, sungColor, glowColor, dim, glowEnabled, glowLayer)
+                            drawWord(cell, cells.scale[w], cells.headAt(t), t, sungColor, glowColor, dim, glowEnabled, glowLayer, motionStyle, neonPalette, maskPalette)
                         }
                     },
             )
@@ -1147,6 +1167,9 @@ private fun DrawScope.drawWord(
     dim: Color,
     glowEnabled: Boolean,
     glowLayer: GraphicsLayer?,
+    motionStyle: LyricsMotionStyle = LyricsMotionStyle.MOTION,
+    neonPalette: NeonLyricPalette? = null,
+    maskPalette: MaskLyricPalette? = null,
 ) {
     val word = cell.word
     val n = cell.letters.size
@@ -1154,20 +1177,21 @@ private fun DrawScope.drawWord(
     val k = (head - cell.charStart).coerceIn(0f, n.toFloat())
     val through = k / n
     val wordRise = smootherstep(through / 0.85f)
-    // the lit edge: a soft gradient a letter and a bit wide, running just behind the singing and
-    // carried past the last letter as the word finishes, so the whole word ends lit
-    val soft = cell.width / n * 1.15f
-    // at an even pace across the word: letter by letter, a narrow i and a wide m took the same time and the edge sped up and slowed down
+    val soft = cell.width / n * if (maskPalette != null) 0.55f else 1.15f
     val frontAtHead = cell.width * through
     val front = frontAtHead + soft * through
     val litFrom = front - soft
     val span = (word.endMs - word.startMs).coerceAtLeast(1L).toFloat()
-    // long notes swell and glow; quick ones don't
     val hold = smoothstep((span / word.sungLength - 140f) / 200f)
     val within = ((t - word.startMs) / span).coerceIn(0f, 1f)
     val swellEnvelope = hold * smootherstep(within / 0.2f) * smootherstep((1f - within) / 0.12f)
-    // the word being sung, easing in as the singing enters it and out after it's over
     val active = smootherstep(through / 0.15f) * (1f - smootherstep((t - word.endMs) / ActiveFadeMs))
+
+    val effectiveDim = when {
+        neonPalette != null -> neonPalette.unlitTube
+        maskPalette != null -> maskPalette.stencilDim
+        else -> dim
+    }
 
     var glowing = false
     for (i in 0 until n) {
@@ -1176,45 +1200,133 @@ private fun DrawScope.drawWord(
         val c = i.toFloat()
         val letterRise = if (k >= n) 1f else smootherstep((k - c + RiseLeadChars) / RiseSpanChars)
         val rise = wordRise + (letterRise - wordRise) * RiseShare
-        // a soft swell a few letters wide rides the singing so no letter hops on its own: it builds over the letter and a half before and dies away behind
         val d = k - (c + 0.5f)
         val wave = smootherstep((d + 1.6f) / 1.6f) * (1f - smootherstep(d / 3.2f)) * active
         val swell = swellEnvelope * smootherstep((k - c + 0.35f) / 1.4f)
-        cell.lift[i] = (rise * 0.07f + wave * 0.025f + swell * 0.02f) * cell.sizePx
-        cell.zoom[i] = 1f + wave * 0.035f + swell * 0.07f
-        val lit = ((front - (lx + lw / 2f)) / soft).coerceIn(0f, 1f)
-        val since = k - (c + 0.5f)
-        val trail = if (since <= 0f) 1f else 1f - smootherstep(since / GlowTrailChars)
-        // a letter still to be sung never glows; a held note lights the whole word
-        val glow = if (!glowEnabled || lx >= front) 0f else (active * lit * (GlowRest + (1f - GlowRest) * trail) + swell * 0.6f).coerceIn(0f, 1f)
-        cell.glow[i] = if (glow > GlowCutoff) glow else 0f
-        if (glow > GlowCutoff) glowing = true
+
+        when {
+            maskPalette != null -> {
+                // Architectural cinema mask: zero bounce, pure precision.
+                cell.lift[i] = 0f
+                cell.zoom[i] = 1f
+                cell.glow[i] = 0f
+            }
+            neonPalette != null -> {
+                // Neon plasma tube: subtle magnetic levitation on spark & held notes, sustained tube aura.
+                cell.lift[i] = (wave * 0.018f + swell * 0.028f) * cell.sizePx
+                cell.zoom[i] = 1f + wave * 0.025f + swell * 0.055f
+                val lit = ((front - (lx + lw / 2f)) / soft).coerceIn(0f, 1f)
+                val since = k - (c + 0.5f)
+                val trail = if (since <= 0f) 1f else 1f - smootherstep(since / GlowTrailChars)
+                val sustained = 0.62f + 0.38f * trail * active + swell * 0.35f
+                val glow = if (!glowEnabled || lx >= front) 0f else (lit * sustained).coerceIn(0f, 1f)
+                cell.glow[i] = if (glow > GlowCutoff) glow else 0f
+                if (glow > GlowCutoff) glowing = true
+            }
+            !motionStyle.risesWords -> {
+                cell.lift[i] = (wave * 0.035f) * cell.sizePx
+                cell.zoom[i] = 1f + wave * 0.05f
+                val lit = ((front - (lx + lw / 2f)) / soft).coerceIn(0f, 1f)
+                val since = k - (c + 0.5f)
+                val trail = if (since <= 0f) 1f else 1f - smootherstep(since / GlowTrailChars)
+                val glow = if (!glowEnabled || lx >= front) 0f else (active * lit * (GlowRest + (1f - GlowRest) * trail)).coerceIn(0f, 1f)
+                cell.glow[i] = if (glow > GlowCutoff) glow else 0f
+                if (glow > GlowCutoff) glowing = true
+            }
+            else -> {
+                cell.lift[i] = (rise * 0.07f + wave * 0.025f + swell * 0.02f) * cell.sizePx
+                cell.zoom[i] = 1f + wave * 0.035f + swell * 0.07f
+                val lit = ((front - (lx + lw / 2f)) / soft).coerceIn(0f, 1f)
+                val since = k - (c + 0.5f)
+                val trail = if (since <= 0f) 1f else 1f - smootherstep(since / GlowTrailChars)
+                val glow = if (!glowEnabled || lx >= front) 0f else (active * lit * (GlowRest + (1f - GlowRest) * trail) + swell * 0.6f).coerceIn(0f, 1f)
+                cell.glow[i] = if (glow > GlowCutoff) glow else 0f
+                if (glow > GlowCutoff) glowing = true
+            }
+        }
     }
-    // the glowing letters once more in their glow colour, blurred on the gpu; as text shadows they were blurred again on the cpu every frame they moved
+
+    // Backdrop effects for Neon (travelling plasma spark) and Mask (live-expanding studio ribbon)
+    if (maskPalette != null && frontAtHead > 1f) {
+        val padH = cell.sizePx * 0.14f
+        val insetV = cell.height * 0.08f
+        val boxW = (frontAtHead.coerceAtMost(cell.width) * scale) + padH * 2f
+        val boxH = (cell.height * scale - insetV * 2f).coerceAtLeast(4f)
+        val boxLeft = if (cell.rtl) cell.bleed + cell.width * scale - frontAtHead.coerceAtMost(cell.width) * scale - padH else cell.bleed - padH
+        val boxTop = cell.bleed + insetV
+        val corner = CornerRadius(boxH * 0.34f, boxH * 0.34f)
+        drawRoundRect(
+            brush = Brush.horizontalGradient(
+                colors = listOf(maskPalette.ribbonFill, maskPalette.secondary.copy(alpha = 0.22f)),
+                startX = boxLeft,
+                endX = boxLeft + boxW,
+            ),
+            topLeft = Offset(boxLeft, boxTop),
+            size = Size(boxW, boxH),
+            cornerRadius = corner,
+        )
+        drawRoundRect(
+            color = maskPalette.ribbonStroke,
+            topLeft = Offset(boxLeft, boxTop),
+            size = Size(boxW, boxH),
+            cornerRadius = corner,
+            style = Stroke(width = 1.dp.toPx()),
+        )
+    } else if (neonPalette != null && through > 0.01f && through < 0.99f) {
+        val sparkX = cell.bleed + (if (cell.rtl) cell.width - frontAtHead else frontAtHead) * scale
+        val sparkY = cell.bleed + (cell.height * scale) * 0.5f
+        val sparkR = (cell.sizePx * scale * (0.72f + 0.28f * swellEnvelope)).coerceAtLeast(8f)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.72f),
+                    neonPalette.secondary.copy(alpha = 0.45f),
+                    neonPalette.primary.copy(alpha = 0.16f),
+                    Color.Transparent,
+                ),
+                center = Offset(sparkX, sparkY),
+                radius = sparkR,
+            ),
+            radius = sparkR,
+            center = Offset(sparkX, sparkY),
+        )
+    }
+
+    val effectiveGlowColor = neonPalette?.primary ?: glowColor
+    val glowRadiusFactor = if (neonPalette != null) GlowSoftness * 1.38f else GlowSoftness
     if (glowing && glowLayer != null) {
-        // one radius for the word, so the glow doesn't step through blur sizes as an emphasised word grows
-        glowLayer.renderEffect = BlurEffectCache.get(cell.sizePx * GlowSoftness * GlowRes, Shader.TileMode.DECAL)
+        glowLayer.renderEffect = BlurEffectCache.get(cell.sizePx * glowRadiusFactor * GlowRes, Shader.TileMode.DECAL)
         val half = androidx.compose.ui.unit.IntSize((size.width * GlowRes).roundToInt().coerceAtLeast(1), (size.height * GlowRes).roundToInt().coerceAtLeast(1))
         glowLayer.record(half) {
-            scale(GlowRes, GlowRes, pivot = Offset.Zero) { drawLetters(cell, scale, litFrom, front, glowColor, dim, LetterPass.Glow) }
+            scale(GlowRes, GlowRes, pivot = Offset.Zero) {
+                drawLetters(cell, scale, litFrom, front, effectiveGlowColor, effectiveDim, LetterPass.Glow, neonPalette = neonPalette)
+            }
         }
         scale(1f / GlowRes, 1f / GlowRes, pivot = Offset.Zero) { drawLayer(glowLayer) }
     }
     val letterPass = when {
-        !glowEnabled -> LetterPass.Plain
+        !glowEnabled || maskPalette != null -> LetterPass.Plain
         glowLayer == null -> LetterPass.Shadowed
         else -> LetterPass.Plain
     }
-    drawLetters(cell, scale, litFrom, front, color, dim, letterPass, shadowColor = glowColor)
+    drawLetters(
+        cell = cell,
+        scale = scale,
+        litFrom = litFrom,
+        front = front,
+        color = color,
+        dim = effectiveDim,
+        pass = letterPass,
+        shadowColor = effectiveGlowColor,
+        neonPalette = neonPalette,
+        maskPalette = maskPalette,
+    )
 }
 
 /** which copy of a word's letters is drawn */
 private enum class LetterPass {
-    // the letters as they are
     Plain,
-    // the letters with their glow as text shadows, on phones older than android 12
     Shadowed,
-    // only the glowing letters, in their glow colour, for the blurred layer under the word
     Glow,
 }
 
@@ -1228,11 +1340,14 @@ private fun DrawScope.drawLetters(
     dim: Color,
     pass: LetterPass,
     shadowColor: Color = color,
+    neonPalette: NeonLyricPalette? = null,
+    maskPalette: MaskLyricPalette? = null,
 ) {
     withTransform({
         translate(cell.bleed, cell.bleed)
         scale(scale, scale, pivot = Offset.Zero)
     }) {
+        val wordSpan = cell.width.coerceAtLeast(1f)
         for (i in cell.letters.indices) {
             val glow = cell.glow[i]
             if (pass == LetterPass.Glow && glow == 0f) continue
@@ -1241,10 +1356,20 @@ private fun DrawScope.drawLetters(
             val lw = layout.size.width.toFloat()
             val lh = layout.size.height.toFloat()
             val zoom = cell.zoom[i]
-            // always passed, never null: a letter's layout keeps the last shadow it was drawn with
-            val shadow = if (pass == LetterPass.Shadowed && glow > 0f) {
-                Shadow(shadowColor.copy(alpha = GlowAlpha * glow), Offset.Zero, cell.sizePx * GlowSoftness)
-            } else Shadow.None
+            val frac = ((lx + lw * 0.5f) / wordSpan).coerceIn(0f, 1f)
+            val letterLitColor = when {
+                pass == LetterPass.Glow && neonPalette != null -> lerpWordColor(neonPalette.primary, neonPalette.secondary, frac)
+                neonPalette != null -> lerpWordColor(neonPalette.primary, neonPalette.secondary, frac)
+                maskPalette != null -> lerpWordColor(maskPalette.primary, maskPalette.secondary, frac)
+                else -> color
+            }
+            val shadow = when {
+                pass == LetterPass.Shadowed && glow > 0f ->
+                    Shadow(shadowColor.copy(alpha = GlowAlpha * glow), Offset.Zero, cell.sizePx * GlowSoftness)
+                pass == LetterPass.Plain && neonPalette != null && lx < front ->
+                    Shadow(neonPalette.primary.copy(alpha = 0.72f), Offset.Zero, cell.sizePx * 0.24f)
+                else -> Shadow.None
+            }
             withTransform({
                 translate(lx, -cell.lift[i])
                 scale(zoom, zoom, pivot = Offset(lw / 2f, lh * 0.85f))
@@ -1252,18 +1377,28 @@ private fun DrawScope.drawLetters(
                 when {
                     lx + lw <= litFrom -> drawText(
                         layout,
-                        color = if (pass == LetterPass.Glow) color.copy(alpha = GlowAlpha * glow) else color,
+                        color = if (pass == LetterPass.Glow) letterLitColor.copy(alpha = GlowAlpha * glow) else letterLitColor,
                         shadow = shadow,
                     )
                     lx >= front -> drawText(layout, color = dim, shadow = Shadow.None)
                     else -> {
-                        // the lit edge is measured from where the word starts reading, so a right-to-left word (always one piece) lights from its right edge
                         val litX = if (cell.rtl) cell.width - litFrom - lx else litFrom - lx
                         val frontX = if (cell.rtl) cell.width - front - lx else front - lx
-                        // a shadow takes the gradient too, faded to its glow, so the glow copy does the same
+                        val edgeLeadColor = when {
+                            pass == LetterPass.Glow -> letterLitColor
+                            neonPalette != null -> Color.White
+                            maskPalette != null -> maskPalette.prismEdge
+                            else -> letterLitColor
+                        }
                         drawText(
                             layout,
-                            brush = Brush.horizontalGradient(0f to color, 1f to dim, startX = litX, endX = frontX),
+                            brush = Brush.horizontalGradient(
+                                0f to letterLitColor,
+                                0.55f to edgeLeadColor,
+                                1f to dim,
+                                startX = litX,
+                                endX = frontX,
+                            ),
                             alpha = if (pass == LetterPass.Glow) GlowAlpha * glow else Float.NaN,
                             shadow = shadow,
                         )
@@ -1272,6 +1407,16 @@ private fun DrawScope.drawLetters(
             }
         }
     }
+}
+
+private fun lerpWordColor(a: Color, b: Color, t: Float): Color {
+    val f = t.coerceIn(0f, 1f)
+    return Color(
+        red = a.red + (b.red - a.red) * f,
+        green = a.green + (b.green - a.green) * f,
+        blue = a.blue + (b.blue - a.blue) * f,
+        alpha = a.alpha + (b.alpha - a.alpha) * f,
+    )
 }
 
 /** sp to the matching pixel size of a Dp, for the few sizes that are laid out by hand */

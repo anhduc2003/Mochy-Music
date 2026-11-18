@@ -495,7 +495,16 @@ private fun TickerLine(
     val line = rememberShownLyric(entry).entry
     val parts = remember(line.text, line.words) { splitBackingVocal(line.text, line.words) }
     val text = parts.lead.ifBlank { line.text }
-    val words = parts.leadWords
+    val artworkAccent = com.mochyy.mochymusic.LocalArtworkColor.current
+    val words = if (!parts.leadWords.isNullOrEmpty()) {
+        parts.leadWords
+    } else if ((motionStyle.isNeon || motionStyle.isMask) && text.isNotBlank() && lineEndMs > entry.time) {
+        remember(text, entry.time, lineEndMs) {
+            SmartLyricPalette.smartSynthesizedWords(text, entry.time, lineEndMs)
+        }
+    } else {
+        parts.leadWords
+    }
     val karaoke = !dim && !words.isNullOrEmpty() && text.isNotEmpty()
 
     val probe = remember(entry) { SweepProbe() }
@@ -579,6 +588,7 @@ private fun TickerLine(
                     riseAmplitudeProvider = { 1f },
                     baseColor = { Color.White.copy(alpha = UnsungAlpha) },
                     highlightColor = Color.White,
+                    accentColor = artworkAccent,
                     fontSize = TickerFontSize,
                     lineHeight = TickerLineHeight,
                     highBloom = highBloom,

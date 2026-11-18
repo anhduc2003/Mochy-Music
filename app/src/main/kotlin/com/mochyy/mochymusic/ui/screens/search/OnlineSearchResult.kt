@@ -237,7 +237,7 @@ fun OnlineSearchResult(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(SearchColors.page(pureBlack))
+            .background(if (com.mochyy.mochymusic.ui.component.LocalHasCustomAppBackground.current) Color.Transparent else SearchColors.page(pureBlack))
     ) {
         BoxWithConstraints(
             modifier = Modifier

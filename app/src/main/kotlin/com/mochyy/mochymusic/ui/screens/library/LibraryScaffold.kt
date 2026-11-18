@@ -72,7 +72,7 @@ fun LibraryScaffold(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(SearchColors.page(pureBlack)),
+            .background(if (com.mochyy.mochymusic.ui.component.LocalHasCustomAppBackground.current) androidx.compose.ui.graphics.Color.Transparent else SearchColors.page(pureBlack)),
     ) {
         // Only the list is recorded. The top bar draws this recording as its glass, so recording
         // the bar too made the node draw itself: a native stack overflow the moment a scroll

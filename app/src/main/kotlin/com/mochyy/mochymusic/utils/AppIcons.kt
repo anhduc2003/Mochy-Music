@@ -7,12 +7,26 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.BlurMaskFilter
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.RectF
+import android.net.Uri
 import android.os.Build
 import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.core.content.edit
+import androidx.core.content.pm.ShortcutInfoCompat
+import androidx.core.content.pm.ShortcutManagerCompat
+import androidx.core.graphics.drawable.IconCompat
+import com.mochyy.mochymusic.MainActivity
 import com.mochyy.mochymusic.R
+import java.io.File
+import java.io.FileOutputStream
 
 enum class AppIconFamily(@StringRes val title: Int) {
     Mark(R.string.app_icon_family_mark),
@@ -127,7 +141,117 @@ object AppIcons {
         AppIcon.entries.filter { it != icon }.forEach {
             pm.setComponentEnabledSetting(componentOf(context, it), PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
         }
-        prefs(context).edit { putString(Key, icon.name) }
+        prefs(context).edit {
+            putString(Key, icon.name)
+            putBoolean(CustomGalleryActiveKey, false)
+        }
+    }
+
+    fun customIconFile(context: Context): File = File(context.filesDir, "custom_app_icon.png")
+
+    fun hasCustomGalleryIcon(context: Context): Boolean = customIconFile(context).exists()
+
+    fun isCustomGalleryActive(context: Context): Boolean =
+        prefs(context).getBoolean(CustomGalleryActiveKey, false) && hasCustomGalleryIcon(context)
+
+    fun customGalleryVersion(context: Context): Long =
+        prefs(context).getLong(CustomGalleryVersionKey, 0L)
+
+    fun activateCustomGalleryIcon(context: Context) {
+        if (!hasCustomGalleryIcon(context)) return
+        prefs(context).edit { putBoolean(CustomGalleryActiveKey, true) }
+    }
+
+    fun clearCustomGalleryIcon(context: Context) {
+        runCatching { customIconFile(context).delete() }
+        runCatching { ShortcutManagerCompat.removeDynamicShortcuts(context, listOf(CustomShortcutId)) }
+        prefs(context).edit {
+            putBoolean(CustomGalleryActiveKey, false)
+            putLong(CustomGalleryVersionKey, System.currentTimeMillis())
+        }
+    }
+
+    /**
+     * Saves a user-cropped gallery photo as the custom app icon and updates/pins a launcher shortcut
+     * so Android launchers display the exact gallery photo on the Home screen.
+     */
+    fun saveCustomGalleryIcon(context: Context, sourceUri: Uri, autoPinIfNeeded: Boolean = true): Boolean {
+        return runCatching {
+            val decoded = context.contentResolver.openInputStream(sourceUri)?.use { BitmapFactory.decodeStream(it) }
+                ?: return false
+            val size = 512
+            val square = Bitmap.createScaledBitmap(decoded, size, size, true)
+            val target = customIconFile(context)
+            FileOutputStream(target).use { out ->
+                square.compress(Bitmap.CompressFormat.PNG, 100, out)
+                out.flush()
+            }
+            val now = System.currentTimeMillis()
+            prefs(context).edit {
+                putBoolean(CustomGalleryActiveKey, true)
+                putLong(CustomGalleryVersionKey, now)
+            }
+            val shortcut = buildCustomLauncherShortcut(context, square)
+            runCatching { ShortcutManagerCompat.pushDynamicShortcut(context, shortcut) }
+            runCatching { ShortcutManagerCompat.updateShortcuts(context, listOf(shortcut)) }
+            if (autoPinIfNeeded && ShortcutManagerCompat.isRequestPinShortcutSupported(context)) {
+                val alreadyPinned = runCatching {
+                    ShortcutManagerCompat.getShortcuts(context, ShortcutManagerCompat.FLAG_MATCH_PINNED)
+                        .any { it.id == CustomShortcutId }
+                }.getOrDefault(false)
+                if (!alreadyPinned) {
+                    runCatching { ShortcutManagerCompat.requestPinShortcut(context, shortcut, null) }
+                }
+            }
+            true
+        }.getOrDefault(false)
+    }
+
+    fun pinCustomGalleryIcon(context: Context): Boolean {
+        val file = customIconFile(context)
+        if (!file.exists() || !ShortcutManagerCompat.isRequestPinShortcutSupported(context)) return false
+        return runCatching {
+            val bitmap = BitmapFactory.decodeFile(file.absolutePath) ?: return false
+            val shortcut = buildCustomLauncherShortcut(context, bitmap)
+            ShortcutManagerCompat.pushDynamicShortcut(context, shortcut)
+            ShortcutManagerCompat.updateShortcuts(context, listOf(shortcut))
+            ShortcutManagerCompat.requestPinShortcut(context, shortcut, null)
+        }.getOrDefault(false)
+    }
+
+    private fun buildCustomLauncherShortcut(context: Context, square: Bitmap): ShortcutInfoCompat {
+        val adaptive = buildAdaptiveBitmap(square)
+        val launchIntent = Intent(Intent.ACTION_MAIN)
+            .setClass(context, MainActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        return ShortcutInfoCompat.Builder(context, CustomShortcutId)
+            .setShortLabel(context.getString(R.string.app_name))
+            .setLongLabel(context.getString(R.string.app_name))
+            .setIcon(IconCompat.createWithAdaptiveBitmap(adaptive))
+            .setIntent(launchIntent)
+            .build()
+    }
+
+    /**
+     * Adaptive icons reserve an outer 18% bleed around the 72dp safe zone. Filling the bleed with a
+     * soft edge-extended copy and centering the user's cropped square inside the safe zone keeps the
+     * full subject visible across circle, squircle and rounded-square launchers without white borders.
+     */
+    private fun buildAdaptiveBitmap(source: Bitmap): Bitmap {
+        val canvasSize = 432
+        val innerSize = 332
+        val out = Bitmap.createBitmap(canvasSize, canvasSize, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(out)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        canvas.drawBitmap(source, null, Rect(0, 0, canvasSize, canvasSize), paint)
+        val inset = (canvasSize - innerSize) / 2f
+        val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0x33000000
+            maskFilter = BlurMaskFilter(14f, BlurMaskFilter.Blur.NORMAL)
+        }
+        canvas.drawRoundRect(RectF(inset, inset, inset + innerSize, inset + innerSize), 48f, 48f, shadowPaint)
+        canvas.drawBitmap(source, null, RectF(inset, inset, inset + innerSize, inset + innerSize), paint)
+        return out
     }
 
     // the aliases are named after the code's package, which a debug build's app id doesn't share
@@ -136,4 +260,7 @@ object AppIcons {
     private fun prefs(context: Context) = context.getSharedPreferences("app_icon", Context.MODE_PRIVATE)
 
     private const val Key = "icon"
+    private const val CustomGalleryActiveKey = "custom_gallery_active"
+    private const val CustomGalleryVersionKey = "custom_gallery_version"
+    private const val CustomShortcutId = "custom_gallery_launcher"
 }

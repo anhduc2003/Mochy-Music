@@ -112,7 +112,7 @@ fun SearchScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(SearchColors.page(pureBlack))
+                .background(if (com.mochyy.mochymusic.ui.component.LocalHasCustomAppBackground.current) Color.Transparent else SearchColors.page(pureBlack))
         ) {
             SearchBrowseContent(
                 listState = rememberLazyListState(),
@@ -235,7 +235,7 @@ fun SearchScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(SearchColors.page(pureBlack))
+            .background(if (com.mochyy.mochymusic.ui.component.LocalHasCustomAppBackground.current) Color.Transparent else SearchColors.page(pureBlack))
     ) {
 
         Box(

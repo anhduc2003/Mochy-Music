@@ -906,6 +906,19 @@ val PlayerButtonsStyleKey = stringPreferencesKey("player_buttons_style")
 val PlayerBackgroundStyleKey = stringPreferencesKey("playerBackgroundStyle")
 val PlayerCustomBackgroundUriKey = stringPreferencesKey("playerCustomBackgroundUri")
 val MiniPlayerBackgroundStyleKey = stringPreferencesKey("miniPlayerBackgroundStyle")
+
+enum class AppBackgroundStyle {
+    DEFAULT,
+    CUSTOM_IMAGE,
+    ARTWORK_AMBIENT,
+    CUSTOM_GRADIENT,
+}
+
+val AppBackgroundStyleKey = stringPreferencesKey("appBackgroundStyle")
+val AppCustomBackgroundUriKey = stringPreferencesKey("appCustomBackgroundUri")
+val AppBackgroundBlurKey = floatPreferencesKey("appBackgroundBlur")
+val AppBackgroundDimKey = floatPreferencesKey("appBackgroundDim")
+val AppBackgroundGradientIndexKey = intPreferencesKey("appBackgroundGradientIndex")
 val ShowLyricsKey = booleanPreferencesKey("showLyrics")
 val SwipeLyricsKey = booleanPreferencesKey("swipeLyrics")
 // the line being sung shown as the title and cover on android auto's player while a car is connected, on unless turned off
@@ -987,11 +1000,14 @@ enum class LyricsMotionStyle(
     // style 2 without the shader, just the colour sweeping along
     PLAIN("Plain", "Style 2's sweep, without the glow or the wave", risesWords = false, shaded = false),
 
-    /** Style 3: the sweep, sung letters filled with the cover's colour and glowing as they land. */
-    NEON("Neon", "Sung words fill with the cover's colour and glow", risesWords = false, shaded = true, accentFill = true),
+    /** Style 3: dual-tone cyber-plasma neon tube with white-hot spark ignition and held-note voltage surge. */
+    NEON("Neon", "White-hot spark igniting dual-tone neon plasma tubes", risesWords = false, shaded = true, accentFill = true),
 
-    /** Style 4: a flat mask - sung letters in the cover's colour, nothing glowing. */
-    MASK("Mask", "Sung words fill with the cover's colour, no glow", risesWords = false, shaded = false, accentFill = true);
+    /** Style 4: architectural spotlight aperture with live-expanding frosted ribbon and specular prism reveal. */
+    MASK("Mask", "Spotlight prism cut revealing dual-tone gradient with masked ribbon", risesWords = false, shaded = false, accentFill = true);
+
+    val isNeon: Boolean get() = this == NEON
+    val isMask: Boolean get() = this == MASK
 
     // the same motion with the shader switched off, used when moving people off the old shader switch
     val withoutShader: LyricsMotionStyle get() = when {

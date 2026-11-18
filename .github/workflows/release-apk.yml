@@ -139,7 +139,9 @@ jobs:
           - Vietnamese UI with this fork's translations and upstream's new resource-based screens
           - Separate desktop application module and packaging workflows
           - Crossmix transition mode
-          - Neon and Mask karaoke lyric styles
+          - Custom gallery app icon importer with cropper and Home screen shortcut pinning/updating
+          - System-wide custom app background (device photo, song artwork ambient, gradients, adjustable blur & overlay)
+          - Next-gen Neon (dual-tone plasma tube + white-hot spark) and Mask (live studio ribbon + prism light slit) lyric engines across all player styles
           - Cropped device-image player background, direct video cover toggle
           - Playback, network and lyric stability fixes
 

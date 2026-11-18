@@ -613,11 +613,23 @@ class MainActivity : ComponentActivity() {
             darkTheme = useDarkTheme,
             pureBlack = pureBlack,
         ) {
+            val hasCustomAppBg = com.mochyy.mochymusic.ui.component.rememberHasCustomAppBackground()
+            val currentSongThumb by remember(playerConnection) {
+                playerConnection?.service?.currentMediaMetadata?.map { it?.thumbnailUrl }?.distinctUntilChanged()
+                    ?: kotlinx.coroutines.flow.flowOf(null)
+            }.collectAsState(initial = null)
+
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface)
             ) {
+                if (hasCustomAppBg) {
+                    com.mochyy.mochymusic.ui.component.AppCustomBackground(
+                        thumbnailUrl = currentSongThumb,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
                 val glassState = remember { GlassState() }
                 val hideAppChrome = remember { mutableStateOf(false) }
                 val detailAccentColor = remember { mutableStateOf<Color?>(null) }
@@ -946,6 +958,7 @@ class MainActivity : ComponentActivity() {
                     LocalSwipeToSong provides swipeToSong,
                     LocalLaunchIntro provides launchIntro,
                     com.mochyy.mochymusic.ui.component.LocalBlurQuality provides blurQuality,
+                    com.mochyy.mochymusic.ui.component.LocalHasCustomAppBackground provides hasCustomAppBg,
                 ) {
                     com.mochyy.mochymusic.ui.component.PopupSheetHost(
                         states = listOf(
@@ -989,6 +1002,7 @@ class MainActivity : ComponentActivity() {
                             }
                         ) {
                             Scaffold(
+                            containerColor = if (hasCustomAppBg) Color.Transparent else (if (pureBlack) Color.Black else MaterialTheme.colorScheme.background),
                             snackbarHost = { SnackbarHost(snackbarHostState) },
                             topBar = {
                                 AnimatedVisibility(
@@ -1032,8 +1046,8 @@ class MainActivity : ComponentActivity() {
                                             },
                                             scrollBehavior = topAppBarScrollBehavior,
                                             colors = TopAppBarDefaults.topAppBarColors(
-                                                containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
-                                                scrolledContainerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
+                                                containerColor = if (hasCustomAppBg) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
+                                                scrolledContainerColor = if (hasCustomAppBg) Color.Black.copy(alpha = 0.55f) else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
                                                 titleContentColor = MaterialTheme.colorScheme.onSurface,
                                                 actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant

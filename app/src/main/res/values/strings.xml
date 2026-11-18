@@ -435,4 +435,26 @@
     <string name="error_stream_unavailable_title">Couldn\'t play this track</string>
     <string name="playback_error_channel_name">Playback errors</string>
     <string name="playing_music_video_audio">YouTube wouldn\'t play this song, so you\'re hearing its music video instead</string>
+
+    <string name="custom_icon_gallery_title">Custom Gallery Icon</string>
+    <string name="custom_icon_gallery_subtitle">Import any photo from your device gallery</string>
+    <string name="custom_icon_gallery_pick">Choose from gallery</string>
+    <string name="custom_icon_gallery_change">Change photo</string>
+    <string name="custom_icon_gallery_pin">Pin to Home screen</string>
+    <string name="custom_icon_gallery_reset">Reset</string>
+    <string name="custom_icon_gallery_adjust">Adjust app icon</string>
+    <string name="custom_icon_gallery_pinned_hint">Android pins custom gallery photos to your Home screen and updates them automatically when changed.</string>
+    <string name="custom_icon_gallery_updated">Custom icon saved and updated</string>
+
+    <string name="custom_app_bg_title">App background</string>
+    <string name="custom_app_bg_desc">Personalise the backdrop across Home, Library, Search and Settings</string>
+    <string name="custom_app_bg_default">Default</string>
+    <string name="custom_app_bg_image">Device photo</string>
+    <string name="custom_app_bg_ambient">Song artwork</string>
+    <string name="custom_app_bg_gradient">Gradient</string>
+    <string name="custom_app_bg_pick">Import background photo</string>
+    <string name="custom_app_bg_change">Change background photo</string>
+    <string name="custom_app_bg_blur">Background blur</string>
+    <string name="custom_app_bg_dim">Dark overlay</string>
+    <string name="custom_app_bg_adjust">Adjust app background</string>
 </resources>
