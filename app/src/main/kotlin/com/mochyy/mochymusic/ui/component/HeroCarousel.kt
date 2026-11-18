@@ -98,6 +98,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.getSystemService
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
@@ -605,7 +606,8 @@ fun HeroCarousel(
         heroCarouselItems(lastPlayedSong, dailyDiscover, extras, playlistPicks, keepListening, starterItems, showGacha)
     }
 
-    val heroHeight = heroHeight()
+    val isQuiet = carouselItems.isEmpty() && !isLoading && !hold
+    val heroHeight = if (isQuiet) 220.dp else heroHeight()
 
     // scrolling away it does exactly what a playlist cover does: rides up, zooms, goes soft, fades.
     // the list already carries it up, so it only adds a little on top
@@ -1359,23 +1361,55 @@ fun HeroCarouselBones(modifier: Modifier = Modifier) {
 @Composable
 private fun QuietHero(modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier.background(
-            Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.06f), Color.Transparent))
-        )
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.05f), Color.Transparent))
+            ),
+        contentAlignment = Alignment.CenterStart
     ) {
-        Column(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = HomeContentInset, end = HomeContentInset, bottom = 64.dp)
+                .fillMaxWidth()
+                .padding(
+                    start = HomeContentInset,
+                    end = HomeContentInset,
+                    top = 28.dp,
+                    bottom = 16.dp
+                )
         ) {
-            Text(text = stringResource(R.string.pc_hero_nothing_yet), style = HomeLabelStyle, color = HeroLabelColor, maxLines = 1)
-            Text(
-                text = stringResource(R.string.pc_hero_play_something),
-                style = HomeTitleStyle,
-                color = Color.White,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Box(
+                modifier = Modifier
+                    .size(54.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White.copy(alpha = 0.08f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.music_note),
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.pc_hero_nothing_yet),
+                    style = HomeLabelStyle,
+                    color = HeroLabelColor,
+                    maxLines = 1
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.pc_hero_play_something),
+                    style = HomeTitleStyle.copy(fontSize = 20.sp, lineHeight = 24.sp),
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }

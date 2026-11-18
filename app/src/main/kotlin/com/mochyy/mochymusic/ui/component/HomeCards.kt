@@ -260,13 +260,18 @@ fun HomeCoverCard(
             text = title,
             style = HomeCardTitleStyle,
             color = Color.White.copy(alpha = 0.92f),
-            maxLines = 1,
+            minLines = 2,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = if (circular) TextAlign.Center else TextAlign.Start,
             modifier = Modifier.fillMaxWidth(),
         )
+        Spacer(Modifier.height(2.dp))
         if (!subtitle.isNullOrEmpty()) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 badges()
                 Text(
                     text = subtitle,
@@ -274,8 +279,12 @@ fun HomeCoverCard(
                     color = Color.White.copy(alpha = 0.5f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    textAlign = if (circular) TextAlign.Center else TextAlign.Start,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
             }
+        } else {
+            Spacer(Modifier.height(16.dp))
         }
     }
 }

@@ -644,10 +644,27 @@ fun HomeScreen(
                 }
             }
     }
+    val homePage by viewModel.homePage.collectAsState()
+    val homeCategories by viewModel.homeCategories.collectAsState()
+    val speedDialItems by viewModel.speedDialItems.collectAsState()
+    val dailyDiscover by viewModel.dailyDiscover.collectAsState()
+    val similarRecommendations by viewModel.similarRecommendations.collectAsState()
+    val communityPlaylists by viewModel.communityPlaylists.collectAsState()
+    val recentlyPlayed by viewModel.recentlyPlayed.collectAsState()
+    val mostPlayedSongsForHome by viewModel.mostPlayedSongsForHome.collectAsState()
+    val recentHistorySongs by viewModel.recentHistorySongs.collectAsState()
+    val artistListItems by viewModel.artistListItems.collectAsState()
+    val allTimeHits by viewModel.allTimeHits.collectAsState()
+    val liveRow by viewModel.liveRow.collectAsState()
+    val musicVideoRow by viewModel.musicVideoRow.collectAsState()
+    val feedVideoKinds by viewModel.feedVideoKinds.collectAsState()
+    val feedVideoRows by viewModel.feedVideoRows.collectAsState()
+    val lastPlayedSong by viewModel.lastPlayedSong.collectAsState()
+
     // a new install's hero: what was just imported, or else a song from each artist picked in
-    // onboarding (the artists themselves if their songs couldn't be fetched)
+    // onboarding (the artists themselves if their songs couldn't be fetched), with feed recommendations fallback
     val starterSongs by viewModel.starterSongs.collectAsState()
-    val starterItems = remember(localPlaylists, libraryArtists, starterSongs) {
+    val starterItems = remember(localPlaylists, libraryArtists, starterSongs, homeCategories, homePage, speedDialItems) {
         val imported = localPlaylists.orEmpty()
             .filter { it.songCount > 0 && it.id != "liked" }
             .take(5)
@@ -668,7 +685,7 @@ fun HomeScreen(
                 songs.isNotEmpty() -> songs.map {
                     com.mochyy.mochymusic.ui.component.StarterSongItem(it.song, it.artistName, it.artistThumbnail)
                 }
-                else -> libraryArtists.map {
+                libraryArtists.isNotEmpty() -> libraryArtists.map {
                     com.mochyy.mochymusic.ui.component.StarterItem(
                         kind = com.mochyy.mochymusic.ui.component.StarterItem.Kind.Artist,
                         id = it.id,
@@ -677,26 +694,25 @@ fun HomeScreen(
                         thumbnailUrl = it.artist.thumbnailUrl,
                     )
                 }
+                else -> {
+                    val feedCandidates = homeCategories?.flatMap { it.items }.orEmpty()
+                        .ifEmpty { homePage?.sections?.flatMap { it.items }.orEmpty() }
+                        .ifEmpty { speedDialItems }
+                        .filter { !it.thumbnail.isNullOrEmpty() }
+                        .distinctBy { it.id }
+                    feedCandidates.take(5).map { ytItem ->
+                        com.mochyy.mochymusic.ui.component.RelatedPickItem(
+                            recommendation = ytItem,
+                            reason = com.mochyy.mochymusic.ui.component.HeroLabel(
+                                text = "Gợi ý cho bạn",
+                                textRes = R.string.pc_hero_you_may_like
+                            )
+                        )
+                    }
+                }
             }
         }
     }
-    val homePage by viewModel.homePage.collectAsState()
-    val dailyDiscover by viewModel.dailyDiscover.collectAsState()
-    val similarRecommendations by viewModel.similarRecommendations.collectAsState()
-    val communityPlaylists by viewModel.communityPlaylists.collectAsState()
-    val recentlyPlayed by viewModel.recentlyPlayed.collectAsState()
-    val mostPlayedSongsForHome by viewModel.mostPlayedSongsForHome.collectAsState()
-    val recentHistorySongs by viewModel.recentHistorySongs.collectAsState()
-    val artistListItems by viewModel.artistListItems.collectAsState()
-    val allTimeHits by viewModel.allTimeHits.collectAsState()
-    val liveRow by viewModel.liveRow.collectAsState()
-    val musicVideoRow by viewModel.musicVideoRow.collectAsState()
-    val feedVideoKinds by viewModel.feedVideoKinds.collectAsState()
-    val feedVideoRows by viewModel.feedVideoRows.collectAsState()
-    val homeCategories by viewModel.homeCategories.collectAsState()
-
-    val speedDialItems by viewModel.speedDialItems.collectAsState()
-    val lastPlayedSong by viewModel.lastPlayedSong.collectAsState()
 
     val isLoading: Boolean by viewModel.isLoading.collectAsState()
     val isLoadingMore by viewModel.isLoadingMore.collectAsState()
