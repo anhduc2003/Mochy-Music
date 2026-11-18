@@ -318,7 +318,7 @@ fun requestInstallPermission(context: Context) {
  * installed first — see [UpdateInstaller] — because a build from another key cannot replace this
  * one, and the system's own dialog only says "App not installed" when it refuses.
  */
-fun installApk(context: Context, apk: File): UpdateInstaller.Start =
+suspend fun installApk(context: Context, apk: File): UpdateInstaller.Start =
     UpdateInstaller.install(context, apk)
 
 fun formatBytes(bytes: Long): String = when {

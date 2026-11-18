@@ -12,35 +12,18 @@ import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.core.updater.downloadmanager.DownloadNotificationManager
 import com.mochyy.mochymusic.ui.component.TopToaster
 import timber.log.Timber
-import java.io.File
 
 /**
- * The two halves of an update install that have to happen outside the app's own screens:
- * starting one (a tap on the finished download's notification) and hearing what the system made of it.
+ * What the system installer made of an update session started by [UpdateInstaller].
  *
- * Without the second half every failure was invisible: the confirmation dialog closed, the old build
- * stayed, and nothing said whether the key was wrong, the file was broken, or the phone was full.
- * Declared in the manifest because the answer usually lands while this app is being replaced.
+ * Without this the failure was invisible: the confirmation dialog closed, the old build stayed, and
+ * nothing said whether the key was wrong, the file was broken, or the phone was full. Declared in the
+ * manifest because the answer usually lands while this app is being replaced.
  */
 class UpdateInstallReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        when (intent.action) {
-            ACTION_TRIGGER -> start(context, intent)
-            ACTION_STATUS -> report(context, intent)
-        }
-    }
-
-    private fun start(context: Context, intent: Intent) {
-        val apk = intent.getStringExtra(EXTRA_APK)?.let(::File) ?: return
-        val version = intent.getStringExtra(EXTRA_VERSION)
-        val verdict = UpdateInstaller.check(context, apk)
-        if (verdict !is UpdateInstaller.Verdict.Ready) {
-            // nothing is going to happen on screen: the app may not even be open
-            notifyBlocked(context, verdict)
-            return
-        }
-        UpdateInstaller.install(context, apk, version)
+        if (intent.action == ACTION_STATUS) report(context, intent)
     }
 
     private fun report(context: Context, intent: Intent) {
@@ -87,10 +70,6 @@ class UpdateInstallReceiver : BroadcastReceiver() {
         }.onFailure { Timber.tag(TAG).e(it, "Could not post the install notice") }
     }
 
-    private fun notifyBlocked(context: Context, verdict: UpdateInstaller.Verdict) {
-        UpdateInstaller.describe(context, verdict)?.let { notifyBlocked(context, it) }
-    }
-
     private fun reasonFor(context: Context, status: Int, message: String?): String = when (status) {
         PackageInstaller.STATUS_FAILURE_ABORTED -> context.getString(R.string.update_install_aborted)
         PackageInstaller.STATUS_FAILURE_BLOCKED -> context.getString(R.string.update_install_blocked)
@@ -109,10 +88,6 @@ class UpdateInstallReceiver : BroadcastReceiver() {
         /** Explicit component, so neither action can reach anything but this app's own receiver. */
         const val ACTION_STATUS = "com.mochyy.mochymusic.UPDATE_INSTALL_STATUS"
 
-        /** A tap on the finished download's notification. */
-        const val ACTION_TRIGGER = "com.mochyy.mochymusic.UPDATE_INSTALL_TRIGGER"
-
         const val EXTRA_VERSION = "version"
-        const val EXTRA_APK = "apk"
     }
 }

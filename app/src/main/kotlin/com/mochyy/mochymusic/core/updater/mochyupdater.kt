@@ -306,7 +306,7 @@ fun UpdateScreen(navController: NavHostController) {
                                             }
                                             // installs over the copy on the phone and keeps its
                                             // data, and says why when that is impossible
-                                            UpdateInstaller.install(context, file, currentStatus.version)
+                                            scope.launch { UpdateInstaller.install(context, file, currentStatus.version) }
                                         } else {
                                             val urlToDownload = currentStatus.apkUrl ?: "https://github.com/realidkroo/Mochy-Music/releases/download/${currentStatus.version}/mochy.apk"
                                             val downloadRequest = OneTimeWorkRequestBuilder<UpdateDownloadWorker>()

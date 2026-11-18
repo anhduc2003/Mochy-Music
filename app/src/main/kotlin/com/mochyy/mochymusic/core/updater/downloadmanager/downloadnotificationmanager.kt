@@ -253,17 +253,17 @@ object DownloadNotificationManager {
     }
 
     /**
-     * Tapping the finished download starts an update session rather than a bare VIEW intent: the
-     * session installs over the copy on the phone and keeps its data, and [UpdateInstallReceiver]
-     * reports what Android said when it refuses.
+     * Tapping the finished download opens [UpdateInstallActivity], which starts the session from a
+     * foreground lifetime: Android 12 refuses to open the install-permission page from a broadcast
+     * receiver, and the copy into the session must not outlive the component that began it.
      */
     private fun installPendingIntent(version: String, filePath: String): PendingIntent {
-        val trigger = Intent(appContext, com.mochyy.mochymusic.core.updater.UpdateInstallReceiver::class.java).apply {
-            action = com.mochyy.mochymusic.core.updater.UpdateInstallReceiver.ACTION_TRIGGER
-            putExtra(com.mochyy.mochymusic.core.updater.UpdateInstallReceiver.EXTRA_VERSION, version)
-            putExtra(com.mochyy.mochymusic.core.updater.UpdateInstallReceiver.EXTRA_APK, filePath)
+        val trigger = Intent(appContext, com.mochyy.mochymusic.core.updater.UpdateInstallActivity::class.java).apply {
+            putExtra(com.mochyy.mochymusic.core.updater.UpdateInstallActivity.EXTRA_VERSION, version)
+            putExtra(com.mochyy.mochymusic.core.updater.UpdateInstallActivity.EXTRA_APK, filePath)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        return PendingIntent.getBroadcast(
+        return PendingIntent.getActivity(
             appContext,
             0,
             trigger,

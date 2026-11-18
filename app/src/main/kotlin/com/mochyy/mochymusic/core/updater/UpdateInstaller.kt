@@ -11,10 +11,8 @@ import android.os.Build
 import androidx.core.content.pm.PackageInfoCompat
 import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.ui.component.TopToaster
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
 import java.security.MessageDigest
@@ -33,8 +31,6 @@ import java.security.MessageDigest
  * the installer actually said instead of leaving a bare "App not installed".
  */
 object UpdateInstaller {
-
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /** Where an update stands against the copy on this phone. */
     sealed interface Verdict {
@@ -101,7 +97,7 @@ object UpdateInstaller {
      *
      * [version] only labels the failure message.
      */
-    fun install(context: Context, apk: File, version: String? = null): Start {
+    suspend fun install(context: Context, apk: File, version: String? = null): Start {
         val verdict = check(context, apk)
         if (verdict !is Verdict.Ready) {
             explain(context, verdict)
@@ -111,14 +107,16 @@ object UpdateInstaller {
             requestInstallPermission(context)
             return Start.NeedsPermission
         }
-        scope.launch {
-            runCatching { startSession(context, apk, version) }
-                .onFailure { error ->
-                    Timber.tag(TAG).e(error, "Install session failed to start")
-                    TopToaster.error(context.getString(R.string.update_install_failed, error.message.orEmpty()))
-                }
+        // staged on this call's own coroutine: a session whose copy is abandoned half-way leaves a
+        // staged install behind and never reports anything
+        return try {
+            withContext(Dispatchers.IO) { startSession(context, apk, version) }
+            Start.Started
+        } catch (error: Exception) {
+            Timber.tag(TAG).e(error, "Install session failed to start")
+            TopToaster.error(context.getString(R.string.update_install_failed, error.message.orEmpty()))
+            Start.Refused(verdict)
         }
-        return Start.Started
     }
 
     /** The verdict in the listener's own words, or null when there is nothing to say. */
