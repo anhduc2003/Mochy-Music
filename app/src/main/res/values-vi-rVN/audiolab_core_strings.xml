@@ -20,7 +20,7 @@
     <string name="lab_quality_high">Cao</string>
     <string name="lab_quality_auto">Tự động</string>
     <string name="lab_effects_and_more">%1$s và %2$d hiệu ứng khác</string>
-    <string name="lab_effect_reverb">Reverb</string>
+    <string name="lab_effect_reverb">Vang</string>
     <string name="lab_effect_loudness">Độ lớn âm</string>
     <string name="lab_effect_spatial">Không gian</string>
     <string name="lab_effect_surround">Vòng quanh</string>

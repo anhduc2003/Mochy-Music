@@ -34,7 +34,7 @@
     <string name="larp_power">Công suất</string>
     <string name="larp_jitter">Jitter</string>
     <string name="larp_buffer">Bộ đệm</string>
-    <string name="larp_skibidi_title">Skibidi larper</string>
+    <string name="larp_skibidi_title">Dân chơi Skibidi</string>
     <string name="larp_skibidi_dac">FiiO KA17</string>
     <string name="larp_skibidi_lead">USB DAC, bit-perfect</string>
     <string name="larp_skibidi_power">650 mW</string>
@@ -47,7 +47,7 @@
     <string name="larp_skibidi_route">Từ điện thoại tới USB DAC, bit-perfect</string>
     <string name="larp_skibidi_jitter">Dưới 100 ps</string>
     <string name="larp_skibidi_buffer">40 ms</string>
-    <string name="larp_sixty_seven_title">67 larper</string>
+    <string name="larp_sixty_seven_title">Dân chơi 67</string>
     <string name="larp_sixty_seven_dac">Chord Mojo 2</string>
     <string name="larp_sixty_seven_lead">DAC di động, truyền thẳng từ Mochy</string>
     <string name="larp_sixty_seven_power">600 mW</string>
@@ -60,7 +60,7 @@
     <string name="larp_sixty_seven_route">Mochy tới DAC qua USB bất đồng bộ</string>
     <string name="larp_sixty_seven_jitter">12 ps</string>
     <string name="larp_sixty_seven_buffer">10 ms</string>
-    <string name="larp_brainrot_title">Brainrot larper</string>
+    <string name="larp_brainrot_title">Dân chơi Brainrot</string>
     <string name="larp_brainrot_dac">Chord Hugo TT2</string>
     <string name="larp_brainrot_lead">DAC để bàn, nạp bằng tay</string>
     <string name="larp_brainrot_power">18 W</string>
@@ -73,7 +73,7 @@
     <string name="larp_brainrot_route">Mochy tới DAC qua dây bạc</string>
     <string name="larp_brainrot_jitter">1 ps</string>
     <string name="larp_brainrot_buffer">1 ms</string>
-    <string name="larp_maxxing_title">Maxxing larper</string>
+    <string name="larp_maxxing_title">Dân chơi Maxxing</string>
     <string name="larp_maxxing_dac">Wadax Atlantis Reference</string>
     <string name="larp_maxxing_lead">Thẳng từ Mochy, không qua bộ giải mã</string>
     <string name="larp_maxxing_power">1.000.000 W</string>

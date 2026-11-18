@@ -82,4 +82,13 @@
     <string name="channel_switch_to_release">Chuyển sang bản phát hành</string>
     <string name="channel_release_waits">Cần bản phát hành mới hơn</string>
     <string name="update_allow_unknown_apps">Hãy cho phép mochy “Cài đặt ứng dụng không rõ nguồn gốc” trong Cài đặt, rồi quay lại và nhấn “Cài đặt tại đây” lần nữa.</string>
+    <string name="channel_nightly_question">Bạn chắc chứ?</string>
+    <string name="channel_nightly_tagline">ôi không, nhìn mấy thứ bóng bẩy mới này xem! mong là nó chạy… ừm.. mong thế.</string>
+    <string name="channel_nightly_title">Đường\nĐổi</string>
+    <string name="channel_nightly_warning">Bản nightly có thể không ổn định, và bạn có thể nhận tới 5 bản cập nhật mỗi ngày, dù khả năng thấp. Nhưng nó là vậy. Quay lại bản release cũ hơn cũng có thể làm hỏng dữ liệu của bạn.</string>
+    <string name="channel_no">Không</string>
+    <string name="channel_release_tagline">đã có bản release mới hơn nightly của bạn, nên bạn có thể quay lại.</string>
+    <string name="channel_release_title">Về lại\nrelease</string>
+    <string name="channel_release_warning">Bạn sẽ nhận bản release tiếp theo dưới dạng cập nhật, và nightly sẽ không hiện nữa.</string>
+    <string name="channel_yes">Có</string>
 </resources>

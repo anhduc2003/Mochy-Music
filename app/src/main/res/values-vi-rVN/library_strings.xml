@@ -118,4 +118,8 @@
     <string name="lib_manage_clear_cache_title">Xóa bộ nhớ đệm của bạn?</string>
     <string name="lib_manage_clear_cache_msg">Mọi bài hát đã lưu đệm sẽ bị xóa khỏi điện thoại và được phát trực tuyến lại ở lần phát tiếp theo. Thư viện và các bài đã tải xuống của bạn vẫn được giữ nguyên.</string>
     <string name="lib_manage_remove_songs">Xóa bài hát</string>
+    <plurals name="lib_local_repaired">
+        <item quantity="one">Đã sửa tên, lời hoặc ảnh bìa của %1$d bài</item>
+        <item quantity="other">Đã sửa tên, lời hoặc ảnh bìa của %1$d bài</item>
+    </plurals>
 </resources>

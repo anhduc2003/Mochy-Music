@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="xmix_title">Crossfade</string>
-    <string name="xmix_back">Audio Lab</string>
+    <string name="xmix_back">Phòng thử nghiệm âm thanh</string>
     <string name="xmix_off">Tắt</string>
     <string name="xmix_off_desc">Nhàm chán, nhàm chán, nhàm chán</string>
     <string name="xmix_auto">Crossfade tự động</string>

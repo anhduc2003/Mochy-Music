@@ -19,4 +19,7 @@
     <string name="flagship_layout_three_caption">Ba nút lớn, không có gì xung quanh</string>
     <string name="flagship_layout_ten">Có nút tua 10 giây</string>
     <string name="flagship_layout_ten_caption">Nhảy 10 giây về hai phía, nút phát nằm trong vòng tròn</string>
+    <string name="flagship_layout_queue_repeat">Có hàng đợi và lặp lại</string>
+    <string name="flagship_layout_queue_repeat_caption">Hàng đợi và lặp lại ở ngoài, nút phát ở giữa vòng tròn</string>
+    <string name="flagship_repeat">Lặp lại</string>
 </resources>

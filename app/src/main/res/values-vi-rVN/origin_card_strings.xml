@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="origin_card_liked_empty">Chưa có bài hát yêu thích</string>
+    <string name="origin_card_liked_empty_hint">Bài bạn thích trong Mochy sẽ hiện ở đây</string>
+    <string name="origin_card_local_empty">Chưa có bản tải xuống</string>
+    <string name="origin_card_local_empty_hint">Bài bạn tải trong Mochy sẽ hiện ở đây</string>
+    <string name="origin_card_queue_empty">Hàng đợi trống</string>
+    <string name="origin_card_queue_empty_hint">Hãy phát gì đó trong Mochy</string>
+</resources>

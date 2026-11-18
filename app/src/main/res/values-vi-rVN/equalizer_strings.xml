@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="eqx_title">Bộ chỉnh âm</string>
-    <string name="eqx_back">Audio Lab</string>
+    <string name="eqx_back">Phòng thử nghiệm âm thanh</string>
     <string name="eqx_tab_graph">Đồ thị</string>
     <string name="eqx_tab_bands">Dải tần</string>
     <string name="eqx_tab_autoeq">AutoEQ</string>
@@ -17,7 +17,7 @@
     <string name="eqx_reset">Đặt lại</string>
     <string name="eqx_save">Lưu</string>
     <string name="eqx_output">Đầu ra</string>
-    <string name="eqx_preamp">Preamp</string>
+    <string name="eqx_preamp">Tiền khuếch đại</string>
     <string name="eqx_auto_preamp">Preamp tự động</string>
     <string name="eqx_auto_preamp_lowering">Giảm %1$s dB, bộ giới hạn sẽ xử lý phần còn lại</string>
     <string name="eqx_auto_preamp_nothing">Không cần giảm, bộ giới hạn sẽ xử lý mọi đỉnh âm</string>
@@ -51,7 +51,7 @@
     <string name="eqx_filter_bands">Số dải lọc</string>
     <string name="eqx_bands_count">%1$d dải</string>
     <string name="eqx_correct_up_to">Hiệu chỉnh đến</string>
-    <string name="eqx_bass">Bass</string>
+    <string name="eqx_bass">Âm trầm</string>
     <string name="eqx_tilt">Độ nghiêng</string>
     <string name="eqx_use_autoeq_fit">Dùng cấu hình gốc của AutoEq</string>
     <string name="eqx_remove">Xóa</string>

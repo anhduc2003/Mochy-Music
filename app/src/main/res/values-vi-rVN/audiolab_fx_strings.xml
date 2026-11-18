@@ -69,7 +69,7 @@
     <string name="fx_volume_limit">Giới hạn âm lượng</string>
     <string name="fx_volume_note">Định hình âm lượng riêng của Mochy (thanh trượt của trình phát, hiệu ứng mờ dần và giảm âm). Giới hạn đặt mức to nhất mà ứng dụng sẽ phát.</string>
 
-    <string name="fx_reverb_title">Reverb</string>
+    <string name="fx_reverb_title">Vang</string>
     <string name="fx_reverb_sub">Thêm vang cho nhạc</string>
     <string name="fx_reverb_room">Phòng</string>
     <string name="fx_reverb_studio">Phòng thu</string>

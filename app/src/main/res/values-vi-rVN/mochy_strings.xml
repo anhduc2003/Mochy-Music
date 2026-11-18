@@ -1165,4 +1165,9 @@
     <string name="song_share_romanisation_none">Lời bài hát này đọc vốn đã ổn</string>
     <string name="song_share_romanisation_main_hint">Thẻ sẽ hát theo phần phiên âm, bản gốc nằm bên dưới</string>
     <string name="song_share_translation_hint">Mỗi dòng được dịch sang ngôn ngữ của bạn, ngay bên dưới</string>
+    <string name="floating_lyrics_close">Đóng</string>
+    <string name="floating_lyrics_never">Không hiện lại</string>
+    <string name="floating_lyrics_open">Mở Mochy</string>
+    <string name="floating_lyrics_turned_off">Lời bài hát nổi đang tắt. Bạn có thể bật lại trong Cài đặt.</string>
+    <string name="transition_selected">Đã chọn</string>
 </resources>

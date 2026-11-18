@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="car_albums">Album</string>
+    <string name="car_artists">Nghệ sĩ</string>
+    <string name="car_categories">Danh mục</string>
+    <string name="car_couldnt_load">Không tải được. Hãy kiểm tra kết nối và thử lại.</string>
+    <string name="car_downloaded">Đã tải xuống</string>
+    <string name="car_home_empty">Phát vài bài trên điện thoại là lựa chọn của bạn sẽ hiện ở đây!</string>
+    <string name="car_liked">Bài hát yêu thích</string>
+    <string name="car_list_empty">Chưa có gì ở đây.</string>
+    <string name="car_lyrics">Lời bài hát</string>
+    <string name="car_lyrics_none">Bài này không có lời.</string>
+    <string name="car_lyrics_on_player">Trên trình phát</string>
+    <string name="car_lyrics_player_off">Lời bài hát trên trình phát đang tắt.</string>
+    <string name="car_lyrics_player_on">lời bài hát có thể hiện trên trình phát khi bạn lái xe, này, nó vẫn đang thử nghiệm!</string>
+    <string name="car_pair_code">Mã ghép nối</string>
+    <string name="car_pair_connected">Đã kết nối với %1$s</string>
+    <plurals name="car_pair_connected_more">
+        <item quantity="one">Đã kết nối với %1$s và %2$d điện thoại khác</item>
+        <item quantity="other">Đã kết nối với %1$s và %2$d điện thoại khác</item>
+    </plurals>
+    <string name="car_pair_getting_code">Đang chuẩn bị mã…</string>
+    <string name="car_pair_how">Cách ghép nối</string>
+    <string name="car_pair_status">Trạng thái</string>
+    <string name="car_pair_steps">Trên điện thoại kia, mở Mochy rồi vào Cài đặt › Tích hợp thiết bị › Thêm thiết bị, sau đó nhập mã này. Cả hai điện thoại cần dùng cùng Wi-Fi.</string>
+    <string name="car_pair_waiting">Chưa kết nối. Đang chờ điện thoại ghép nối.</string>
+    <string name="car_playlists">Danh sách phát</string>
+    <string name="car_quick_picks">Chọn nhanh</string>
+    <string name="car_recent_empty">Bài bạn phát sẽ hiện ở đây.</string>
+    <string name="car_recent_lists">Album và danh sách phát</string>
+    <string name="car_recent_songs">Bài hát</string>
+    <string name="car_shuffle">Trộn bài</string>
+    <string name="car_tab_home">Trang chính</string>
+    <string name="car_tab_library">Thư viện</string>
+    <string name="car_tab_recent">Gần đây</string>
+    <string name="car_tab_remote">Từ xa</string>
+</resources>

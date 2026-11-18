@@ -393,4 +393,30 @@
     <string name="custom_app_bg_blur">Độ mờ nền (Blur)</string>
     <string name="custom_app_bg_dim">Độ tối lớp phủ</string>
     <string name="custom_app_bg_adjust">Căn chỉnh nền ứng dụng</string>
+    <string name="queue_next_in_queue">Tiếp theo trong hàng đợi</string>
+    <string name="sleep_timer_cancel">HUỶ HẸN GIỜ</string>
+    <string name="sleep_timer_custom">Thời gian tùy chọn</string>
+    <string name="sleep_timer_custom_desc">Tự nhập giờ, phút và giây</string>
+    <string name="sleep_timer_end_after_song">Kết thúc sau bài này</string>
+    <string name="sleep_timer_enter_time">Nhập thời gian</string>
+    <string name="sleep_timer_hours">Giờ</string>
+    <string name="sleep_timer_minus_minute">−1 phút</string>
+    <string name="sleep_timer_minutes">Phút</string>
+    <string name="sleep_timer_pause">Tạm dừng</string>
+    <string name="sleep_timer_paused">Đã tạm dừng</string>
+    <string name="sleep_timer_paused_left">đã tạm dừng, còn %1$s</string>
+    <string name="sleep_timer_plus_minute">+1 phút</string>
+    <string name="sleep_timer_preset_hour">1 giờ</string>
+    <plurals name="sleep_timer_preset_minutes">
+        <item quantity="one">%d phút</item>
+        <item quantity="other">%d phút</item>
+    </plurals>
+    <string name="sleep_timer_quick_set">Đặt nhanh</string>
+    <string name="sleep_timer_ready">Sẵn sàng</string>
+    <string name="sleep_timer_resume">Tiếp tục</string>
+    <string name="sleep_timer_running">Đang chạy</string>
+    <string name="sleep_timer_seconds">Giây</string>
+    <string name="sleep_timer_set_custom">Đặt %1$s</string>
+    <string name="sleep_timer_start">Bắt đầu</string>
+    <string name="sleep_timer_until_song_ends">Dừng khi bài này kết thúc</string>
 </resources>
