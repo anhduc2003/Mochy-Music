@@ -22,9 +22,9 @@ class UpdateInstallActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // a rotation, a theme change or a font-size change rebuilds this activity while the copy is
-        // still running; starting again would stage the same APK twice and raise a second
-        // confirmation. The install this screen began is already on its way.
+        // the manifest keeps configuration changes from rebuilding this screen at all, so this only
+        // catches a restore after the process was killed: the install it was in the middle of is
+        // gone, and staging the same APK from scratch would raise a second confirmation for nothing.
         if (savedInstanceState != null) {
             finish()
             return
