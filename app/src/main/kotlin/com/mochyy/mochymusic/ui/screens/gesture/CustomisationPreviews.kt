@@ -218,6 +218,29 @@ internal fun HomeStylePreview(style: HomeStyle, coverRadius: Dp) {
             Spacer(Modifier.height(6.dp))
             Shelf(radius)
         }
+        HomeStyle.EDITORIAL -> Column(Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp, top = 14.dp)) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(ArtFill),
+            ) {
+                Column(Modifier.align(Alignment.BottomStart).padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Bar(28.dp, 4.dp, BoneDim)
+                    Bar(72.dp, 7.dp)
+                    Bar(48.dp, 4.dp, BoneDim)
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                repeat(3) {
+                    Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(5.dp)).background(SoftArtFill))
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Shelf(radius)
+        }
     }
 }
 

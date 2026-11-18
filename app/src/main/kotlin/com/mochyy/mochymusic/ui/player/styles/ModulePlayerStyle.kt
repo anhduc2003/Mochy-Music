@@ -567,7 +567,6 @@ private fun SkinLyrics(block: SkinBlock.Lyrics, context: SkinContext, modifier: 
                     lines = song.lines,
                     position = context.lyricsPosition,
                     color = color,
-                    accentColor = com.mochyy.mochymusic.LocalArtworkColor.current,
                     baseSize = block.size,
                     modifier = Modifier.fillMaxSize().then(slotModifier),
                 )

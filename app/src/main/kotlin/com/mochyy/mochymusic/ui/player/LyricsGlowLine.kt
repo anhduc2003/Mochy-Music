@@ -189,27 +189,12 @@ internal fun lyricsLineInsets(alignment: LyricsAlignment): LyricsLineInsets {
 
 private const val ActiveUnsungAlpha = 0.58f
 
-internal fun liftLyricsAccent(accentColor: Color): Color {
-    val r = accentColor.red
-    val g = accentColor.green
-    val b = accentColor.blue
-    val luma = 0.299f * r + 0.587f * g + 0.114f * b
-    val lift = if (luma < 0.55f) 0.55f - luma else 0f
-    return Color(
-        red = r + (1f - r) * lift,
-        green = g + (1f - g) * lift,
-        blue = b + (1f - b) * lift,
-        alpha = 1f,
-    )
-}
-
 @Composable
 fun LyricsGlowLine(
     entry: LyricsEntry,
     state: LyricsLineState,
     blurStage: Int,
     positionProvider: () -> Long,
-    accentColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     subLine: String? = null,
@@ -281,19 +266,9 @@ fun LyricsGlowLine(
     )
 
     val baseColor = LocalContentColor.current
-    // The sung letters of the accent styles take the cover's colour. Lifted toward white when the
-    // cover is dark, so the karaoke stays readable on the dark page instead of sinking into it.
-    val sungAccent = remember(accentColor) {
-        liftLyricsAccent(accentColor)
-    }
-
     // eased with the alpha and scale, and read only while drawing so the fade doesn't recompose the line every frame
     val lineColor = androidx.compose.animation.animateColorAsState(
-        targetValue = when {
-            state != LyricsLineState.ACTIVE -> baseColor
-            motionStyle.accentFill -> sungAccent
-            else -> Color.White
-        },
+        targetValue = if (state == LyricsLineState.ACTIVE) Color.White else baseColor,
         animationSpec = tween(durationMillis = 600),
         label = "lyricsLineColor",
     )
@@ -429,7 +404,7 @@ fun LyricsGlowLine(
                 motionStyle = motionStyle,
                 baseColor = unsungColor,
 
-                highlightColor = if (motionStyle.accentFill) sungAccent else Color.White,
+                highlightColor = Color.White,
                 // The reading is drawn below, in one place for both paths. It used to move into
                 // the karaoke block when the line went active (above any backing vocal, and at a
                 // dimmer colour) and back out when it ended, so it jumped every line change.

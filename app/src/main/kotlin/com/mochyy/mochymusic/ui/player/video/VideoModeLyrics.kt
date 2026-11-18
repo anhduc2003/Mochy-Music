@@ -218,7 +218,6 @@ internal fun VideoLyricRow(
         state = state,
         blurStage = blurStage,
         positionProvider = positionProvider,
-        accentColor = com.mochyy.mochymusic.LocalArtworkColor.current,
         onClick = onClick,
         modifier = modifier,
         subLine = shown.subLine,

@@ -571,10 +571,6 @@ private fun TickerLine(
                 .graphicsLayer { translationX = -scroll.floatValue },
         ) {
             if (karaoke) {
-                val artworkAccent = com.mochyy.mochymusic.LocalArtworkColor.current
-                val tickerHighlight = remember(artworkAccent, motionStyle) {
-                    if (motionStyle.accentFill) liftLyricsAccent(artworkAccent) else Color.White
-                }
                 KaraokeSweepText(
                     text = text,
                     words = words!!,
@@ -582,7 +578,7 @@ private fun TickerLine(
                     waveAmplitudeProvider = { if (waveEnabled) 1f else 0f },
                     riseAmplitudeProvider = { 1f },
                     baseColor = { Color.White.copy(alpha = UnsungAlpha) },
-                    highlightColor = tickerHighlight,
+                    highlightColor = Color.White,
                     fontSize = TickerFontSize,
                     lineHeight = TickerLineHeight,
                     highBloom = highBloom,
@@ -592,14 +588,6 @@ private fun TickerLine(
                     probe = probe,
                 )
             } else {
-                val artworkAccent = com.mochyy.mochymusic.LocalArtworkColor.current
-                val plainColor = remember(artworkAccent, motionStyle, dim) {
-                    if (!dim && motionStyle.accentFill) {
-                        liftLyricsAccent(artworkAccent)
-                    } else {
-                        Color.White.copy(alpha = if (dim) 0.55f else 1f)
-                    }
-                }
                 Text(
                     text = text,
                     // the same letter features as the sung line, so the words keep their width when the line goes dim
@@ -608,7 +596,7 @@ private fun TickerLine(
                         lineHeight = TickerLineHeight,
                     ).withLetterMotionFeatures(motionStyle.risesWords),
                     fontWeight = FontWeight.Bold,
-                    color = plainColor,
+                    color = Color.White.copy(alpha = if (dim) 0.55f else 1f),
                     maxLines = 1,
                     softWrap = false,
                     overflow = TextOverflow.Clip,

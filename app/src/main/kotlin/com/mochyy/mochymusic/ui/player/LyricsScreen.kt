@@ -59,7 +59,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -73,7 +72,6 @@ import com.mochyy.mochymusic.ui.player.share.ShareFlightSource
 import com.mochyy.mochymusic.ui.player.share.fullBoundsInWindow
 import com.mochyy.mochymusic.ui.player.share.ShareSong
 import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
@@ -88,11 +86,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.palette.graphics.Palette
-import coil3.imageLoader
-import coil3.request.ImageRequest
-import coil3.request.allowHardware
-import coil3.toBitmap
 import com.mochyy.mochymusic.LocalPlayerConnection
 import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
@@ -126,15 +119,12 @@ import com.mochyy.mochymusic.lyrics.LyricsEntry
 import com.mochyy.mochymusic.lyrics.LyricsTranslationHelper
 import com.mochyy.mochymusic.lyrics.LyricsUtils
 import com.mochyy.mochymusic.utils.rememberPreference
-import com.mochyy.mochymusic.ui.theme.PlayerColorExtractor
 import com.mochyy.mochymusic.viewmodels.LyricsScreenViewModel
 import kotlin.math.roundToInt
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import com.mochyy.mochymusic.ui.utils.stableStatusBarsPadding
 
 private const val ActiveLineViewportFraction = 0.055f
@@ -253,39 +243,6 @@ fun LyricsScreen(
 
     LaunchedEffect(mediaMetadata?.id) {
         mediaMetadata?.let(viewModel::ensureLyricsLoaded)
-    }
-
-    val context = LocalContext.current
-    val fallbackColorInt = MaterialTheme.colorScheme.primary.toArgb()
-    var accentColor by remember { mutableStateOf<Color?>(null) }
-    LaunchedEffect(mediaMetadata?.thumbnailUrl) {
-        val thumbnailUrl = mediaMetadata?.thumbnailUrl
-        accentColor = null
-        if (thumbnailUrl == null) return@LaunchedEffect
-        withContext(Dispatchers.IO) {
-            try {
-                val request = ImageRequest.Builder(context)
-                    .data(thumbnailUrl)
-                    .size(100, 100)
-                    .allowHardware(false)
-                    .build()
-                val bitmap = context.imageLoader.execute(request).image?.toBitmap()
-                if (bitmap != null) {
-                    val palette = withContext(Dispatchers.Default) {
-                        Palette.from(bitmap)
-                            .maximumColorCount(8)
-                            .resizeBitmapArea(100 * 100)
-                            .generate()
-                    }
-                    val colors = PlayerColorExtractor.extractGradientColors(
-                        palette = palette,
-                        fallbackColor = fallbackColorInt,
-                    )
-                    accentColor = colors.firstOrNull()?.let { PlayerColorExtractor.darkenIfTooLight(it) }
-                }
-            } catch (_: Exception) {
-            }
-        }
     }
 
     // Lyrics with no timing (plain text, or LRC with every line on [00:00.00]) are shown as a
@@ -511,7 +468,6 @@ fun LyricsScreen(
     val translationStatus by LyricsTranslationHelper.status.collectAsState()
     val isTranslating = translationStatus is LyricsTranslationHelper.TranslationStatus.Translating
 
-    val accent = accentColor ?: MaterialTheme.colorScheme.primary
 
     // Holding a line opens the lyrics share with that line picked. Each line's place is kept (a
     // reference, no work) so the share can lift the line out of exactly where it sits, and fly it
@@ -769,7 +725,6 @@ fun LyricsScreen(
                                     blurStage = blurStage,
                                     suppressEffects = suppressEffects,
                                     positionProvider = positionProvider,
-                                    accentColor = accent,
                                     subLine = shown.subLine,
                                     ruby = shown.ruby,
                                     // Readings sit under the line normally. With a translation on

@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -1401,6 +1402,123 @@ fun HomeScreen(
                                         key = { _, song -> "listen_now_${song.id}" },
                                         content = trackRow,
                                     )
+                                }
+                            }
+                        }
+                    }
+                    HomeStyle.EDITORIAL -> {
+                        item(key = "hero_editorial", contentType = "hero_editorial") {
+                            val editorialItems = remember(dailyDiscover, speedDialItems, allTimeHits) {
+                                buildList<YTItem> {
+                                    dailyDiscover.orEmpty().forEach { add(it.recommendation) }
+                                    speedDialItems.forEach { add(it) }
+                                    allTimeHits.orEmpty().forEach { add(it) }
+                                }
+                                    .filter { !it.thumbnail.isNullOrBlank() }
+                                    .distinctBy { it.id }
+                                    .take(12)
+                            }
+                            val featured = editorialItems.firstOrNull()
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = WindowInsets.stableSystemBars.asPaddingValues().calculateTopPadding() + 72.dp),
+                            ) {
+                                if (launchHold || (isFirstLoad && featured == null)) {
+                                    BonesHost {
+                                        Column(Modifier.fillMaxWidth().padding(horizontal = HomeContentInset)) {
+                                            Spacer(Modifier.height(20.dp))
+                                            HomeSectionBones()
+                                            Spacer(Modifier.height(16.dp))
+                                            HomeSectionBones()
+                                        }
+                                    }
+                                } else {
+                                    HomeSectionTitle(title = stringResource(R.string.home_editorial_title))
+                                    if (featured == null) {
+                                        Text(
+                                            text = stringResource(R.string.home_editorial_empty),
+                                            modifier = Modifier.padding(horizontal = HomeContentInset, vertical = 20.dp),
+                                            color = Color.White.copy(alpha = 0.72f),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                        )
+                                    } else {
+                                        val featuredSubtitle = when (featured) {
+                                            is SongItem -> featured.artists.joinToString(", ") { it.name }
+                                            is AlbumItem -> joinByBullet(featured.artists?.joinToString(", ") { it.name }, featured.year?.toString())
+                                            is ArtistItem -> stringResource(R.string.artist)
+                                            is PlaylistItem -> joinByBullet(featured.author?.name, featured.songCountText)
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = HomeContentInset)
+                                                .aspectRatio(1.42f)
+                                                .clip(RoundedCornerShape(HomeCardCornerRadius))
+                                                .clickable(
+                                                    onClickLabel = stringResource(R.string.play),
+                                                    role = androidx.compose.ui.semantics.Role.Button,
+                                                ) {
+                                                    when (featured) {
+                                                        is SongItem -> playerConnection.playQueue(
+                                                            YouTubeQueue(featured.endpoint ?: WatchEndpoint(videoId = featured.id), featured.toMediaMetadata())
+                                                        )
+                                                        is AlbumItem -> navController.navigate("album/${featured.id}")
+                                                        is ArtistItem -> navController.navigate("artist/${featured.id}")
+                                                        is PlaylistItem -> navController.navigate("online_playlist/${featured.id}")
+                                                    }
+                                                },
+                                        ) {
+                                            AsyncImage(
+                                                model = featured.thumbnail?.resize(720, 500),
+                                                contentDescription = null,
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize(),
+                                            )
+                                            Box(
+                                                Modifier
+                                                    .fillMaxSize()
+                                                    .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.84f)))),
+                                            )
+                                            Column(
+                                                Modifier.align(Alignment.BottomStart).padding(18.dp),
+                                                verticalArrangement = Arrangement.spacedBy(5.dp),
+                                            ) {
+                                                Text(
+                                                    text = stringResource(R.string.home_editorial_featured),
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = Color.White.copy(alpha = 0.78f),
+                                                )
+                                                Text(
+                                                    text = featured.title,
+                                                    style = MaterialTheme.typography.headlineSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White,
+                                                    maxLines = 2,
+                                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                                )
+                                                if (featuredSubtitle.isNotBlank()) {
+                                                    Text(
+                                                        text = featuredSubtitle,
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = Color.White.copy(alpha = 0.8f),
+                                                        maxLines = 1,
+                                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        Spacer(Modifier.height(22.dp))
+                                        HomeSectionTitle(title = stringResource(R.string.home_start_listening))
+                                        HomeCardRow(
+                                            rowKey = "editorial_feed",
+                                            items = editorialItems.drop(1),
+                                            revealSeen = revealSeen,
+                                            key = { it.id },
+                                            content = ytItemCard,
+                                        )
+                                        Spacer(Modifier.height(26.dp))
+                                    }
                                 }
                             }
                         }

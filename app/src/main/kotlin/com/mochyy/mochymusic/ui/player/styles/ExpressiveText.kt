@@ -737,10 +737,6 @@ private fun readingOf(roman: String?, ruby: List<com.mochyy.mochymusic.lyrics.Ru
     roman?.takeIf { it.isNotBlank() && it != text }
         ?: ruby?.joinToString(" ") { it.text.trim() }?.takeIf { it.isNotBlank() && it != text }
 
-/** Accent styles keep the moving lyric fill white-hot; their cover colour belongs to the neon halo. */
-internal fun lyricFillColor(style: com.mochyy.mochymusic.constants.LyricsMotionStyle, baseColor: Color): Color =
-    if (style.accentFill) Color.White.copy(alpha = baseColor.alpha) else baseColor
-
 /**
  * The current lyric line, set big and performed the way the flagship's lyrics move: the singing
  * runs through each word letter by letter, the letters rising in one soft wave as it reaches them
@@ -768,35 +764,11 @@ fun ExpressiveLyrics(
     baseSize: TextUnit,
     modifier: Modifier = Modifier,
     dimAlpha: Float = 0.32f,
-    /** Cover-derived colour used by Neon for its halo. The moving lyric fill stays white. */
-    accentColor: Color = color,
 ) {
-    // The style players draw their own words rather than going through LyricsGlowLine. Keep their
-    // fill in step with it: all karaoke sweeps are bright white; Neon alone adds the cover-coloured halo.
     val (motionStyleNow) = com.mochyy.mochymusic.utils.rememberEnumPreference(
         com.mochyy.mochymusic.constants.LyricsMotionStyleKey,
         defaultValue = com.mochyy.mochymusic.constants.LyricsMotionStyle.MOTION,
     )
-    val glowColor = remember(color, accentColor, motionStyleNow) {
-        val accent = accentColor
-        if (!motionStyleNow.accentFill) color else {
-            // lifted toward white when the cover's tone is dark, or it sinks into the page
-            val r = accent.red
-            val g = accent.green
-            val b = accent.blue
-            val luma = 0.299f * r + 0.587f * g + 0.114f * b
-            val lift = if (luma < 0.55f) 0.55f - luma else 0f
-            Color(
-                red = r + (1f - r) * lift,
-                green = g + (1f - g) * lift,
-                blue = b + (1f - b) * lift,
-                alpha = color.alpha,
-            )
-        }
-    }
-    val sungColor = remember(color, glowColor, motionStyleNow) {
-        if (motionStyleNow.accentFill) glowColor else lyricFillColor(motionStyleNow, color)
-    }
     val density = LocalDensity.current
     val fontFamilyResolver = LocalFontFamilyResolver.current
     val layoutDirection = LocalLayoutDirection.current
@@ -924,8 +896,6 @@ fun ExpressiveLyrics(
                             exitAt = exitAts[index],
                             position = position,
                             color = color,
-                            sungColor = sungColor,
-                            glowColor = glowColor,
                             glowEnabled = motionStyleNow.shaded,
                             dimAlpha = dimAlpha,
                             offsetY = { t ->
@@ -1004,8 +974,6 @@ private fun LyricLine(
     exitAt: Long?,
     position: LivePosition,
     color: Color,
-    sungColor: Color,
-    glowColor: Color,
     glowEnabled: Boolean,
     dimAlpha: Float,
     /** how far down the overlapping lines above push this one, this frame */
@@ -1080,9 +1048,9 @@ private fun LyricLine(
                         val t = cells.drawTimeOf(w, now, clock)
                         cells.frameAt(t)
                         if (moving && blurLayer != null) {
-                            drawBlurred(blurLayer, blurOf(w, clock)) { drawWord(cell, cells.scale[w], cells.headAt(t), t, sungColor, glowColor, dim, glowEnabled, glowLayer) }
+                            drawBlurred(blurLayer, blurOf(w, clock)) { drawWord(cell, cells.scale[w], cells.headAt(t), t, color, dim, glowEnabled, glowLayer) }
                         } else {
-                            drawWord(cell, cells.scale[w], cells.headAt(t), t, sungColor, glowColor, dim, glowEnabled, glowLayer)
+                            drawWord(cell, cells.scale[w], cells.headAt(t), t, color, dim, glowEnabled, glowLayer)
                         }
                     },
             )
@@ -1143,7 +1111,6 @@ private fun DrawScope.drawWord(
     head: Float,
     t: Long,
     color: Color,
-    glowColor: Color,
     dim: Color,
     glowEnabled: Boolean,
     glowLayer: GraphicsLayer?,
@@ -1196,7 +1163,7 @@ private fun DrawScope.drawWord(
         glowLayer.renderEffect = BlurEffectCache.get(cell.sizePx * GlowSoftness * GlowRes, Shader.TileMode.DECAL)
         val half = androidx.compose.ui.unit.IntSize((size.width * GlowRes).roundToInt().coerceAtLeast(1), (size.height * GlowRes).roundToInt().coerceAtLeast(1))
         glowLayer.record(half) {
-            scale(GlowRes, GlowRes, pivot = Offset.Zero) { drawLetters(cell, scale, litFrom, front, glowColor, dim, LetterPass.Glow) }
+            scale(GlowRes, GlowRes, pivot = Offset.Zero) { drawLetters(cell, scale, litFrom, front, color, dim, LetterPass.Glow) }
         }
         scale(1f / GlowRes, 1f / GlowRes, pivot = Offset.Zero) { drawLayer(glowLayer) }
     }
@@ -1205,7 +1172,7 @@ private fun DrawScope.drawWord(
         glowLayer == null -> LetterPass.Shadowed
         else -> LetterPass.Plain
     }
-    drawLetters(cell, scale, litFrom, front, color, dim, letterPass, shadowColor = glowColor)
+    drawLetters(cell, scale, litFrom, front, color, dim, letterPass)
 }
 
 /** which copy of a word's letters is drawn */
@@ -1227,7 +1194,6 @@ private fun DrawScope.drawLetters(
     color: Color,
     dim: Color,
     pass: LetterPass,
-    shadowColor: Color = color,
 ) {
     withTransform({
         translate(cell.bleed, cell.bleed)
@@ -1243,7 +1209,7 @@ private fun DrawScope.drawLetters(
             val zoom = cell.zoom[i]
             // always passed, never null: a letter's layout keeps the last shadow it was drawn with
             val shadow = if (pass == LetterPass.Shadowed && glow > 0f) {
-                Shadow(shadowColor.copy(alpha = GlowAlpha * glow), Offset.Zero, cell.sizePx * GlowSoftness)
+                Shadow(color.copy(alpha = GlowAlpha * glow), Offset.Zero, cell.sizePx * GlowSoftness)
             } else Shadow.None
             withTransform({
                 translate(lx, -cell.lift[i])

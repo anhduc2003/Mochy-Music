@@ -58,6 +58,7 @@ enum class HomeStyle(val displayName: String) {
     MOCHYY("Mochyy"),
     LISTEN_NOW("Listen now"),
     HOP_IN("Hop in"),
+    EDITORIAL("Editorial"),
 }
 
 val HomeStyleKey = stringPreferencesKey("homeStyle")
@@ -985,8 +986,6 @@ enum class LyricsMotionStyle(
     val description: String,
     val risesWords: Boolean,
     val shaded: Boolean,
-    /** Sung words take the cover's colour instead of white. */
-    val accentFill: Boolean = false,
 ) {
     /** Style 1: words rise into place as they're sung, held notes swell and glow, lines cascade. */
     MOTION("Style 1", "Words rise as they're sung, long notes swell, lines cascade", risesWords = true, shaded = true),
@@ -998,20 +997,10 @@ enum class LyricsMotionStyle(
     BORING("Boring", "Style 1's rise, without the glow", risesWords = true, shaded = false),
 
     // style 2 without the shader, just the colour sweeping along
-    PLAIN("Plain", "Style 2's sweep, without the glow or the wave", risesWords = false, shaded = false),
-
-    /** Style 3: Style 2's wave and glow with the song cover's accent colour. */
-    NEON("Neon", "Style 2 wave and glow in the cover's colour", risesWords = false, shaded = true, accentFill = true),
-
-    /** Style 4: Style 2's clean sweep in the song cover's accent colour, without glow. */
-    MASK("Mask", "Style 2 clean sweep in the cover's colour", risesWords = false, shaded = false, accentFill = true);
+    PLAIN("Plain", "Style 2's sweep, without the glow or the wave", risesWords = false, shaded = false);
 
     // the same motion with the shader switched off, used when moving people off the old shader switch
-    val withoutShader: LyricsMotionStyle get() = when {
-        accentFill -> MASK
-        risesWords -> BORING
-        else -> PLAIN
-    }
+    val withoutShader: LyricsMotionStyle get() = if (risesWords) BORING else PLAIN
 }
 
 val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")

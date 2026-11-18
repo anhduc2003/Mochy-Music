@@ -306,18 +306,11 @@ internal fun LyricsStylePreview(style: LyricsMotionStyle) {
                             distance < 0 -> LyricsLineState.PAST
                             else -> LyricsLineState.DEFAULT
                         }
-                        val artworkColor = com.mochyy.mochymusic.LocalArtworkColor.current
-                        val previewAccent = if (artworkColor == Color.White || artworkColor == com.mochyy.mochymusic.ui.theme.DefaultThemeColor) {
-                            Color(0xFF7CC4FF)
-                        } else {
-                            artworkColor
-                        }
                         LyricsGlowLine(
                             entry = entry,
                             state = state,
                             blurStage = if (AppMotion.elementBlur) abs(distance).coerceAtMost(2) else 0,
                             positionProvider = position,
-                            accentColor = previewAccent,
                             onClick = {},
                             waveEnabled = style.shaded,
                             highBloom = highBloom,

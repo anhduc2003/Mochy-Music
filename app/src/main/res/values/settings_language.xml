@@ -193,6 +193,9 @@
     <string name="customise_playlist_styles">Playlist styles</string>
     <string name="customise_player_styles">Player styles</string>
     <string name="customise_home_styles">Home styles</string>
+    <string name="home_editorial_title">Editorial picks</string>
+    <string name="home_editorial_empty">Your home feed is ready</string>
+    <string name="home_editorial_featured">Featured</string>
     <string name="customise_swipe_caption">swipe, then tap one to use it</string>
     <string name="customise_player_caption">tap to go into customisation</string>
     <string name="customise_play_first">Play a song first to open player customisation</string>
@@ -208,8 +211,6 @@
     <string name="customise_lyrics_animation">Lyrics\nAnimation</string>
     <string name="customise_style_boring">Boring</string>
     <string name="customise_style_plain">Plain</string>
-    <string name="customise_style_neon">Neon</string>
-    <string name="customise_style_mask">Mask</string>
     <string name="customise_top_bar">Top Bar on player</string>
     <string name="customise_top_bar_desc">The clock and icons over the open player. Off, every player style runs to the top of the screen</string>
     <string name="customise_bottom_bar">Bottom Bar on player</string>
