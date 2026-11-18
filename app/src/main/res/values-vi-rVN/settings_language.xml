@@ -146,6 +146,9 @@
     <string name="customise_playlist_styles">Kiểu danh sách phát</string>
     <string name="customise_player_styles">Kiểu trình phát</string>
     <string name="customise_home_styles">Kiểu trang chủ</string>
+    <string name="home_editorial_title">Gợi ý biên tập</string>
+    <string name="home_editorial_empty">Nguồn nhạc của bạn đã sẵn sàng</string>
+    <string name="home_editorial_featured">Nổi bật</string>
     <string name="customise_swipe_caption">vuốt, rồi chạm vào một kiểu để sử dụng</string>
     <string name="customise_player_caption">chạm để mở mục tùy chỉnh</string>
     <string name="customise_play_first">Hãy phát một bài hát trước để mở mục tùy chỉnh trình phát</string>
