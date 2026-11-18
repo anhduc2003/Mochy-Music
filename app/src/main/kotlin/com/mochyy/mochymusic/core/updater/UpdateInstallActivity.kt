@@ -22,6 +22,13 @@ class UpdateInstallActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // a rotation, a theme change or a font-size change rebuilds this activity while the copy is
+        // still running; starting again would stage the same APK twice and raise a second
+        // confirmation. The install this screen began is already on its way.
+        if (savedInstanceState != null) {
+            finish()
+            return
+        }
         val apk = intent.getStringExtra(EXTRA_APK)?.let(::File)
         val version = intent.getStringExtra(EXTRA_VERSION)
         if (apk == null || !apk.exists()) {

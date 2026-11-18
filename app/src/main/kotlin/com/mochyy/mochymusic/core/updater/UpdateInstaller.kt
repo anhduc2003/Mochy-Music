@@ -50,9 +50,10 @@ object UpdateInstaller {
     }
 
     /**
-     * What [apk] is, and whether it can go over the installed app. Reads the archive only — the
-     * package manager hands back the manifest block of the zip, not the APK — so it is cheap enough
-     * to run before a dialog opens; nothing is installed and nothing is changed.
+     * What [apk] is, and whether it can go over the installed app. Nothing is installed and nothing
+     * is changed, but it does read the archive: collecting its signing certificate can mean digesting
+     * the whole file, which on a ~90 MB APK is not work for the main thread. [install] therefore runs
+     * it on [Dispatchers.IO], and a caller that uses it directly should do the same.
      */
     fun check(context: Context, apk: File): Verdict {
         val archive = runCatching {
@@ -101,7 +102,7 @@ object UpdateInstaller {
      * [version] only labels the failure message.
      */
     suspend fun install(context: Context, apk: File, version: String? = null): Start {
-        val verdict = check(context, apk)
+        val verdict = withContext(Dispatchers.IO) { check(context, apk) }
         if (verdict !is Verdict.Ready) return Start.Refused(verdict)
         if (!canInstallPackages(context)) {
             requestInstallPermission(context)
