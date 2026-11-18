@@ -139,7 +139,7 @@ Tác giả đã biết đúng cái nguy này ở đường đổi chất lượn
 | P2 | Cache bản dịch lyric khoá theo `String.hashCode()` — hai bài khác nhau trùng hash sẽ hiện lời của nhau — và không giới hạn kích thước | `lyrics/LyricsTranslationHelper.kt:56` |
 | P2 | `rememberPreference` có thể chặn main thread đọc DataStore ở lần dựng đầu tiên khi cache chưa ấm | `utils/DataStore.kt:64-70` |
 | P2 | ~194 chuỗi tiếng Việt hard-code, bỏ qua i18n | nhiều tệp |
-| P1 | **CI của repo đang đỏ sẵn**: `LanguageResourcesTest` so danh sách ngôn ngữ trong `values/app_language_tags.xml` (53 tag) với cây tài nguyên thật (90 thư mục `values-*` có chuỗi), nên `testUniversalFossDebugUnitTest` fail trên chính `main` khi chưa có thay đổi nào. Mọi PR đều bị chặn ở cổng test vừa thêm | `app/src/test/kotlin/com/mochyy/mochymusic/i18n/LanguageResourcesTest.kt:44` |
+| P1 | **Cổng test đang đỏ sẵn**: chạy `:app:testUniversalFossDebugUnitTest` trên `main` chưa sửa gì thì `LanguageResourcesTest` fail — nó so danh sách trong `values/app_language_tags.xml` (53 tag) với cây tài nguyên thật (90 thư mục `values-*` có chuỗi). `:app:lintUniversalFossDebug` cũng fail sẵn (xem mục 4). Cả hai đều có từ trước lần sửa này | `app/src/test/kotlin/com/mochyy/mochymusic/i18n/LanguageResourcesTest.kt:44` |
 
 ## 4. Vì sao lỗi tìm được ở 3.2–3.10 không hiện trong CI
 
@@ -147,7 +147,7 @@ CI hiện chạy `assemble` + unit test + lint. Ba loại lỗi trên đều **k
 
 Đề xuất bổ sung dần (mục 5, đợt 3): macrobenchmark + baseline profile cho startup và cuộn Home, và một test `MigrationTestHelper` chạy trên thiết bị cho toàn bộ chuỗi migration. Đây là hai loại test bắt được đúng những lỗi vừa nêu.
 
-Riêng cổng test hiện tại thì đang **đỏ sẵn**: `LanguageResourcesTest` (`:44`) fail ngay trên `main` chưa sửa gì. Nguyên nhân là cây tài nguyên có 90 thư mục `values-*` có chuỗi (bản fork thêm nhiều thư mục theo vùng, ví dụ vừa `values-de` vừa `values-de-rDE`) trong khi `values/app_language_tags.xml` chỉ liệt kê 53 tag. Cần một quyết định của người bảo trì trước khi sửa, vì hai hướng cho ra hai sản phẩm khác nhau:
+Riêng cổng test hiện tại thì đang **đỏ sẵn** (đo bằng cách bỏ hết thay đổi rồi chạy lại đúng hai lệnh của CI trên máy này): `LanguageResourcesTest` (`:44`) fail ngay trên `main` chưa sửa gì, và `lintUniversalFossDebug` báo 19 lỗi có sẵn — trong đó `CrashActivity` được khai trong manifest nhưng **không tồn tại lớp nào tên đó**, và khoảng 14 lỗi `NewApi` gọi API 26–33 không có chặn phiên bản (ứng dụng hỗ trợ từ API 24, nên đây là nguy cơ crash thật trên máy Android 7–11 chứ không phải cảnh báo hình thức). Nguyên nhân test i18n: cây tài nguyên có 90 thư mục `values-*` có chuỗi (bản fork thêm nhiều thư mục theo vùng, ví dụ vừa `values-de` vừa `values-de-rDE`) trong khi `values/app_language_tags.xml` chỉ liệt kê 53 tag. Cần một quyết định của người bảo trì trước khi sửa, vì hai hướng cho ra hai sản phẩm khác nhau:
 
 - **Bổ sung danh sách** cho đủ 90 tag → picker hiện cả "Tiếng Đức" và "Tiếng Đức (Đức)", thừa nhưng đúng với cây tài nguyên.
 - **Gộp theo ngôn ngữ** trong test (chuẩn hoá `de-rDE` về `de`) → picker giữ 53 ngôn ngữ, và Android tự chọn biến thể vùng phù hợp máy.
