@@ -534,8 +534,9 @@ private fun ColumnScope.UpdateDetailContent(
                 is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.Started -> Unit
                 is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.NeedsPermission ->
                     error = context.getString(R.string.update_allow_unknown_apps)
-                is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.Refused ->
-                    error = com.mochyy.mochymusic.core.updater.UpdateInstaller.describe(context, start.verdict)
+                is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.Refused,
+                is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.Failed ->
+                    error = com.mochyy.mochymusic.core.updater.UpdateInstaller.messageFor(context, start)
             }
         }
     }

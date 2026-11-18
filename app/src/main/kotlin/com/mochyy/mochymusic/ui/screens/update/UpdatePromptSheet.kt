@@ -86,10 +86,11 @@ fun UpdatePromptSheet(
                     readyToInstall = true
                     error = "Hãy cho phép mochy “Cài đặt ứng dụng không rõ nguồn gốc”, rồi nhấn “Cài đặt tại đây” lần nữa."
                 }
-                is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.Refused -> {
+                // the download cannot replace what is installed, or the session was refused
+                is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.Refused,
+                is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.Failed -> {
                     needsPermission = false
-                    // the download cannot replace what is installed; the reason is already on screen
-                    error = com.mochyy.mochymusic.core.updater.UpdateInstaller.describe(context, start.verdict)
+                    error = com.mochyy.mochymusic.core.updater.UpdateInstaller.messageFor(context, start)
                 }
             }
         }

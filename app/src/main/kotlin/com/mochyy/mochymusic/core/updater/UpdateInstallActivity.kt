@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
-import com.mochyy.mochymusic.R
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -31,18 +30,11 @@ class UpdateInstallActivity : ComponentActivity() {
         }
         lifecycleScope.launch {
             try {
-                when (val start = UpdateInstaller.install(this@UpdateInstallActivity, apk, version)) {
-                    // the system's confirmation takes over from here
-                    is UpdateInstaller.Start.Started -> Unit
-                    is UpdateInstaller.Start.NeedsPermission -> Unit
-                    is UpdateInstaller.Start.Refused -> {
-                        Toast.makeText(
-                            this@UpdateInstallActivity,
-                            UpdateInstaller.describe(this@UpdateInstallActivity, start.verdict)
-                                ?: getString(R.string.update_install_incompatible),
-                            Toast.LENGTH_LONG,
-                        ).show()
-                    }
+                val start = UpdateInstaller.install(this@UpdateInstallActivity, apk, version)
+                // Started and NeedsPermission both carry on outside this screen; anything else is
+                // the only thing the listener will learn about this tap, so it has to be said here
+                UpdateInstaller.messageFor(this@UpdateInstallActivity, start)?.let { message ->
+                    Toast.makeText(this@UpdateInstallActivity, message, Toast.LENGTH_LONG).show()
                 }
             } finally {
                 finish()

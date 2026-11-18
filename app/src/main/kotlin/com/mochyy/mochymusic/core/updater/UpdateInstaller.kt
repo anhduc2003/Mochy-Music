@@ -10,7 +10,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.pm.PackageInfoCompat
 import com.mochyy.mochymusic.R
-import com.mochyy.mochymusic.ui.component.TopToaster
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -89,6 +88,9 @@ object UpdateInstaller {
 
         /** The download cannot replace what is installed; [verdict] says why. */
         data class Refused(val verdict: Verdict) : Start
+
+        /** Staging or handing over the session failed — a full disk, an unreadable file, a refused session. */
+        data class Failed(val message: String) : Start
     }
 
     /**
@@ -99,24 +101,31 @@ object UpdateInstaller {
      */
     suspend fun install(context: Context, apk: File, version: String? = null): Start {
         val verdict = check(context, apk)
-        if (verdict !is Verdict.Ready) {
-            explain(context, verdict)
-            return Start.Refused(verdict)
-        }
+        if (verdict !is Verdict.Ready) return Start.Refused(verdict)
         if (!canInstallPackages(context)) {
             requestInstallPermission(context)
             return Start.NeedsPermission
         }
-        // staged on this call's own coroutine: a session whose copy is abandoned half-way leaves a
-        // staged install behind and never reports anything
+        // staged on this call's own coroutine: a session whose copy is abandoned half-way is a
+        // staged install left behind that never reports anything
         return try {
             withContext(Dispatchers.IO) { startSession(context, apk, version) }
             Start.Started
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            // the caller went away mid-copy. The session was still handed over, so this is not a
+            // failure to report: passing it on would show an error beside the system's own dialog.
+            throw cancelled
         } catch (error: Exception) {
             Timber.tag(TAG).e(error, "Install session failed to start")
-            TopToaster.error(context.getString(R.string.update_install_failed, error.message.orEmpty()))
-            Start.Refused(verdict)
+            Start.Failed(context.getString(R.string.update_install_failed, error.message.orEmpty()))
         }
+    }
+
+    /** The one line to show for an install that did not start, or null when it did. */
+    fun messageFor(context: Context, start: Start): String? = when (start) {
+        is Start.Started, is Start.NeedsPermission -> null
+        is Start.Failed -> start.message
+        is Start.Refused -> describe(context, start.verdict)
     }
 
     /** The verdict in the listener's own words, or null when there is nothing to say. */
@@ -126,10 +135,6 @@ object UpdateInstaller {
         is Verdict.OtherApp -> context.getString(R.string.update_apk_other_app, verdict.packageName)
         is Verdict.Older -> context.getString(R.string.update_apk_older, verdict.incoming, verdict.installed)
         is Verdict.DifferentKey -> context.getString(R.string.update_apk_other_key)
-    }
-
-    fun explain(context: Context, verdict: Verdict) {
-        describe(context, verdict)?.let { TopToaster.error(it, durationMs = 6_000L) }
     }
 
     private fun startSession(context: Context, apk: File, version: String?) {
