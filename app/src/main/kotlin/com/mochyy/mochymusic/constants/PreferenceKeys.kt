@@ -1000,14 +1000,11 @@ enum class LyricsMotionStyle(
     // style 2 without the shader, just the colour sweeping along
     PLAIN("Plain", "Style 2's sweep, without the glow or the wave", risesWords = false, shaded = false),
 
-    /** Style 3: dual-tone cyber-plasma neon tube with white-hot spark ignition and held-note voltage surge. */
-    NEON("Neon", "White-hot spark igniting dual-tone neon plasma tubes", risesWords = false, shaded = true, accentFill = true),
+    /** Style 3: Style 2's wave and glow with the song cover's accent colour. */
+    NEON("Neon", "Style 2 wave and glow in the cover's colour", risesWords = false, shaded = true, accentFill = true),
 
-    /** Style 4: architectural spotlight aperture with live-expanding frosted ribbon and specular prism reveal. */
-    MASK("Mask", "Spotlight prism cut revealing dual-tone gradient with masked ribbon", risesWords = false, shaded = false, accentFill = true);
-
-    val isNeon: Boolean get() = this == NEON
-    val isMask: Boolean get() = this == MASK
+    /** Style 4: Style 2's clean sweep in the song cover's accent colour, without glow. */
+    MASK("Mask", "Style 2 clean sweep in the cover's colour", risesWords = false, shaded = false, accentFill = true);
 
     // the same motion with the shader switched off, used when moving people off the old shader switch
     val withoutShader: LyricsMotionStyle get() = when {

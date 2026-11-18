@@ -38,16 +38,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorProducer
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.asComposeRenderEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -192,6 +189,20 @@ internal fun lyricsLineInsets(alignment: LyricsAlignment): LyricsLineInsets {
 
 private const val ActiveUnsungAlpha = 0.58f
 
+internal fun liftLyricsAccent(accentColor: Color): Color {
+    val r = accentColor.red
+    val g = accentColor.green
+    val b = accentColor.blue
+    val luma = 0.299f * r + 0.587f * g + 0.114f * b
+    val lift = if (luma < 0.55f) 0.55f - luma else 0f
+    return Color(
+        red = r + (1f - r) * lift,
+        green = g + (1f - g) * lift,
+        blue = b + (1f - b) * lift,
+        alpha = 1f,
+    )
+}
+
 @Composable
 fun LyricsGlowLine(
     entry: LyricsEntry,
@@ -243,9 +254,6 @@ fun LyricsGlowLine(
 
     /** told where the words start across the row (px from its left edge), for the line the card grows into */
     onTextStart: ((Float) -> Unit)? = null,
-
-    /** End time of this line in ms, used to synthesize natural syllable cadence on line-synced tracks for Neon and Mask. */
-    lineEndMs: Long? = null,
 ) {
     val wordMotion = motionStyle.risesWords
     val targetAlpha = restingAlphaOf(state)
@@ -273,33 +281,27 @@ fun LyricsGlowLine(
     )
 
     val baseColor = LocalContentColor.current
+    // The sung letters of the accent styles take the cover's colour. Lifted toward white when the
+    // cover is dark, so the karaoke stays readable on the dark page instead of sinking into it.
+    val sungAccent = remember(accentColor) {
+        liftLyricsAccent(accentColor)
+    }
+
     // eased with the alpha and scale, and read only while drawing so the fade doesn't recompose the line every frame
     val lineColor = androidx.compose.animation.animateColorAsState(
-        targetValue = if (state == LyricsLineState.ACTIVE) Color.White else baseColor,
+        targetValue = when {
+            state != LyricsLineState.ACTIVE -> baseColor
+            motionStyle.accentFill -> sungAccent
+            else -> Color.White
+        },
         animationSpec = tween(durationMillis = 600),
         label = "lyricsLineColor",
     )
     val textColor = remember(lineColor) { ColorProducer { lineColor.value } }
-    val unsungColor = remember(lineColor) { ColorProducer { lineColor.value.copy(alpha = ActiveUnsungAlpha) } }
+    val unsungColor = remember(baseColor) { ColorProducer { Color.White.copy(alpha = ActiveUnsungAlpha) } }
     val readingColor = remember(lineColor) { ColorProducer { lineColor.value.copy(alpha = 0.4f) } }
     val subLineColor = remember(lineColor) { ColorProducer { lineColor.value.copy(alpha = 0.6f) } }
     val translationColor = remember(lineColor) { ColorProducer { lineColor.value.copy(alpha = 0.5f) } }
-
-    // The sung letters of the accent styles take the cover's colour. Lifted toward white when the
-    // cover is dark, so the karaoke stays readable on the dark page instead of sinking into it.
-    val sungAccent = remember(accentColor) {
-        val r = accentColor.red
-        val g = accentColor.green
-        val b = accentColor.blue
-        val luma = 0.299f * r + 0.587f * g + 0.114f * b
-        val lift = if (luma < 0.55f) 0.55f - luma else 0f
-        Color(
-            red = r + (1f - r) * lift,
-            green = g + (1f - g) * lift,
-            blue = b + (1f - b) * lift,
-            alpha = 1f,
-        )
-    }
 
     // the side on screen, not the text's own start: Start on an arabic line is its right edge
     val onLeft = (alignment == LyricsAlignment.START) !=
@@ -322,16 +324,7 @@ fun LyricsGlowLine(
         splitBackingVocal(entry.text, entry.syllables ?: entry.words)
     }
     val leadText = parts.lead
-    val effectiveEndMs = lineEndMs ?: (entry.time + 3_400L)
-    val words = if (!parts.leadWords.isNullOrEmpty()) {
-        parts.leadWords
-    } else if ((motionStyle.isNeon || motionStyle.isMask) && leadText.isNotBlank() && effectiveEndMs > entry.time) {
-        remember(leadText, entry.time, effectiveEndMs) {
-            SmartLyricPalette.smartSynthesizedWords(leadText, entry.time, effectiveEndMs)
-        }
-    } else {
-        parts.leadWords
-    }
+    val words = parts.leadWords
     val hasRuby = !ruby.isNullOrEmpty()
     val leadStyle = MaterialTheme.typography.headlineSmall.copy(
         fontSize = LyricsFontSize,
@@ -437,7 +430,6 @@ fun LyricsGlowLine(
                 baseColor = unsungColor,
 
                 highlightColor = if (motionStyle.accentFill) sungAccent else Color.White,
-                accentColor = accentColor,
                 // The reading is drawn below, in one place for both paths. It used to move into
                 // the karaoke block when the line went active (above any backing vocal, and at a
                 // dimmer colour) and back out when it ended, so it jumped every line change.
@@ -501,7 +493,6 @@ fun LyricsGlowLine(
                 textAlign = textAlign,
                 motionStyle = motionStyle,
                 riseAmplitudeProvider = { waveAmplitude },
-                accentColor = accentColor,
             )
         }
 
@@ -1079,17 +1070,9 @@ internal fun KaraokeSweepText(
     /** Stop frame callbacks for a paused overlay, but refresh once after seeks. */
     animationRunning: Boolean = true,
     animationSeekTick: Int = 0,
-    /** Artwork-derived accent seed for Neon plasma and Mask prism palettes. */
-    accentColor: Color = highlightColor,
 ) {
     val wordMotion = motionStyle.risesWords
-    val isNeon = motionStyle.isNeon
-    val isMask = motionStyle.isMask
-    val neonPalette = remember(accentColor, isNeon) { if (isNeon) SmartLyricPalette.neonOf(accentColor) else null }
-    val maskPalette = remember(accentColor, isMask) { if (isMask) SmartLyricPalette.maskOf(accentColor) else null }
-
-    // Neon also glides smoothly through word spaces like Style 1 without lifting letters.
-    val head = rememberKaraokeHead(text, words, positionProvider, wordMotion || isNeon || isMask, animationRunning, animationSeekTick)
+    val head = rememberKaraokeHead(text, words, positionProvider, wordMotion, animationRunning, animationSeekTick)
 
     val hasRuby = !ruby.isNullOrEmpty()
     val style = MaterialTheme.typography.headlineSmall.copy(
@@ -1104,37 +1087,22 @@ internal fun KaraokeSweepText(
 
     val effect: Modifier
     val motion: Modifier
-    when {
-        wordMotion -> {
-            effect = rememberBloomModifier(layoutHolder, head, text.length, waveAmplitudeProvider, highBloom)
-            val fakeGlow = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
-            motion = rememberWordMotionModifier(
-                layoutHolder = layoutHolder,
-                head = head,
-                riseAmplitudeProvider = riseAmplitudeProvider,
-                fakeGlowProvider = { if (fakeGlow) waveAmplitudeProvider() else 0f },
-                motionScale = motionScale,
-            )
-        }
-        isNeon -> {
-            // Neon uses its own multi-layer plasma corona + enhanced bloom, distinct from Style 2's wave warp.
-            effect = rememberBloomModifier(
-                layoutHolder,
-                head,
-                text.length,
-                { (waveAmplitudeProvider() * 1.45f).coerceAtMost(1.6f) },
-                highBloom,
-            )
-            motion = Modifier
-        }
-        isMask || !motionStyle.shaded -> {
-            effect = Modifier
-            motion = Modifier
-        }
-        else -> {
-            effect = rememberLegacyWaveModifier(layoutHolder, head, text.length, waveAmplitudeProvider, highBloom)
-            motion = Modifier
-        }
+    if (wordMotion) {
+        effect = rememberBloomModifier(layoutHolder, head, text.length, waveAmplitudeProvider, highBloom)
+        // Letters move by drawing, inside the bloom layer so the glow sees them where they are.
+        // Without AGSL there's no bloom pass, so a soft light behind a held word stands in for it
+        // (only while the lyrics shader setting is on - off means no glow at all).
+        val fakeGlow = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+        motion = rememberWordMotionModifier(
+            layoutHolder = layoutHolder,
+            head = head,
+            riseAmplitudeProvider = riseAmplitudeProvider,
+            fakeGlowProvider = { if (fakeGlow) waveAmplitudeProvider() else 0f },
+            motionScale = motionScale,
+        )
+    } else {
+        effect = rememberLegacyWaveModifier(layoutHolder, head, text.length, waveAmplitudeProvider, highBloom)
+        motion = Modifier
     }
     // Applied outside the wave shader so the readings stay still while the sung word lifts — a
     // reading that rides the wave with its word reads as jitter at this size.
@@ -1144,11 +1112,7 @@ internal fun KaraokeSweepText(
         textLength = text.length,
         placement = rubyPlacement,
         dimColor = rubyColor,
-        litColor = when {
-            neonPalette != null -> ColorProducer { neonPalette.hotCore }
-            maskPalette != null -> ColorProducer { maskPalette.primary }
-            else -> LitRubyColor
-        },
+        litColor = LitRubyColor,
         headProvider = { head.offset.floatValue },
     )
 
@@ -1163,110 +1127,6 @@ internal fun KaraokeSweepText(
                 .padding(MotionBleed)
                 .then(motion)
         ) {
-            if (neonPalette != null || maskPalette != null) {
-                Spacer(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .drawBehind {
-                            val layout = layoutHolder[0] ?: return@drawBehind
-                            val h = head.offset.floatValue
-                            if (h <= 0f || text.isEmpty()) return@drawBehind
-                            val len = text.length
-                            val headOffset = h.toInt().coerceIn(0, len)
-                            val headLine = layout.shownLineFor(headOffset.coerceAtMost(len - 1))
-                            val rtl = layout.isRtlLine(headLine)
-                            val flow = if (rtl) -1f else 1f
-                            val headX = layout.sweepHeadX(h, headOffset, headLine, len, rtl)
-                            val toX = headX + EdgeLeadPx * flow
-                            val fPx = fontPx(layout)
-
-                            if (neonPalette != null) {
-                                val surge = head.glow.floatValue.coerceIn(0f, 1f)
-                                for (line in 0..headLine) {
-                                    var left = layout.getLineLeft(line)
-                                    var right = layout.getLineRight(line)
-                                    if (line == headLine && headOffset < len) {
-                                        if (rtl) left = maxOf(toX, left) else right = minOf(toX, right)
-                                    }
-                                    if (right > left + 1f) {
-                                        val top = layout.getLineTop(line) - fPx * 0.16f
-                                        val bottom = layout.getLineBottom(line) + fPx * 0.16f
-                                        drawRoundRect(
-                                            brush = Brush.horizontalGradient(
-                                                colors = listOf(
-                                                    neonPalette.primary.copy(alpha = 0.22f + 0.14f * surge),
-                                                    neonPalette.secondary.copy(alpha = 0.26f + 0.16f * surge),
-                                                ),
-                                                startX = left,
-                                                endX = right,
-                                            ),
-                                            topLeft = Offset(left - 6.dp.toPx(), top),
-                                            size = Size((right - left) + 12.dp.toPx(), (bottom - top).coerceAtLeast(1f)),
-                                            cornerRadius = CornerRadius(fPx * 0.5f, fPx * 0.5f),
-                                        )
-                                    }
-                                }
-                                if (headOffset < len) {
-                                    val midY = (layout.getLineTop(headLine) + layout.getLineBottom(headLine)) * 0.5f
-                                    val sparkRadius = (fPx * (0.95f + 0.40f * surge)).coerceAtLeast(8f)
-                                    drawCircle(
-                                        brush = Brush.radialGradient(
-                                            colors = listOf(
-                                                Color.White.copy(alpha = 0.78f),
-                                                neonPalette.secondary.copy(alpha = 0.50f),
-                                                neonPalette.primary.copy(alpha = 0.20f),
-                                                Color.Transparent,
-                                            ),
-                                            center = Offset(headX, midY),
-                                            radius = sparkRadius,
-                                        ),
-                                        radius = sparkRadius,
-                                        center = Offset(headX, midY),
-                                    )
-                                }
-                            } else if (maskPalette != null) {
-                                val padH = (fPx * 0.24f).coerceAtLeast(4.dp.toPx())
-                                for (line in 0..headLine) {
-                                    var left = layout.getLineLeft(line)
-                                    var right = layout.getLineRight(line)
-                                    if (line == headLine && headOffset < len) {
-                                        if (rtl) left = maxOf(toX, left) else right = minOf(toX, right)
-                                    }
-                                    if (right > left + 2f) {
-                                        val rawTop = layout.getLineTop(line)
-                                        val rawBottom = layout.getLineBottom(line)
-                                        val insetV = (rawBottom - rawTop) * 0.08f
-                                        val boxTop = rawTop + insetV
-                                        val boxH = (rawBottom - rawTop - insetV * 2f).coerceAtLeast(4f)
-                                        val boxLeft = left - padH
-                                        val boxW = (right - left) + padH * 2f
-                                        val corner = CornerRadius(boxH * 0.34f, boxH * 0.34f)
-                                        drawRoundRect(
-                                            brush = Brush.horizontalGradient(
-                                                colors = listOf(
-                                                    maskPalette.ribbonFill,
-                                                    maskPalette.secondary.copy(alpha = 0.20f),
-                                                ),
-                                                startX = boxLeft,
-                                                endX = boxLeft + boxW,
-                                            ),
-                                            topLeft = Offset(boxLeft, boxTop),
-                                            size = Size(boxW, boxH),
-                                            cornerRadius = corner,
-                                        )
-                                        drawRoundRect(
-                                            color = maskPalette.ribbonStroke,
-                                            topLeft = Offset(boxLeft, boxTop),
-                                            size = Size(boxW, boxH),
-                                            cornerRadius = corner,
-                                            style = Stroke(width = 1.dp.toPx()),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                )
-            }
 
             // Both copies must lay out identically or the sweep mask, which is built from the
             // first copy's TextLayoutResult and clipped over the second, lands in the wrong place.
@@ -1275,11 +1135,7 @@ internal fun KaraokeSweepText(
             BasicText(
                 text = text,
                 style = style.copy(fontWeight = FontWeight.Bold, textAlign = textAlign),
-                color = when {
-                    neonPalette != null -> ColorProducer { neonPalette.unlitTube }
-                    maskPalette != null -> ColorProducer { maskPalette.stencilDim }
-                    else -> baseColor
-                },
+                color = baseColor,
                 overflow = TextOverflow.Clip,
                 softWrap = !singleLine,
                 maxLines = if (singleLine) 1 else Int.MAX_VALUE,
@@ -1289,22 +1145,10 @@ internal fun KaraokeSweepText(
                 },
             )
 
-            val litTextStyle = if (neonPalette != null) {
-                style.copy(
-                    shadow = Shadow(
-                        color = neonPalette.primary.copy(alpha = 0.92f),
-                        offset = Offset.Zero,
-                        blurRadius = 18f,
-                    )
-                )
-            } else {
-                style
-            }
-
             Text(
                 text = text,
-                style = litTextStyle,
-                color = if (neonPalette != null || maskPalette != null) Color.White else highlightColor,
+                style = style,
+                color = highlightColor,
                 fontWeight = FontWeight.Bold,
                 textAlign = textAlign,
                 overflow = TextOverflow.Clip,
@@ -1325,6 +1169,9 @@ internal fun KaraokeSweepText(
                         if (len == 0) return@drawWithContent
                         val reach = MotionBleed.toPx()
                         val lastLine = layout.lineCount - 1
+                        // The sung area reaches into the room around the text on the outside edges
+                        // only - between lines it stops exactly at the boundary, so it never lights
+                        // the top of the line below.
                         fun topOf(line: Int) = layout.getLineTop(line) - if (line == 0) reach else 0f
                         fun bottomOf(line: Int) =
                             layout.getLineBottom(line) + if (line == lastLine) reach else 0f
@@ -1332,6 +1179,7 @@ internal fun KaraokeSweepText(
                         val headOffset = h.toInt().coerceIn(0, len)
                         val headLine = layout.shownLineFor(headOffset.coerceAtMost(len - 1))
                         val rtl = layout.isRtlLine(headLine)
+                        // the way the sweep travels on screen: right to left for arabic, hebrew...
                         val flow = if (rtl) -1f else 1f
 
                         val headX = layout.sweepHeadX(h, headOffset, headLine, len, rtl)
@@ -1343,12 +1191,12 @@ internal fun KaraokeSweepText(
                             (headOffset - EdgeSoftChars).coerceAtLeast(layout.getLineStart(headLine)),
                             true,
                         )
-                        val fPx = fontPx(layout)
-                        val softMax = fPx * if (maskPalette != null) 0.22f else LatinLetterEm
+                        // one character back, but no more than a latin letter: across a whole kanji the sung one and the one before it both sat half lit
+                        val softMax = fontPx(layout) * LatinLetterEm
                         val fromX = if ((headX - softFrom) * flow > 0f) {
                             headX - flow * minOf((headX - softFrom) * flow, softMax)
                         } else {
-                            headX - (if (maskPalette != null) 8f else EdgeSoftPx) * flow
+                            headX - EdgeSoftPx * flow
                         }
                         val toX = headX + EdgeLeadPx * flow
 
@@ -1356,6 +1204,7 @@ internal fun KaraokeSweepText(
                         for (line in 0..headLine) {
                             var left = layout.getLineLeft(line) - reach
                             var right = layout.getLineRight(line) + reach
+                            // the head's own line is lit from where it starts up to the head
                             if (line == headLine && headOffset < len) {
                                 if (rtl) left = maxOf(toX, left) else right = minOf(toX, right)
                             }
@@ -1365,64 +1214,6 @@ internal fun KaraokeSweepText(
                         }
 
                         clipPath(sung) { this@drawWithContent.drawContent() }
-
-                        val totalWidth = size.width.coerceAtLeast(1f)
-                        if (neonPalette != null) {
-                            drawRect(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(neonPalette.primary, neonPalette.secondary),
-                                    startX = 0f,
-                                    endX = totalWidth,
-                                ),
-                                topLeft = Offset(-reach, -reach),
-                                size = Size(totalWidth + reach * 2f, size.height + reach * 2f),
-                                blendMode = BlendMode.SrcIn,
-                            )
-                            if (headOffset < len) {
-                                val sparkSpan = (fPx * 1.65f).coerceAtLeast(14f)
-                                val sparkStart = headX - sparkSpan * flow
-                                drawRect(
-                                    brush = Brush.horizontalGradient(
-                                        0f to Color.Transparent,
-                                        0.55f to neonPalette.hotCore.copy(alpha = 0.85f),
-                                        1f to Color.White,
-                                        startX = sparkStart,
-                                        endX = toX,
-                                    ),
-                                    topLeft = Offset(minOf(sparkStart, toX), lineTop),
-                                    size = Size(kotlin.math.abs(toX - sparkStart), lineBottom - lineTop),
-                                    blendMode = BlendMode.SrcAtop,
-                                )
-                            }
-                        } else if (maskPalette != null) {
-                            drawRect(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(maskPalette.primary, maskPalette.secondary),
-                                    startX = 0f,
-                                    endX = totalWidth,
-                                ),
-                                topLeft = Offset(-reach, -reach),
-                                size = Size(totalWidth + reach * 2f, size.height + reach * 2f),
-                                blendMode = BlendMode.SrcIn,
-                            )
-                            if (headOffset < len) {
-                                val prismSpan = (fPx * 1.15f).coerceAtLeast(10f)
-                                val prismStart = headX - prismSpan * flow
-                                drawRect(
-                                    brush = Brush.horizontalGradient(
-                                        0f to Color.Transparent,
-                                        0.62f to maskPalette.prismEdge,
-                                        0.88f to Color.White,
-                                        1f to maskPalette.prismEdge,
-                                        startX = prismStart,
-                                        endX = toX,
-                                    ),
-                                    topLeft = Offset(minOf(prismStart, toX), lineTop),
-                                    size = Size(kotlin.math.abs(toX - prismStart), lineBottom - lineTop),
-                                    blendMode = BlendMode.SrcAtop,
-                                )
-                            }
-                        }
 
                         if (headOffset < len) {
                             drawRect(
@@ -1583,7 +1374,6 @@ private fun BackingVocalLine(
     motionStyle: com.mochyy.mochymusic.constants.LyricsMotionStyle =
         com.mochyy.mochymusic.constants.LyricsMotionStyle.MOTION,
     riseAmplitudeProvider: () -> Float = waveAmplitudeProvider,
-    accentColor: Color = Color.White,
 ) {
 
     val expand = rememberBackingExpand(words, positionProvider, expandProvider)
@@ -1642,7 +1432,6 @@ private fun BackingVocalLine(
                 textAlign = textAlign,
                 motionStyle = motionStyle,
                 riseAmplitudeProvider = riseAmplitudeProvider,
-                accentColor = accentColor,
             )
         } else {
             BasicText(

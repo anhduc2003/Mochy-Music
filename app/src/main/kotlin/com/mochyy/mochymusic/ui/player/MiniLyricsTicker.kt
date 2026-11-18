@@ -495,16 +495,7 @@ private fun TickerLine(
     val line = rememberShownLyric(entry).entry
     val parts = remember(line.text, line.words) { splitBackingVocal(line.text, line.words) }
     val text = parts.lead.ifBlank { line.text }
-    val artworkAccent = com.mochyy.mochymusic.LocalArtworkColor.current
-    val words = if (!parts.leadWords.isNullOrEmpty()) {
-        parts.leadWords
-    } else if ((motionStyle.isNeon || motionStyle.isMask) && text.isNotBlank() && lineEndMs > entry.time) {
-        remember(text, entry.time, lineEndMs) {
-            SmartLyricPalette.smartSynthesizedWords(text, entry.time, lineEndMs)
-        }
-    } else {
-        parts.leadWords
-    }
+    val words = parts.leadWords
     val karaoke = !dim && !words.isNullOrEmpty() && text.isNotEmpty()
 
     val probe = remember(entry) { SweepProbe() }
@@ -580,6 +571,10 @@ private fun TickerLine(
                 .graphicsLayer { translationX = -scroll.floatValue },
         ) {
             if (karaoke) {
+                val artworkAccent = com.mochyy.mochymusic.LocalArtworkColor.current
+                val tickerHighlight = remember(artworkAccent, motionStyle) {
+                    if (motionStyle.accentFill) liftLyricsAccent(artworkAccent) else Color.White
+                }
                 KaraokeSweepText(
                     text = text,
                     words = words!!,
@@ -587,8 +582,7 @@ private fun TickerLine(
                     waveAmplitudeProvider = { if (waveEnabled) 1f else 0f },
                     riseAmplitudeProvider = { 1f },
                     baseColor = { Color.White.copy(alpha = UnsungAlpha) },
-                    highlightColor = Color.White,
-                    accentColor = artworkAccent,
+                    highlightColor = tickerHighlight,
                     fontSize = TickerFontSize,
                     lineHeight = TickerLineHeight,
                     highBloom = highBloom,
@@ -598,6 +592,14 @@ private fun TickerLine(
                     probe = probe,
                 )
             } else {
+                val artworkAccent = com.mochyy.mochymusic.LocalArtworkColor.current
+                val plainColor = remember(artworkAccent, motionStyle, dim) {
+                    if (!dim && motionStyle.accentFill) {
+                        liftLyricsAccent(artworkAccent)
+                    } else {
+                        Color.White.copy(alpha = if (dim) 0.55f else 1f)
+                    }
+                }
                 Text(
                     text = text,
                     // the same letter features as the sung line, so the words keep their width when the line goes dim
@@ -606,7 +608,7 @@ private fun TickerLine(
                         lineHeight = TickerLineHeight,
                     ).withLetterMotionFeatures(motionStyle.risesWords),
                     fontWeight = FontWeight.Bold,
-                    color = Color.White.copy(alpha = if (dim) 0.55f else 1f),
+                    color = plainColor,
                     maxLines = 1,
                     softWrap = false,
                     overflow = TextOverflow.Clip,
