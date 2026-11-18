@@ -10,7 +10,14 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.pm.PackageInfoCompat
 import com.mochyy.mochymusic.R
+import com.mochyy.mochymusic.ui.component.TopToaster
+import android.os.Handler
+import android.os.Looper
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
@@ -47,6 +54,39 @@ object UpdateInstaller {
 
         /** The archive could not be read as an APK at all, usually a half-finished download. */
         data class Unreadable(val reason: String?) : Verdict
+    }
+
+    // an install is not the calling screen's: a rotation, a theme change or anything else that
+    // rebuilds the screen must not cancel a copy that is already on its way, and must not start a
+    // second one. One job per APK, owned by the process.
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val running = java.util.concurrent.ConcurrentHashMap<String, Job>()
+    private val main = Handler(Looper.getMainLooper())
+
+    /**
+     * Starts the install for [apk], or joins the one already running for it, and calls
+     * [onFinished] on the main thread either way. The work is not tied to the caller's lifecycle, so
+     * a screen that is rebuilt while it runs neither cancels it nor starts it again.
+     */
+    fun start(context: Context, apk: File, version: String? = null, onFinished: () -> Unit = {}): Job {
+        val key = apk.absolutePath
+        val existing = running[key]
+        if (existing != null && existing.isActive) {
+            existing.invokeOnCompletion { main.post(onFinished) }
+            return existing
+        }
+        val job = scope.launch {
+            val start = install(context.applicationContext, apk, version)
+            messageFor(context.applicationContext, start)?.let { message ->
+                main.post { TopToaster.error(message, durationMs = 8_000L) }
+            }
+        }
+        running[key] = job
+        job.invokeOnCompletion {
+            running.remove(key, job)
+            main.post(onFinished)
+        }
+        return job
     }
 
     /**

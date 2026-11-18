@@ -1017,7 +1017,6 @@
             android:exported="false"
             android:excludeFromRecents="true"
             android:noHistory="true"
-            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|fontScale|fontWeightAdjustment|locale|layoutDirection|density|colorMode"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <!-- the system installer's answer to an update session, delivered while this app is being replaced -->

@@ -306,12 +306,9 @@ fun UpdateScreen(navController: NavHostController) {
                                             }
                                             // installs over the copy on the phone and keeps its
                                             // data, and says why when that is impossible
-                                            scope.launch {
-                                                val start = UpdateInstaller.install(context, file, currentStatus.version)
-                                                UpdateInstaller.messageFor(context, start)?.let {
-                                                    com.mochyy.mochymusic.ui.component.TopToaster.error(it, durationMs = 8_000L)
-                                                }
-                                            }
+                                            // owned by the process, not this sheet: it says what went
+                                            // wrong on its own, and survives the sheet closing
+                                            UpdateInstaller.start(context, file, currentStatus.version)
                                         } else {
                                             val urlToDownload = currentStatus.apkUrl ?: "https://github.com/realidkroo/Mochy-Music/releases/download/${currentStatus.version}/mochy.apk"
                                             val downloadRequest = OneTimeWorkRequestBuilder<UpdateDownloadWorker>()
