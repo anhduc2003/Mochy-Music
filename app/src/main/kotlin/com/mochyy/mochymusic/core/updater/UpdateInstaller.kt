@@ -61,6 +61,9 @@ object UpdateInstaller {
     // second one. One job per APK, owned by the process.
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val running = java.util.concurrent.ConcurrentHashMap<String, Job>()
+    // an APK already handed to the system installer: a screen rebuilt a moment later must not stage
+    // it again and raise a second confirmation
+    private val handedOver = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
     private val main = Handler(Looper.getMainLooper())
 
     /**
@@ -75,9 +78,19 @@ object UpdateInstaller {
             existing.invokeOnCompletion { main.post(onFinished) }
             return existing
         }
+        if (key in handedOver) {
+            // already with the system installer: nothing left to stage
+            main.post(onFinished)
+            return scope.launch { }
+        }
+        val app = context.applicationContext
         val job = scope.launch {
-            val start = install(context.applicationContext, apk, version)
-            messageFor(context.applicationContext, start)?.let { message ->
+            val start = install(app, apk, version)
+            if (start is Start.Started) handedOver.add(key)
+            messageFor(app, start)?.let { message ->
+                // the shade, not only the in-app pill: a notification tap is usually made with no
+                // Mochy screen on top, and a pill nobody is looking at says nothing
+                UpdateInstallReceiver.notifyFailure(app, message)
                 main.post { TopToaster.error(message, durationMs = 8_000L) }
             }
         }

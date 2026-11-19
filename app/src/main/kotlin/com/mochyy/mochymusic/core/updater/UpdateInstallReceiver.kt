@@ -53,22 +53,7 @@ class UpdateInstallReceiver : BroadcastReceiver() {
     }
 
     /** Says it in the shade too: the toast is only seen when the app happens to be open. */
-    private fun notifyBlocked(context: Context, reason: String) {
-        runCatching {
-            DownloadNotificationManager.initialize(context)
-            val notification = NotificationCompat.Builder(context, DownloadNotificationManager.CHANNEL_ID)
-                .setSmallIcon(R.drawable.updated)
-                .setContentTitle(context.getString(R.string.update_install_title))
-                .setContentText(reason)
-                .setStyle(NotificationCompat.BigTextStyle().bigText(reason))
-                .setAutoCancel(true)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .build()
-            NotificationManagerCompat.from(context)
-                .notify(BLOCKED_NOTIFICATION_ID, notification)
-        }.onFailure { Timber.tag(TAG).e(it, "Could not post the install notice") }
-    }
+    private fun notifyBlocked(context: Context, reason: String) = notifyFailure(context, reason)
 
     private fun reasonFor(context: Context, status: Int, message: String?): String = when (status) {
         PackageInstaller.STATUS_FAILURE_ABORTED -> context.getString(R.string.update_install_aborted)
@@ -85,9 +70,31 @@ class UpdateInstallReceiver : BroadcastReceiver() {
         private const val TAG = "UpdateInstall"
         private const val BLOCKED_NOTIFICATION_ID = 7391
 
-        /** Explicit component, so neither action can reach anything but this app's own receiver. */
+        /** Explicit component, so the status can only reach this app's own receiver. */
         const val ACTION_STATUS = "com.mochyy.mochymusic.UPDATE_INSTALL_STATUS"
 
         const val EXTRA_VERSION = "version"
+
+        /**
+         * Puts [reason] in the shade under the update's own notification, the one place an install
+         * that never started can be read from: a tap on a notification usually happens with no Mochy
+         * screen on top, and the in-app pill needs a host nobody is showing.
+         */
+        fun notifyFailure(context: Context, reason: String) {
+            runCatching {
+                DownloadNotificationManager.initialize(context)
+                val notification = NotificationCompat.Builder(context, DownloadNotificationManager.CHANNEL_ID)
+                    .setSmallIcon(R.drawable.updated)
+                    .setContentTitle(context.getString(R.string.update_install_title))
+                    .setContentText(reason)
+                    .setStyle(NotificationCompat.BigTextStyle().bigText(reason))
+                    .setAutoCancel(true)
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .build()
+                NotificationManagerCompat.from(context)
+                    .notify(BLOCKED_NOTIFICATION_ID, notification)
+            }.onFailure { Timber.tag(TAG).e(it, "Could not post the install notice") }
+        }
     }
 }

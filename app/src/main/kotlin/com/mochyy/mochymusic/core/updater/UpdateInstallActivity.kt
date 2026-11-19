@@ -26,7 +26,7 @@ class UpdateInstallActivity : ComponentActivity() {
             return
         }
         val job = UpdateInstaller.start(this, apk, intent.getStringExtra(EXTRA_VERSION)) { finish() }
-        // already done (a rebuilt screen picking up a finished job): no window to keep
+        // already done, or already with the system installer: nothing to keep a window open for
         if (job.isCompleted) finish()
     }
 
