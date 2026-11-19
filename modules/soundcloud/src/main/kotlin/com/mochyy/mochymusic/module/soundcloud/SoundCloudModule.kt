@@ -308,6 +308,14 @@ class SoundCloudModule : SourceModule {
         return tracks.mapNotNull { (it as? JsonObject)?.let(::trackOf) }.mapNotNull(::uploadOf)
     }
 
+    /** uploads like this one, the way the web player's related tracks do. Blocking, as [search]. */
+    fun related(id: String, limit: Int = RelatedPage): List<Upload> {
+        val response = api("/tracks/$id/related", mapOf("limit" to limit.toString())) ?: return emptyList()
+        if (!response.ok) return emptyList()
+        val collection = objectsIn(response.text, "collection") ?: return emptyList()
+        return collection.mapNotNull(::trackOf).mapNotNull(::uploadOf)
+    }
+
     /** what SoundCloud is playing this week, so the screen has something before a search. Blocking. */
     fun charts(limit: Int = ChartsPage): List<Upload> {
         val response = api(
@@ -441,6 +449,7 @@ class SoundCloudModule : SourceModule {
         private const val ChartsKind = "trending"
         private const val ChartsGenre = "soundcloud:genres:all-music"
         private const val ChartsPage = 20
+        private const val RelatedPage = 20
         private const val HomePage = "https://soundcloud.com/"
         private const val MaxBundles = 12
         private const val MaxMatches = 10

@@ -32,6 +32,8 @@ class SoundCloudViewModel @Inject constructor(
         val playlists: List<SoundCloudModule.Playlist> = emptyList(),
         /** the playlist being looked at; null while browsing or searching */
         val open: SoundCloudModule.Playlist? = null,
+        /** the upload whose related tracks are listed; null in every other view */
+        val relatedTo: SoundCloudModule.Upload? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -79,6 +81,26 @@ class SoundCloudViewModel @Inject constructor(
             }
             _state.update { it.copy(loading = false, uploads = tracks) }
         }
+    }
+
+    /** what the screen showed before related tracks replaced it, so backing out restores it */
+    private var beforeRelated: List<SoundCloudModule.Upload> = emptyList()
+
+    fun openRelated(upload: SoundCloudModule.Upload) {
+        val module = module ?: return
+        beforeRelated = _state.value.uploads
+        viewModelScope.launch {
+            _state.update { it.copy(loading = true, relatedTo = upload, open = null, playlists = emptyList()) }
+            val tracks = withContext(Dispatchers.IO) {
+                runCatching { module.related(upload.id) }.getOrDefault(emptyList())
+            }
+            _state.update { it.copy(loading = false, uploads = tracks) }
+        }
+    }
+
+    fun closeRelated() {
+        _state.update { it.copy(relatedTo = null, uploads = beforeRelated) }
+        beforeRelated = emptyList()
     }
 
     /** back out of a playlist to what the screen showed before: the charts, or the last search */

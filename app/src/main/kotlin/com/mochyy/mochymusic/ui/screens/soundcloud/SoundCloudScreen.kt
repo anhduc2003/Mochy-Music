@@ -54,7 +54,9 @@ fun SoundCloudScreen(
 
     Column(Modifier.fillMaxSize()) {
         Text(
-            text = state.open?.title ?: "SoundCloud",
+            text = state.open?.title
+                ?: state.relatedTo?.let { "Tương tự: ${it.title}" }
+                ?: "SoundCloud",
             style = MaterialTheme.typography.titleLarge,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -62,6 +64,8 @@ fun SoundCloudScreen(
         )
         if (state.open != null) {
             TextButton(onClick = { viewModel.closePlaylist() }) { Text("← Về trang SoundCloud") }
+        } else if (state.relatedTo != null) {
+            TextButton(onClick = { viewModel.closeRelated() }) { Text("← Về danh sách trước") }
         } else {
             OutlinedTextField(
                 value = state.query,
@@ -103,6 +107,7 @@ fun SoundCloudScreen(
             itemsIndexed(state.uploads, key = { _, upload -> upload.id }) { index, upload ->
                 UploadRow(
                     upload = upload,
+                    onRelated = { viewModel.openRelated(upload) },
                     onClick = {
                         playerConnection.playQueue(
                             ListQueue(
@@ -119,7 +124,11 @@ fun SoundCloudScreen(
 }
 
 @Composable
-private fun UploadRow(upload: SoundCloudModule.Upload, onClick: () -> Unit) {
+private fun UploadRow(
+    upload: SoundCloudModule.Upload,
+    onRelated: () -> Unit,
+    onClick: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -143,6 +152,7 @@ private fun UploadRow(upload: SoundCloudModule.Upload, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
+        TextButton(onClick = onRelated) { Text("Tương tự") }
     }
 }
 
