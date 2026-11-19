@@ -6,6 +6,8 @@ import com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
 import com.mochyy.mochymusic.modules.ModuleRegistry
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -36,6 +38,8 @@ class SoundCloudViewModel @Inject constructor(
         val relatedTo: SoundCloudModule.Upload? = null,
     )
 
+    private var searchJob: Job? = null
+
     private val _state = MutableStateFlow(UiState())
     val state = _state.asStateFlow()
 
@@ -47,9 +51,30 @@ class SoundCloudViewModel @Inject constructor(
         loadTrending()
     }
 
-    fun onQueryChange(text: String) = _state.update { it.copy(query = text) }
+    /** what is typed in the page's capsule is searched as it is typed, a pause at a time */
+    fun onQueryChange(text: String) {
+        _state.update { it.copy(query = text) }
+        searchJob?.cancel()
+        if (text.isBlank()) {
+            _state.update { it.copy(uploads = emptyList(), playlists = emptyList(), open = null, relatedTo = null) }
+            loadTrending()
+            return
+        }
+        searchJob = viewModelScope.launch {
+            delay(SearchDelayMs)
+            search()
+        }
+    }
 
-    fun onTabChange(tab: Tab) = _state.update { it.copy(tab = tab) }
+    fun onTabChange(tab: Tab) {
+        if (_state.value.tab == tab) return
+        _state.update { it.copy(tab = tab) }
+        // the other tab answers a different question, so the same words are searched again there
+        if (_state.value.query.isNotBlank()) {
+            searchJob?.cancel()
+            searchJob = viewModelScope.launch { search() }
+        }
+    }
 
     fun search() {
         val current = _state.value
@@ -124,5 +149,10 @@ class SoundCloudViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private companion object {
+        /** a search fires once typing pauses, so a word is not a request per letter */
+        const val SearchDelayMs = 450L
     }
 }

@@ -1,46 +1,48 @@
 package com.mochyy.mochymusic.ui.screens.soundcloud
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
-import coil3.compose.AsyncImage
+import com.mochyy.mochymusic.LocalPlayerAwareWindowInsets
 import com.mochyy.mochymusic.LocalPlayerConnection
 import com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
 import com.mochyy.mochymusic.playback.queues.ListQueue
+import com.mochyy.mochymusic.ui.component.detail.PlaylistTrackRow
+import com.mochyy.mochymusic.ui.screens.playlist.GeneratedPlaylistPage
+import com.mochyy.mochymusic.ui.screens.playlist.generatedStats
+import com.mochyy.mochymusic.ui.utils.backToMain
+import com.mochyy.mochymusic.utils.makeTimeString
 import com.mochyy.mochymusic.viewmodels.SoundCloudViewModel
 
 /**
- * SoundCloud, as the app shows it: what's trending before a search, search by track or playlist,
- * tap a playlist to see what's in it, tap a track to hear it. The stream is resolved by the
- * upload's own id, so the app plays the upload that was tapped rather than a same-titled one.
+ * SoundCloud in the app's own clothes: the same page, row and search capsule as a playlist, so it
+ * reads as one more part of Mochy rather than a screen bolted onto it. It opens on what SoundCloud
+ * is playing this week, searches the catalog as you type, and opens a playlist's tracks in place.
+ * Playback is by the upload's own id, so the upload that was tapped is the one that plays.
  */
 @Composable
 fun SoundCloudScreen(
@@ -48,157 +50,123 @@ fun SoundCloudScreen(
     viewModel: SoundCloudViewModel = hiltViewModel(),
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
+    val haptic = LocalHapticFeedback.current
     val state by viewModel.state.collectAsState()
+    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val isPlaying by playerConnection.isEffectivelyPlaying.collectAsState()
+    val lazyListState = rememberLazyListState()
 
-    Column(Modifier.fillMaxSize()) {
-        Text(
-            text = state.open?.title
-                ?: state.relatedTo?.let { "Tương tự: ${it.title}" }
-                ?: "SoundCloud",
-            style = MaterialTheme.typography.titleLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+    // the page's capsule is the catalog's search box, so what is typed there is what is searched
+    var query by remember { mutableStateOf(TextFieldValue()) }
+
+    val uploads = state.uploads
+    val totalSeconds = remember(uploads) { (uploads.sumOf { it.durationMs ?: 0L } / 1000L).toInt() }
+    val title = state.open?.title ?: state.relatedTo?.title ?: "SoundCloud"
+    val active = mediaMetadata?.id
+
+    fun play(from: Int, shuffled: Boolean = false) {
+        val ordered = if (shuffled) uploads.shuffled() else uploads
+        val start = if (shuffled) 0 else from.coerceIn(0, (ordered.size - 1).coerceAtLeast(0))
+        if (ordered.isEmpty()) return
+        playerConnection.playQueue(
+            ListQueue(
+                title = title,
+                items = ordered.map { it.toMediaItem() },
+                startIndex = start,
+            ),
         )
-        if (state.open != null) {
-            TextButton(onClick = { viewModel.closePlaylist() }) { Text("← Về trang SoundCloud") }
-        } else if (state.relatedTo != null) {
-            TextButton(onClick = { viewModel.closeRelated() }) { Text("← Về danh sách trước") }
+    }
+
+    GeneratedPlaylistPage(
+        title = title,
+        coverUrl = uploads.firstOrNull()?.artworkUrl,
+        stats = if (state.playlists.isNotEmpty()) {
+            "${state.playlists.size} playlists"
         } else {
-            OutlinedTextField(
-                value = state.query,
-                onValueChange = viewModel::onQueryChange,
-                placeholder = { Text("Tìm bài hoặc playlist trên SoundCloud") },
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { viewModel.search() }),
-                trailingIcon = {
-                    TextButton(onClick = { viewModel.search() }) { Text("Tìm") }
-                },
-            )
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilterChip(
-                    selected = state.tab == SoundCloudViewModel.Tab.Tracks,
-                    onClick = { viewModel.onTabChange(SoundCloudViewModel.Tab.Tracks) },
-                    label = { Text("Bài hát") },
-                )
-                FilterChip(
-                    selected = state.tab == SoundCloudViewModel.Tab.Playlists,
-                    onClick = { viewModel.onTabChange(SoundCloudViewModel.Tab.Playlists) },
-                    label = { Text("Playlist") },
-                )
+            generatedStats(uploads.size, totalSeconds)
+        },
+        lazyListState = lazyListState,
+        contentPadding = LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom)
+            .union(WindowInsets.ime).asPaddingValues(),
+        isPlaying = uploads.any { "$SC${it.id}" == active } && isPlaying,
+        onPlayClick = { play(0) },
+        onShuffleClick = { play(0, shuffled = true) },
+        query = query,
+        onQueryChange = {
+            query = it
+            viewModel.onQueryChange(it.text)
+        },
+        searchPlaceholder = "Tìm bài hoặc playlist trên SoundCloud",
+        onBackClick = {
+            when {
+                state.open != null -> viewModel.closePlaylist()
+                state.relatedTo != null -> viewModel.closeRelated()
+                else -> navController.navigateUp()
             }
-        }
-        if (state.loading) {
-            LinearProgressIndicator(Modifier.fillMaxWidth())
-        }
-        if (state.uploads.isNotEmpty()) {
-            TextButton(
-                onClick = {
-                    playerConnection.playQueue(
-                        ListQueue(
-                            title = state.open?.title ?: "SoundCloud",
-                            items = state.uploads.map { it.toMediaItem() },
-                        ),
+        },
+        onBackLongClick = { navController.backToMain() },
+        creator = when {
+            state.open != null -> state.open?.artist
+            state.relatedTo != null -> "Tương tự ${state.relatedTo?.title.orEmpty()}"
+            else -> "Thịnh hành tuần này"
+        },
+    ) {
+        if (state.open == null && state.relatedTo == null) {
+            item(key = "tabs", contentType = "tabs") {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                ) {
+                    FilterChip(
+                        selected = state.tab == SoundCloudViewModel.Tab.Tracks,
+                        onClick = { viewModel.onTabChange(SoundCloudViewModel.Tab.Tracks) },
+                        label = { Text("Bài hát") },
                     )
+                    FilterChip(
+                        selected = state.tab == SoundCloudViewModel.Tab.Playlists,
+                        onClick = { viewModel.onTabChange(SoundCloudViewModel.Tab.Playlists) },
+                        label = { Text("Playlist") },
+                    )
+                }
+            }
+        }
+
+        items(state.playlists, key = { "pl-${it.id}" }, contentType = { "playlist" }) { playlist ->
+            PlaylistTrackRow(
+                thumbnailUrl = playlist.artworkUrl,
+                title = playlist.title,
+                subtitle = "${playlist.artist} • ${playlist.trackCount} bài",
+                isActive = false,
+                isPlaying = false,
+                onClick = { viewModel.openPlaylist(playlist) },
+                onLongClick = { viewModel.openPlaylist(playlist) },
+                onMenuClick = { viewModel.openPlaylist(playlist) },
+            )
+        }
+
+        itemsIndexed(uploads, key = { _, upload -> upload.id }, contentType = { _, _ -> "track" }) { index, upload ->
+            val isThis = "$SC${upload.id}" == active
+            PlaylistTrackRow(
+                thumbnailUrl = upload.artworkUrl,
+                title = upload.title,
+                subtitle = listOfNotNull(
+                    upload.artist.takeIf { it.isNotBlank() },
+                    upload.durationMs?.let { makeTimeString(it) },
+                ).joinToString(" • "),
+                isActive = isThis,
+                isPlaying = isThis && isPlaying,
+                onClick = {
+                    if (isThis) playerConnection.togglePlayPause() else play(index)
                 },
-            ) { Text("Phát tất cả (${state.uploads.size})") }
-        }
-        LazyColumn(Modifier.fillMaxSize()) {
-            items(state.playlists, key = { "pl-${it.id}" }) { playlist ->
-                PlaylistRow(playlist = playlist, onClick = { viewModel.openPlaylist(playlist) })
-            }
-            itemsIndexed(state.uploads, key = { _, upload -> upload.id }) { index, upload ->
-                UploadRow(
-                    upload = upload,
-                    onRelated = { viewModel.openRelated(upload) },
-                    onClick = {
-                        playerConnection.playQueue(
-                            ListQueue(
-                                title = state.open?.title ?: "SoundCloud",
-                                items = state.uploads.map { it.toMediaItem() },
-                                startIndex = index,
-                            ),
-                        )
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun UploadRow(
-    upload: SoundCloudModule.Upload,
-    onRelated: () -> Unit,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Artwork(upload.artworkUrl)
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = upload.title,
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = upload.artist,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        TextButton(onClick = onRelated) { Text("Tương tự") }
-    }
-}
-
-@Composable
-private fun PlaylistRow(playlist: SoundCloudModule.Playlist, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Artwork(playlist.artworkUrl)
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = playlist.title,
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = "${playlist.artist} · ${playlist.trackCount} bài",
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                onLongClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    viewModel.openRelated(upload)
+                },
+                onMenuClick = { viewModel.openRelated(upload) },
             )
         }
     }
 }
 
-@Composable
-private fun Artwork(url: String?) {
-    AsyncImage(
-        model = url,
-        contentDescription = null,
-        modifier = Modifier.size(48.dp),
-    )
-}
+/** the media id prefix the app gives a SoundCloud upload, kept next to the screen that builds them */
+private const val SC = SoundCloudModule.MediaIdPrefix
