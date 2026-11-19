@@ -138,7 +138,10 @@ class BluetoothCodecWatcher(context: Context) {
     @SuppressLint("MissingPermission")
     private fun codecOf(proxy: BluetoothA2dp, output: AudioDeviceInfo): BluetoothCodec? = runCatching {
         val connected = proxy.connectedDevices
-        val device = connected.firstOrNull { output.address.isNotEmpty() && it.address.equals(output.address, ignoreCase = true) }
+        // matching by address is a nicety: `AudioDeviceInfo#getAddress` only exists from Android 9,
+        // and reading it on anything older throws instead of returning nothing
+        val address = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) output.address else ""
+        val device = connected.firstOrNull { address.isNotEmpty() && it.address.equals(address, ignoreCase = true) }
             ?: connected.firstOrNull()
             ?: return null
         val status = proxy.javaClass.getMethod("getCodecStatus", BluetoothDevice::class.java).invoke(proxy, device)

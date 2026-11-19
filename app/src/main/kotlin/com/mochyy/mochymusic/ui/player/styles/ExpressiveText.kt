@@ -1092,13 +1092,26 @@ private fun LyricLine(
 private const val BlurShownPx = 0.5f
 
 /**
+ * `DECAL` is what keeps a blurred word's soft edge inside its own layer, and it does not exist
+ * before Android 12 - touching the constant there is a `NoSuchFieldError`, which drawing a lyric
+ * line has no way to survive. Below 12 there is no render effect at all ([BlurEffectCache.get]
+ * returns null), so the tile mode only has to be one the platform has.
+ */
+private val BlurTileMode: Shader.TileMode
+    get() = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+        Shader.TileMode.DECAL
+    } else {
+        Shader.TileMode.CLAMP
+    }
+
+/**
  * [content] blurred by [radius] in a layer of its own, drawn at half size once the blur is wide
  * enough to hide it: every word of a line blurred at full size, every frame of a line change, was
  * most of the gpu's frame on the poster.
  */
 private fun DrawScope.drawBlurred(layer: GraphicsLayer, radius: Float, content: DrawScope.() -> Unit) {
     val res = if (radius >= 12f) 0.5f else 1f
-    layer.renderEffect = BlurEffectCache.get(radius * res, Shader.TileMode.DECAL)
+    layer.renderEffect = BlurEffectCache.get(radius * res, BlurTileMode)
     val box = androidx.compose.ui.unit.IntSize((size.width * res).roundToInt().coerceAtLeast(1), (size.height * res).roundToInt().coerceAtLeast(1))
     layer.record(box) { scale(res, res, pivot = Offset.Zero) { content() } }
     scale(1f / res, 1f / res, pivot = Offset.Zero) { drawLayer(layer) }
@@ -1160,7 +1173,7 @@ private fun DrawScope.drawWord(
     // the glowing letters once more in their glow colour, blurred on the gpu; as text shadows they were blurred again on the cpu every frame they moved
     if (glowing && glowLayer != null) {
         // one radius for the word, so the glow doesn't step through blur sizes as an emphasised word grows
-        glowLayer.renderEffect = BlurEffectCache.get(cell.sizePx * GlowSoftness * GlowRes, Shader.TileMode.DECAL)
+        glowLayer.renderEffect = BlurEffectCache.get(cell.sizePx * GlowSoftness * GlowRes, BlurTileMode)
         val half = androidx.compose.ui.unit.IntSize((size.width * GlowRes).roundToInt().coerceAtLeast(1), (size.height * GlowRes).roundToInt().coerceAtLeast(1))
         glowLayer.record(half) {
             scale(GlowRes, GlowRes, pivot = Offset.Zero) { drawLetters(cell, scale, litFrom, front, color, dim, LetterPass.Glow) }
