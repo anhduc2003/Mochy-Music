@@ -124,39 +124,20 @@ jobs:
           name="${RELEASE_NAME:-Mochy Music $VERSION_NAME}"
 
           cat > notes.md <<EOF
-          Sync with upstream **Mochy 8.4.2** (\`7e590802\`), keeping this fork's Vietnamese localisation, desktop module and floating capsule.
+          This build is about keeping what you already have, not new screens.
 
-          ### Floating lyrics improvements
-          - The floating capsule keeps the width you set by dragging the right-hand grip; lyrics no longer resize the window.
-          - Song title and artist sit above a centred lyric line. Every line uses the same text size, and long lines scroll inside the capsule instead of shrinking.
-          - The track queued next is named under the lyric. While Crossmix runs it turns into a **Mixing** badge naming the song being faded out.
-          - Tap the cover to leave the disc alone, with nothing drawn behind it; tap it again to bring the capsule back. The window narrows around the disc, so the cover stays exactly where it was.
-          - During a crossmix the outgoing cover sits on top of the incoming one and slides away as the two dissolve, then a breathing ring marks the disc that took over and fades once the mix is done.
-          - Automatically aligns to the center or the nearest safe screen edge after dragging.
-          - Tap the capsule to expand playback controls: previous/next, play/pause, repeat and shuffle. Tap outside to collapse it.
-          - Dragging and resizing remain available while touch gestures are in progress.
-          - Style 2 karaoke renderer with per-word timing and display-synchronized animation, replacing the old 60 ms sweep timer.
-          - Requests up to 120 Hz while playing when high refresh rate is enabled. Actual frame rate depends on the device and system policy.
-          - Rock-solid stability: reactive overlay permission detection without app restarts, safe compose composition disposal, defensive lyric indexing, and leak-free window lifecycle.
+          ### Your library survives an update
+          - **A phone on an old database schema no longer loses everything.** Upgrades jumped straight over schemas 26-34, and the database opens with \`fallbackToDestructiveMigration\`, so those installs had their songs, playlists, likes and listening history dropped on the first start after an update. The file is now rebuilt to the current schema with its rows kept, and a copy is taken first in case the rebuild cannot finish.
+          - **Updates install over the installed copy.** The download is checked against what is on the phone (package, signing certificate digest, version code) before it goes to the system installer, which replaces the code and leaves \`files/\`, the database and settings alone. Refusals say what actually happened instead of a bare "App not installed".
 
-          ### What's new from 8.4.2
-          - Manual queue entries play in FIFO order ahead of Autoplay; Play next works on a stopped player.
-          - Spotify Canvas integration and configurable Canvas provider order.
-          - Improved landscape, tablet and foldable layouts, including a compact navigation bar on short screens.
-          - Sleep timer presets, live countdown and interactive controls.
-          - DASH segment cache-key fix, FLAC export/remux and local audio/lyrics import improvements.
-          - Module browsing and login improvements, plus updated translations.
-          - Album track ordering and Remove from history fixes; tapping a cover opens song details.
-
-          ### Kept from this fork
-          - Vietnamese UI with this fork's translations and upstream's new resource-based screens
-          - Separate desktop application module and packaging workflows
-          - Crossmix transition mode
-          - Custom gallery app icon importer with cropper and Home screen shortcut pinning/updating
-          - System-wide custom app background (device photo, song artwork ambient, gradients, adjustable blur & overlay)
-          - Clean Style 2-based Neon and Mask karaoke lyric styles synced to cover accent colours across player views
-          - Cropped device-image player background, direct video cover toggle
-          - Playback, network and lyric stability fixes
+          ### Fixed
+          - A crash shows the report screen the manifest always declared, in its own process, with share and copy, instead of the app just disappearing.
+          - Songs added to a playlist go to the end again. They were numbered from the song count, so after any deletion they landed in the middle of the list.
+          - Home shelves keep your scroll position while the library refreshes.
+          - The crossmix analysis cache and the lyric translation cache are bounded. Translations were keyed in a way that could show one song's translation on another.
+          - The floating lyrics stop asking for the overlay permission after 30 seconds instead of every second for the whole song.
+          - Drawing a blurred lyric line on Android 11 and below no longer throws; reading a Bluetooth device address on Android 8 no longer throws.
+          - Afrikaans, Danish and Norwegian were translated but could not be picked in the language list.
 
           ### Build
           - \`versionCode $VERSION_CODE\`, \`versionName $VERSION_NAME\`

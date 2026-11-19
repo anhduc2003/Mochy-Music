@@ -27,8 +27,8 @@ extensions.configure<ApplicationExtension> {
         applicationId = "com.mochyy.mochymusic"
         minSdk = 24
         targetSdk = 37
-        versionCode = 78
-        versionName = "8.4.2 build#1263"
+        versionCode = 79
+        versionName = "8.4.3 build#1264"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
