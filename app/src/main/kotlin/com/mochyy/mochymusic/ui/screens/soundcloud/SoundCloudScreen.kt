@@ -1,17 +1,23 @@
 package com.mochyy.mochymusic.ui.screens.soundcloud
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -63,6 +69,10 @@ fun SoundCloudScreen(
     val totalSeconds = remember(uploads) { (uploads.sumOf { it.durationMs ?: 0L } / 1000L).toInt() }
     val title = state.open?.title ?: state.relatedTo?.title ?: "SoundCloud"
     val active = mediaMetadata?.id
+    val recommendationSeed = mediaMetadata?.let { current ->
+        if (current.id.startsWith(SC)) current.id.removePrefix(SC)
+        else listOf(current.title, current.artists.joinToString(" ") { it.name }).filter { it.isNotBlank() }.joinToString(" ")
+    }
 
     fun play(from: Int, shuffled: Boolean = false) {
         val ordered = if (shuffled) uploads.shuffled() else uploads
@@ -108,25 +118,74 @@ fun SoundCloudScreen(
         creator = when {
             state.open != null -> state.open?.artist
             state.relatedTo != null -> "Tương tự ${state.relatedTo?.title.orEmpty()}"
+            state.tab == SoundCloudViewModel.Tab.Recommendations -> "Gợi ý từ SoundCloud"
             else -> "Thịnh hành tuần này"
+        },
+        overlay = {
+            state.error?.let { error ->
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+                ) {
+                    Text(error)
+                    Button(onClick = viewModel::retry) { Text("Thử lại") }
+                }
+            }
         },
     ) {
         if (state.open == null && state.relatedTo == null) {
-            item(key = "tabs", contentType = "tabs") {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            item(key = "browse-filters", contentType = "filters") {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                 ) {
-                    FilterChip(
-                        selected = state.tab == SoundCloudViewModel.Tab.Tracks,
-                        onClick = { viewModel.onTabChange(SoundCloudViewModel.Tab.Tracks) },
-                        label = { Text("Bài hát") },
-                    )
-                    FilterChip(
-                        selected = state.tab == SoundCloudViewModel.Tab.Playlists,
-                        onClick = { viewModel.onTabChange(SoundCloudViewModel.Tab.Playlists) },
-                        label = { Text("Playlist") },
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SoundCloudViewModel.Tab.entries.forEach { tab ->
+                            FilterChip(
+                                selected = state.tab == tab,
+                                onClick = {
+                                    viewModel.onTabChange(
+                                        tab,
+                                        currentTrackSeed = if (tab == SoundCloudViewModel.Tab.Recommendations) recommendationSeed else null,
+                                    )
+                                },
+                                label = {
+                                    Text(
+                                        when (tab) {
+                                            SoundCloudViewModel.Tab.Tracks -> "Bài hát"
+                                            SoundCloudViewModel.Tab.Playlists -> "Playlist"
+                                            SoundCloudViewModel.Tab.Recommendations -> "Gợi ý"
+                                        },
+                                    )
+                                },
+                            )
+                        }
+                    }
+                    if (state.tab != SoundCloudViewModel.Tab.Playlists) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        ) {
+                            SoundCloudModule.ChartRegion.entries.forEach { region ->
+                                FilterChip(
+                                    selected = state.region == region,
+                                    onClick = { viewModel.onRegionChange(region) },
+                                    label = { Text(region.label) },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (state.loading && state.uploads.isEmpty() && state.playlists.isEmpty()) {
+            item(key = "soundcloud-loading", contentType = "status") {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth().padding(24.dp),
+                ) {
+                    CircularProgressIndicator()
                 }
             }
         }

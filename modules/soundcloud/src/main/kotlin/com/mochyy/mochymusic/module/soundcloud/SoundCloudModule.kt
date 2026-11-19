@@ -47,7 +47,7 @@ class SoundCloudModule : SourceModule {
         id = Id,
         name = "SoundCloud",
         version = "1.0",
-        description = "SoundCloud's catalog: independent artists, DJ sets and long mixes. No account needed",
+        description = "Danh mục công khai SoundCloud: tìm kiếm, thịnh hành, playlist, gợi ý và phát nhạc. Đăng nhập, thích và bình luận chưa được hỗ trợ.",
     )
 
     private lateinit var host: ModuleHost
@@ -168,32 +168,100 @@ class SoundCloudModule : SourceModule {
 
     // ---- the api, and the key it needs ----
 
-    private fun api(path: String, query: Map<String, String>, refreshed: Boolean = false): HttpResponse? {
-        val clientId = clientId(forceRefresh = refreshed) ?: return null
-        val url = ApiBase + path + "?" + queryString(query + ("client_id" to clientId))
-        val response = runCatching { host.http(HttpRequest(url, headers = apiHeaders)) }.getOrNull() ?: return null
-        // the key the web player handed out last week has been replaced: read it again, once
-        if (response.code == 401 && !refreshed) return api(path, query, refreshed = true)
-        return response
+    private fun api(path: String, query: Map<String, String>): HttpResponse? =
+        requestWithClientId { id -> ApiBase + path + "?" + queryString(query + ("client_id" to id)) }
+
+    private fun requestWithClientId(urlFor: (String) -> String): HttpResponse? {
+        var activeClientId = clientId(forceRefresh = false) ?: return null
+        var refreshed = false
+        var retry = 0
+        while (true) {
+            val response = runCatching {
+                host.http(HttpRequest(urlFor(activeClientId), headers = apiHeaders))
+            }.getOrNull()
+            if (response?.code == 401 && !refreshed) {
+                host.storage.set(ClientIdKey, null)
+                host.storage.set(ClientIdAtKey, null)
+                activeClientId = clientId(forceRefresh = true) ?: return response
+                refreshed = true
+                continue
+            }
+            // A 401 after key refresh is terminal; it can indicate auth/access restrictions,
+            // and must not be disguised as a different-key retry.
+            if (response?.code == 401) return response
+            if (retry < MaxApiRetries && (response == null || response.code == 429 || response.code in 500..599)) {
+                val delayMs = apiRetryDelayMs(retry++, response?.header("retry-after"))
+                try {
+                    Thread.sleep(delayMs)
+                } catch (interrupted: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    return null
+                }
+                continue
+            }
+            return response
+        }
     }
 
-    /** SoundCloud's shared key, read out of the web player's own javascript and kept until it stops working. */
+    /** SoundCloud's public web client key rotates; serialize discovery to avoid parallel bundle scans. */
+    @Synchronized
     private fun clientId(forceRefresh: Boolean): String? {
         if (!forceRefresh) {
             val saved = host.storage.get(ClientIdKey)?.takeIf { it.isNotBlank() }
             val savedAt = host.storage.get(ClientIdAtKey)?.toLongOrNull() ?: 0L
             if (saved != null && System.currentTimeMillis() - savedAt < ClientIdLifeMs) return saved
         }
-        val found = discoverClientId() ?: return host.storage.get(ClientIdKey)?.takeIf { it.isNotBlank() }
+        val found = discoverClientId()
+        if (found == null) {
+            if (forceRefresh) {
+                host.storage.set(ClientIdKey, null)
+                host.storage.set(ClientIdAtKey, null)
+                return null
+            }
+            return host.storage.get(ClientIdKey)?.takeIf { it.isNotBlank() }
+        }
         host.storage.set(ClientIdKey, found)
         host.storage.set(ClientIdAtKey, System.currentTimeMillis().toString())
         return found
     }
 
+    internal fun apiRetryDelayMs(retry: Int, retryAfter: String? = null): Long {
+        val serverDelay = retryAfter?.trim()?.toLongOrNull()?.times(1000L)
+        return (serverDelay ?: (400L shl retry.coerceIn(0, 3))).coerceIn(250L, MaxRetryDelayMs)
+    }
+
+    class SoundCloudApiException(val statusCode: Int?) : RuntimeException(
+        when (statusCode) {
+            null -> "SoundCloud không phản hồi. Kiểm tra mạng rồi thử lại."
+            401 -> "SoundCloud từ chối mã truy cập công khai. Thử lại sau để làm mới kết nối."
+            403 -> "SoundCloud không cho phép nội dung này ở khu vực hiện tại."
+            404 -> "Nội dung SoundCloud này không còn tồn tại."
+            429 -> "SoundCloud đang giới hạn yêu cầu. Chờ một lúc rồi thử lại."
+            in 500..599 -> "SoundCloud đang gặp sự cố tạm thời. Thử lại sau."
+            else -> "SoundCloud trả về lỗi $statusCode."
+        },
+    )
+
+    enum class ChartRegion(val apiId: String?, val label: String) {
+        Global(null, "Toàn cầu"),
+        US("soundcloud:regions:US", "Mỹ"),
+        GB("soundcloud:regions:GB", "Anh"),
+        DE("soundcloud:regions:DE", "Đức"),
+        FR("soundcloud:regions:FR", "Pháp"),
+        JP("soundcloud:regions:JP", "Nhật"),
+        BR("soundcloud:regions:BR", "Brazil"),
+    }
+
+    private fun catalogApi(path: String, query: Map<String, String>): HttpResponse {
+        val response = api(path, query) ?: throw SoundCloudApiException(null)
+        if (!response.ok) throw SoundCloudApiException(response.code)
+        return response
+    }
+
     private fun discoverClientId(): String? {
         val page = runCatching { host.http(HttpRequest(HomePage, headers = browserHeaders)) }.getOrNull() ?: return null
         if (!page.ok) return null
-        val scripts = BundlePattern.findAll(page.text).map { it.value }.distinct().take(MaxBundles).toList()
+        val scripts = bundleUrlsIn(page.text).take(MaxBundles)
         for (script in scripts) {
             val bundle = runCatching { host.http(HttpRequest(script, headers = browserHeaders)) }.getOrNull() ?: continue
             if (!bundle.ok) continue
@@ -204,11 +272,12 @@ class SoundCloudModule : SourceModule {
 
     private fun openStream(track: ScTrack, quality: String): ScStream? {
         for (transcoding in ordered(track.transcodings, quality)) {
-            val clientId = clientId(forceRefresh = false) ?: return null
-            val url = transcoding.url + "?" + queryString(
-                mapOf("client_id" to clientId, "track_authorization" to track.authorization),
-            )
-            val body = runCatching { host.http(HttpRequest(url, headers = apiHeaders)) }.getOrNull() ?: continue
+            val body = requestWithClientId { clientId ->
+                transcoding.url + "?" + queryString(
+                    mapOf("client_id" to clientId, "track_authorization" to track.authorization),
+                )
+            }
+            if (body == null) continue
             if (!body.ok) continue
             val resolved = field(body.text, "url")?.takeIf { it.startsWith("http") } ?: continue
             return ScStream(
@@ -287,25 +356,23 @@ class SoundCloudModule : SourceModule {
     /** Searches the catalog. Blocking: call it off the main thread. */
     fun search(text: String, limit: Int = SearchPage): List<Upload> {
         if (text.isBlank()) return emptyList()
-        val response = api(SearchPath, mapOf("q" to text.trim(), "limit" to limit.toString())) ?: return emptyList()
-        if (!response.ok) return emptyList()
+        val response = catalogApi(SearchPath, mapOf("q" to text.trim(), "limit" to limit.coerceIn(1, MaxCatalogLimit).toString()))
         return tracksIn(response.text).mapNotNull(::uploadOf)
     }
 
     /** Searches playlists and sets. Blocking, as [search]. */
     fun searchPlaylists(text: String, limit: Int = SearchPage): List<Playlist> {
         if (text.isBlank()) return emptyList()
-        val response = api(PlaylistsPath, mapOf("q" to text.trim(), "limit" to limit.toString())) ?: return emptyList()
-        if (!response.ok) return emptyList()
+        val response = catalogApi(PlaylistsPath, mapOf("q" to text.trim(), "limit" to limit.coerceIn(1, MaxCatalogLimit).toString()))
         val collection = objectsIn(response.text, "collection") ?: return emptyList()
         return collection.mapNotNull(::playlistOf)
     }
 
     /** the uploads of a playlist, in its own order. Blocking, as [search]. */
     fun playlistTracks(id: String): List<Upload> {
-        val response = api("/playlists/$id", emptyMap()) ?: return emptyList()
-        if (!response.ok) return emptyList()
-        val root = runCatching { json.parseToJsonElement(response.text) as? JsonObject }.getOrNull() ?: return emptyList()
+        val response = catalogApi("/playlists/$id", emptyMap())
+        val root = runCatching { json.parseToJsonElement(response.text) as? JsonObject }.getOrNull()
+            ?: throw SoundCloudApiException(response.code)
         val entries = (root["tracks"] as? JsonArray)?.mapNotNull { it as? JsonObject } ?: return emptyList()
         // a playlist answers with its first few uploads whole and the rest as bare ids: without
         // asking for those by id, a 416-track set lists as five tracks
@@ -316,9 +383,9 @@ class SoundCloudModule : SourceModule {
             if (upload != null) known[upload.id] = upload else entry.long("id")?.let { stubs += it.toString() }
         }
         stubs.chunked(IdsPerAsk).forEach { ids ->
-            val answer = api(TracksPath, mapOf("ids" to ids.joinToString(","))) ?: return@forEach
-            if (!answer.ok) return@forEach
-            val whole = runCatching { json.parseToJsonElement(answer.text) as? JsonArray }.getOrNull() ?: return@forEach
+            val answer = catalogApi(TracksPath, mapOf("ids" to ids.joinToString(",")))
+            val whole = runCatching { json.parseToJsonElement(answer.text) as? JsonArray }.getOrNull()
+                ?: throw SoundCloudApiException(answer.code)
             whole.mapNotNull { (it as? JsonObject)?.let(::trackOf) }.mapNotNull(::uploadOf)
                 .forEach { known[it.id] = it }
         }
@@ -327,20 +394,36 @@ class SoundCloudModule : SourceModule {
 
     /** uploads like this one, the way the web player's related tracks do. Blocking, as [search]. */
     fun related(id: String, limit: Int = RelatedPage): List<Upload> {
-        val response = api("/tracks/$id/related", mapOf("limit" to limit.toString())) ?: return emptyList()
-        if (!response.ok) return emptyList()
-        val collection = objectsIn(response.text, "collection") ?: return emptyList()
-        return collection.mapNotNull(::trackOf).mapNotNull(::uploadOf)
+        if (!TrackIdPattern.matches(id)) return emptyList()
+        val response = catalogApi("/tracks/$id/related", mapOf("limit" to limit.coerceIn(1, MaxCatalogLimit).toString()))
+        return (objectsIn(response.text, "collection") ?: emptyList()).mapNotNull(::trackOf).mapNotNull(::uploadOf)
     }
 
-    /** what SoundCloud is playing this week, so the screen has something before a search. Blocking. */
-    fun charts(limit: Int = ChartsPage): List<Upload> {
-        val response = api(
-            ChartsPath,
-            mapOf("kind" to ChartsKind, "genre" to ChartsGenre, "limit" to limit.toString()),
-        ) ?: return emptyList()
-        if (!response.ok) return emptyList()
+    internal fun chartsQuery(limit: Int, region: ChartRegion): Map<String, String> = buildMap {
+        put("kind", ChartsKind)
+        put("genre", ChartsGenre)
+        put("limit", limit.coerceIn(1, MaxCatalogLimit).toString())
+        region.apiId?.let { put("region", it) }
+    }
+
+    /** SoundCloud trending charts, optionally filtered by a documented SoundCloud region URN. */
+    fun charts(limit: Int = ChartsPage, region: ChartRegion = ChartRegion.Global): List<Upload> {
+        val response = catalogApi(ChartsPath, chartsQuery(limit, region))
         return chartTracks(response.text).mapNotNull(::uploadOf)
+    }
+
+    /** Recommendations use SoundCloud's related-tracks endpoint for a seed, otherwise regional charts. */
+    fun recommendations(seed: String? = null, limit: Int = RelatedPage, region: ChartRegion = ChartRegion.Global): List<Upload> {
+        val value = seed?.trim().orEmpty()
+        if (value.isNotBlank()) {
+            val id = value.takeIf { TrackIdPattern.matches(it) }
+                ?: search(value, SearchSeedLimit).firstOrNull()?.id
+            if (id != null) {
+                val similar = related(id, limit)
+                if (similar.isNotEmpty()) return similar
+            }
+        }
+        return charts(limit, region)
     }
 
     /** the uploads a charts answer lists: each entry wraps its track, the way the web player's own answer does */
@@ -429,6 +512,10 @@ class SoundCloudModule : SourceModule {
     }
 
     /** the first `client_id` a bundle names: `client_id:"<32 characters>"`, or its `=` form */
+    internal fun bundleUrlsIn(html: String): List<String> = BundlePattern.findAll(html.replace("\\/", "/"))
+        .map { match -> if (match.value.startsWith("//")) "https:${match.value}" else match.value }
+        .distinct()
+        .toList()
     internal fun clientIdIn(text: String): String? = ClientIdPattern.find(text)?.groupValues?.getOrNull(1)
 
     private fun field(text: String, name: String): String? =
@@ -483,6 +570,11 @@ class SoundCloudModule : SourceModule {
         private const val MaxBundles = 12
         private const val MaxMatches = 10
         private const val SearchPage = 30
+        private const val MaxCatalogLimit = 200
+        private const val SearchSeedLimit = 5
+        private val TrackIdPattern = Regex("[0-9]{1,20}")
+        private const val MaxApiRetries = 2
+        private const val MaxRetryDelayMs = 4_000L
         private const val ClientIdKey = "client_id"
         private const val ClientIdAtKey = "client_id_at"
         /** how long a key is trusted before it is read again even if it still answers */
@@ -490,7 +582,7 @@ class SoundCloudModule : SourceModule {
         private const val MissMemoryMs = 30L * 60 * 1000
         private const val UnreachableRetryMs = 10L * 60 * 1000
 
-        private val BundlePattern = Regex("""https://a-v2\.sndcdn\.com/assets/[A-Za-z0-9._-]+\.js""")
+        private val BundlePattern = Regex("""(?i)(?:https?:)?//a-v2\.sndcdn\.com/assets/[A-Za-z0-9._-]+\.js(?:\?[^\s\"'<>]*)?""")
         private val ClientIdPattern = Regex("""client_id\s*[:=]\s*["']([A-Za-z0-9]{32})["']""")
 
         private const val UserAgent =

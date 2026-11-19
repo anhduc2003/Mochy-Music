@@ -31,6 +31,33 @@ class SoundCloudModuleTest {
     }
 
     @Test
+    fun `regional charts send SoundCloud region urn and cap page size`() {
+        val query = module.chartsQuery(10_000, SoundCloudModule.ChartRegion.GB)
+        assertEquals("soundcloud:regions:GB", query["region"])
+        assertEquals("200", query["limit"])
+        assertEquals("trending", query["kind"])
+        assertEquals(null, module.chartsQuery(20, SoundCloudModule.ChartRegion.Global)["region"])
+    }
+
+    @Test
+    fun `transient retry delay is bounded and respects retry after`() {
+        assertEquals(400L, module.apiRetryDelayMs(0))
+        assertEquals(4_000L, module.apiRetryDelayMs(1, "30"))
+        assertEquals(250L, module.apiRetryDelayMs(2, "0"))
+    }
+
+    @Test
+    fun `normalizes escaped and protocol relative player bundle urls`() {
+        assertEquals(
+            listOf(
+                "https://a-v2.sndcdn.com/assets/main.js?v=2",
+                "https://a-v2.sndcdn.com/assets/next.js",
+            ),
+            module.bundleUrlsIn("""src=\/\/a-v2.sndcdn.com/assets/main.js?v=2 src=//a-v2.sndcdn.com/assets/next.js"""),
+        )
+    }
+
+    @Test
     fun `a bundle with no key gives nothing`() {
         assertNull(module.clientIdIn("var a={locale:'en'};"))
     }
@@ -49,6 +76,11 @@ class SoundCloudModuleTest {
         assertTrue(first.streamable)
         assertEquals(3, first.transcodings.size)
         assertEquals("auth-token", first.authorization)
+    }
+
+    @Test
+    fun `recommendations fall back to regional charts for an unknown seed`() {
+        assertEquals("soundcloud:regions:GB", module.chartsQuery(20, SoundCloudModule.ChartRegion.GB)["region"])
     }
 
     @Test
@@ -171,6 +203,81 @@ class SoundCloudModuleTest {
           ]
         }
     """.trimIndent()
+}
+
+class SoundCloudRetryTest {
+    @Test
+    fun `401 refreshes the cached client id before repeating the catalog call`() {
+        val host = RefreshHost()
+        val module = SoundCloudModule().also { it.attach(host) }
+
+        val tracks = module.search("lofi")
+
+        assertEquals(1, tracks.size)
+        assertEquals(listOf("oldClientId000000000000000000000", "newClientId000000000000000000000"), host.clientIds)
+    }
+
+    @Test
+    fun `429 catalog response is retried and search succeeds`() {
+        val host = RetryHost()
+        val module = SoundCloudModule().also { it.attach(host) }
+
+        val tracks = module.search("lofi")
+
+        assertEquals(2, host.searchCalls)
+        assertEquals("Retry works", tracks.single().title)
+    }
+
+    private class RefreshHost : com.mochyy.mochymusic.module.ModuleHost {
+        private val values = mutableMapOf("client_id" to "oldClientId000000000000000000000", "client_id_at" to System.currentTimeMillis().toString())
+        val clientIds = mutableListOf<String>()
+        override val storage = object : com.mochyy.mochymusic.module.ModuleStorage {
+            override fun get(key: String): String? = values[key]
+            override fun set(key: String, value: String?) { if (value == null) values.remove(key) else values[key] = value }
+        }
+        override val folder = java.io.File(System.getProperty("java.io.tmpdir"), "sc-refresh").apply { mkdirs() }
+        override fun log(message: String) = Unit
+        override fun http(request: com.mochyy.mochymusic.module.HttpRequest): com.mochyy.mochymusic.module.HttpResponse {
+            val url = request.url
+            return when {
+                url.startsWith("https://soundcloud.com/") -> com.mochyy.mochymusic.module.HttpResponse(200, "<script src=\"https://a-v2.sndcdn.com/assets/1.js\"></script>".toByteArray())
+                url.contains("a-v2.sndcdn.com/assets") -> com.mochyy.mochymusic.module.HttpResponse(200, "client_id=\"newClientId000000000000000000000\"".toByteArray())
+                url.contains("/search/tracks") -> {
+                    val id = url.substringAfter("client_id=").substringBefore('&')
+                    clientIds += id
+                    if (id.startsWith("old")) com.mochyy.mochymusic.module.HttpResponse(401, "{}".toByteArray())
+                    else com.mochyy.mochymusic.module.HttpResponse(200, """{"collection":[{"id":7,"title":"Refresh works","streamable":true,"user":{"username":"Artist"},"media":{"transcodings":[]}}]}""".toByteArray())
+                }
+                else -> com.mochyy.mochymusic.module.HttpResponse(404, "{}".toByteArray())
+            }
+        }
+    }
+
+    private class RetryHost : com.mochyy.mochymusic.module.ModuleHost {
+        private val values = mutableMapOf<String, String>()
+        var searchCalls = 0
+        override val storage = object : com.mochyy.mochymusic.module.ModuleStorage {
+            override fun get(key: String): String? = values[key]
+            override fun set(key: String, value: String?) { if (value == null) values.remove(key) else values[key] = value }
+        }
+        override val folder = java.io.File(System.getProperty("java.io.tmpdir"), "sc-retry").apply { mkdirs() }
+        override fun log(message: String) = Unit
+        override fun http(request: com.mochyy.mochymusic.module.HttpRequest): com.mochyy.mochymusic.module.HttpResponse {
+            val url = request.url
+            if (url.startsWith("https://soundcloud.com/")) {
+                return com.mochyy.mochymusic.module.HttpResponse(200, "<script src=\"https://a-v2.sndcdn.com/assets/1.js\"></script>".toByteArray())
+            }
+            if (url.contains("a-v2.sndcdn.com/assets")) {
+                return com.mochyy.mochymusic.module.HttpResponse(200, "client_id=\"0123456789abcdefghijklmnopqrstuv\"".toByteArray())
+            }
+            if (url.contains("/search/tracks")) {
+                searchCalls++
+                if (searchCalls == 1) return com.mochyy.mochymusic.module.HttpResponse(429, "{}".toByteArray(), mapOf("retry-after" to "0"))
+                return com.mochyy.mochymusic.module.HttpResponse(200, """{"collection":[{"id":7,"title":"Retry works","streamable":true,"user":{"username":"Artist"},"media":{"transcodings":[]}}]}""".toByteArray())
+            }
+            return com.mochyy.mochymusic.module.HttpResponse(404, "{}".toByteArray())
+        }
+    }
 }
 
 /** The whole path the player takes, against a stand-in for SoundCloud rather than the network. */
