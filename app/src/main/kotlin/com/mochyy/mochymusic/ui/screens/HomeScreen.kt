@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.em
 import com.mochyy.mochymusic.ui.component.BlurEffectCache
 import com.mochyy.mochymusic.ui.theme.InterFontFamily
+import com.mochyy.mochymusic.ui.screens.soundcloud.toMediaItem
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -193,6 +194,7 @@ import kotlinx.coroutines.withContext
 import com.mochyy.mochymusic.ui.component.navigateToTab
 
 sealed class HomeSection(val id: String) {
+    data object SoundCloud : HomeSection("soundcloud")
     data object RecentlyPlayed : HomeSection("recently_played")
     data object MostPlayed : HomeSection("most_played")
     data object History : HomeSection("history")
@@ -1170,6 +1172,10 @@ fun HomeScreen(
         derivedStateOf {
             val list = mutableListOf<HomeSection>()
 
+            // SoundCloud's catalog first: it is what this build adds, and it was otherwise only
+            // reachable from the module's own settings page
+            list.add(HomeSection.SoundCloud)
+
             // the recommendation rows are dealt out between Home's own rows, the way Apple Music
             // and Spotify mix "because you like" shelves in with your history
             val categories = homeCategories.orEmpty()
@@ -1563,6 +1569,28 @@ fun HomeScreen(
                 if (!launchHold) homeSections.forEach { section ->
                     var sectionRendered = false
                     when (section) {
+                        HomeSection.SoundCloud -> {
+                            sectionRendered = true
+                            homeItem("soundcloud_title", revealSeen, "title") {
+                                HomeSectionTitle(
+                                    title = "SoundCloud",
+                                    onClick = { navController.navigate("soundcloud") },
+                                )
+                            }
+                            homeItem("soundcloud_row", revealSeen, "cardRow") {
+                                com.mochyy.mochymusic.ui.screens.soundcloud.SoundCloudHomeRow(
+                                    onPlay = { uploads, index ->
+                                        playerConnection.playQueue(
+                                            ListQueue(
+                                                title = "SoundCloud",
+                                                items = uploads.map { it.toMediaItem() },
+                                                startIndex = index,
+                                            ),
+                                        )
+                                    },
+                                )
+                            }
+                        }
                         HomeSection.SpeedDial -> {
                             speedDialItems.takeIf { it.isNotEmpty() }?.let { items ->
                                 sectionRendered = true

@@ -33,8 +33,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.mochyy.mochymusic.LocalPlayerConnection
-import com.mochyy.mochymusic.extensions.toMediaItem
-import com.mochyy.mochymusic.models.MediaMetadata
 import com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
 import com.mochyy.mochymusic.playback.queues.ListQueue
 import com.mochyy.mochymusic.viewmodels.SoundCloudViewModel
@@ -99,6 +97,18 @@ fun SoundCloudScreen(
         }
         if (state.loading) {
             LinearProgressIndicator(Modifier.fillMaxWidth())
+        }
+        if (state.uploads.isNotEmpty()) {
+            TextButton(
+                onClick = {
+                    playerConnection.playQueue(
+                        ListQueue(
+                            title = state.open?.title ?: "SoundCloud",
+                            items = state.uploads.map { it.toMediaItem() },
+                        ),
+                    )
+                },
+            ) { Text("Phát tất cả (${state.uploads.size})") }
         }
         LazyColumn(Modifier.fillMaxSize()) {
             items(state.playlists, key = { "pl-${it.id}" }) { playlist ->
@@ -192,12 +202,3 @@ private fun Artwork(url: String?) {
         modifier = Modifier.size(48.dp),
     )
 }
-
-/** the queue's copy of an upload: its own id, so the service opens that upload and not a title match */
-private fun SoundCloudModule.Upload.toMediaItem() = MediaMetadata(
-    id = "${SoundCloudModule.MediaIdPrefix}$id",
-    title = title,
-    artists = listOf(MediaMetadata.Artist(null, artist)),
-    duration = ((durationMs ?: 0L) / 1000L).toInt(),
-    thumbnailUrl = artworkUrl,
-).toMediaItem()
