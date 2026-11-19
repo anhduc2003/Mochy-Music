@@ -140,8 +140,10 @@ class SoundCloudModule : SourceModule {
         report(DiagnosticStep("Stream", null, "Opening the stream…"))
         val opened = openStream(found, picks[ChoiceQuality] ?: OptionBest)
         if (opened == null) {
-            report(DiagnosticStep("Stream", false, "SoundCloud gave no playable stream"))
-            return ResolveResult.Unavailable("SoundCloud gave no playable stream")
+            val encrypted = found.transcodings.isNotEmpty() && ordered(found.transcodings, OptionBest).isEmpty()
+            val why = if (encrypted) "this upload is DRM-protected, which Mochy can't play" else "SoundCloud gave no playable stream"
+            report(DiagnosticStep("Stream", false, why))
+            return ResolveResult.Unavailable(why)
         }
         report(DiagnosticStep("Stream", true, opened.quality))
 
@@ -388,7 +390,11 @@ class SoundCloudModule : SourceModule {
     private fun transcodingOf(element: JsonObject): ScTranscoding? {
         val preset = element.string("preset") ?: return null
         val url = element.string("url") ?: return null
-        return ScTranscoding(preset = preset, url = url)
+        return ScTranscoding(
+            preset = preset,
+            url = url,
+            protocol = (element["format"] as? JsonObject)?.string("protocol"),
+        )
     }
 
     /**
@@ -396,7 +402,10 @@ class SoundCloudModule : SourceModule {
      * player; not every upload carries it, so the 96k one is next and any other preset last.
      */
     internal fun ordered(transcodings: List<ScTranscoding>, quality: String): List<ScTranscoding> {
-        val (wanted, rest) = transcodings.partition { it.preset in Preferred }
+        // `cbc-encrypted-hls` is FairPlay and `ctr-encrypted-hls` is Widevine: both are DRM, and
+        // handing one to the player only ends as a stream that dies after a second
+        val playable = transcodings.filterNot { it.protocol?.contains("encrypted", ignoreCase = true) == true }
+        val (wanted, rest) = playable.partition { it.preset in Preferred }
         val order = if (quality == OptionDataSaver) listOf(DataSaverPreset, BestPreset) else listOf(BestPreset, DataSaverPreset)
         val ranked = order.flatMap { preset -> wanted.filter { it.preset == preset } }
         return (ranked + rest).distinctBy { it.preset }
@@ -443,7 +452,7 @@ class SoundCloudModule : SourceModule {
         val artworkUrl: String? = null,
     )
 
-    internal class ScTranscoding(val preset: String, val url: String)
+    internal class ScTranscoding(val preset: String, val url: String, val protocol: String?)
 
     internal class ScStream(val url: String, val format: StreamFormat, val quality: String, val codec: String?)
 

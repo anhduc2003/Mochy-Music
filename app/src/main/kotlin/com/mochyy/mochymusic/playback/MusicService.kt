@@ -1873,7 +1873,13 @@ class MusicService :
             e != null -> plainReason(e)
             else -> "unknown error"
         }
-        com.mochyy.mochymusic.ui.component.TopToaster.error("Stream failed: $reason")
+        // naming the stream that failed turns the next report into evidence
+        val from = player.currentMediaItem?.mediaId?.let { _playingFrom.value[it] }
+        val where = from?.let { f -> listOfNotNull(f.name, f.quality).joinToString(" · ") }
+        if (e != null) Timber.tag("StreamFetch").e(e, "stream failed for ${player.currentMediaItem?.mediaId} from $where")
+        com.mochyy.mochymusic.ui.component.TopToaster.error(
+            if (where != null) "Stream failed ($where): $reason" else "Stream failed: $reason",
+        )
     }
 
     /** A readable reason from the root cause, since IO_UNSPECIFIED alone says nothing. */
@@ -5144,7 +5150,7 @@ class MusicService :
                 ?: throw com.mochyy.mochymusic.playback.custom.NoProviderException("the SoundCloud module is not loaded")
             val uploadId = mediaId.removePrefix(com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.MediaIdPrefix)
             val stream = withContext(Dispatchers.IO) { soundCloud.streamFor(uploadId) }
-                ?: throw com.mochyy.mochymusic.playback.custom.NoProviderException("SoundCloud no longer has this upload")
+                ?: throw com.mochyy.mochymusic.playback.custom.NoProviderException("SoundCloud can't play this upload: it was removed, or it is DRM-protected")
             streamFacts.update { it + (mediaId to StreamFacts(codec = stream.codec, fromModule = true)) }
             notePlayingFrom(mediaId, PlayingFrom(soundCloud.info.id, soundCloud.info.name, stream.qualityLabel))
             scope.launch(Dispatchers.IO) { runCatching { recoverSoundCloudSong(mediaId) } }
