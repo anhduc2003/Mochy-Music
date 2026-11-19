@@ -1950,6 +1950,23 @@ class MusicService :
         )
     }
 
+    /**
+     * a SoundCloud upload, saved the way the youtube path saves a song, so it reaches history and
+     * recently played. It is saved from the queue's own metadata: nothing about it is on YouTube,
+     * and asking YouTube for it is what keeps the usual recovery from saving one.
+     */
+    private suspend fun recoverSoundCloudSong(mediaId: String) {
+        val metadata = withContext(Dispatchers.Main) { player.findNextMediaItemById(mediaId)?.metadata } ?: return
+        val saved = database.song(mediaId).first()
+        database.query {
+            if (saved == null) {
+                insert(metadata)
+            } else if (saved.song.duration == -1) {
+                update(saved.song.copy(duration = metadata.duration))
+            }
+        }
+    }
+
     private suspend fun recoverSong(
         mediaId: String,
         playbackData: YTPlayerUtils.PlaybackData? = null
@@ -5130,6 +5147,7 @@ class MusicService :
                 ?: throw com.mochyy.mochymusic.playback.custom.NoProviderException("SoundCloud no longer has this upload")
             streamFacts.update { it + (mediaId to StreamFacts(codec = stream.codec, fromModule = true)) }
             notePlayingFrom(mediaId, PlayingFrom(soundCloud.info.id, soundCloud.info.name, stream.qualityLabel))
+            scope.launch(Dispatchers.IO) { runCatching { recoverSoundCloudSong(mediaId) } }
             return com.mochyy.mochymusic.playback.custom.CustomStreamResult(
                 streamUrl = stream.url,
                 isHls = stream.format == com.mochyy.mochymusic.module.StreamFormat.Hls,
