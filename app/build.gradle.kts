@@ -476,6 +476,7 @@ dependencies {
     implementation(project(":modules:applemusic"))
     implementation(project(":modules:monochrome"))
     implementation(project(":modules:jiosaavn"))
+    implementation(project(":modules:soundcloud"))
     implementation(project(":modules:bridge"))
 
 
