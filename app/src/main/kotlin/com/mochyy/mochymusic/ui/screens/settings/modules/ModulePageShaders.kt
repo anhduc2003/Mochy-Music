@@ -52,7 +52,10 @@ internal sealed interface PageProgram {
 private object PageShaderCache {
     private val compiled = ConcurrentHashMap<String, SkinProgram>()
 
-    // a shader the file hasn't changed since compiling comes straight back, so reopening a page costs nothing
+    // a shader the file hasn't changed since compiling comes straight back, so reopening a page costs nothing.
+    // annotated rather than just documented: compiling is `RuntimeShader`, API 33, and `rememberPageProgram`
+    // is the one caller that keeps it behind a version check - the annotation is what makes lint hold that
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.TIRAMISU)
     suspend fun load(file: File): PageProgram = withContext(Dispatchers.Default) {
         if (!file.isFile) return@withContext PageProgram.Broken("${file.name} isn't in the module")
         if (file.length() > MaxShaderBytes) return@withContext PageProgram.Broken("${file.name} is bigger than ${MaxShaderBytes / 1024} KB")
