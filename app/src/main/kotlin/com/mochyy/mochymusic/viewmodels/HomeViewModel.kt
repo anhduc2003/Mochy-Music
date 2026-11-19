@@ -103,8 +103,11 @@ class HomeViewModel @Inject constructor(
     @ApplicationContext val context: Context,
     val database: MusicDatabase,
     val syncUtils: SyncUtils,
+    modules: com.mochyy.mochymusic.modules.ModuleRegistry,
     musicImportService: com.mochyy.mochymusic.importer.MusicImportService,
 ) : ViewModel() {
+    val soundCloudEnabled = modules.observeEnabled(com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.Id)
+    val soundCloudInitiallyEnabled = modules.isEnabled(com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.Id)
     private val homeFeedCache = HomeFeedCache(context)
 
     val isRefreshing = MutableStateFlow(false)

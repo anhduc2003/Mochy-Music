@@ -52,6 +52,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -153,9 +155,15 @@ class ModuleRegistry @Inject constructor(
     // youtube starts on, modules start off until they're turned on (or signed in to)
     fun isEnabled(id: String): Boolean = prefs.getBoolean("enabled_$id", id == SourceModules.YouTubeId)
 
+    /** Observe the switch, independently of the module's account or server status. */
+    fun observeEnabled(id: String) = entries
+        .map { isEnabled(id) }
+        .distinctUntilChanged()
+
     fun setEnabled(id: String, on: Boolean) {
         val module = module(id)
         prefs.edit { putBoolean("enabled_$id", on) }
+        if (on && module is SoundCloudModule) module.reactivate()
         // a look turned on goes to the top of the looks, so what it brings shows over the others straight away
         if (on && module != null && restyles(module)) raise(id) else refresh()
     }
@@ -607,6 +615,9 @@ class ModuleRegistry @Inject constructor(
         }
 
         override fun http(request: HttpRequest): HttpResponse {
+            check(module.info.id != SoundCloudModule.Id || isEnabled(SoundCloudModule.Id)) {
+                "SoundCloud is disabled"
+            }
             val builder = Request.Builder().url(request.url)
             request.headers.forEach { (k, v) -> builder.header(k, v) }
             val body = request.body?.toRequestBody(request.contentType?.toMediaTypeOrNull())

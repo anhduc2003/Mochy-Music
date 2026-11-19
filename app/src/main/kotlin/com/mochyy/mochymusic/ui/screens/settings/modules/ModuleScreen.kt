@@ -116,7 +116,8 @@ fun ModuleScreen(navController: NavController, id: String, viewModel: ModulesVie
                     onUpdate = { scope.launch { context.updateModule(viewModel, entry) } },
                     onCheck = { viewModel.checkUpdate(id) },
                 )
-                AccountActions(
+                val canQueryModule = id != SoundCloudModule.Id || entry.enabled
+                if (canQueryModule) AccountActions(
                     entry = entry,
                     checking = viewModel.checking.collectAsState().value,
                     onSignIn = ::signIn,
@@ -132,7 +133,7 @@ fun ModuleScreen(navController: NavController, id: String, viewModel: ModulesVie
                 if (entry.module is ServerListModule) ModuleServers(id, viewModel)
                 (entry.module as? ItemListModule)?.let { ModuleItems(id, it, viewModel) }
                 ModulePages(entry, viewModel) { page -> navController.navigate(modulePageRoute(id, page)) }
-                if (entry.adds(ModuleFeature.AudioSource) || entry.adds(ModuleFeature.Lyrics) || entry.adds(ModuleFeature.Metadata)) {
+                if (canQueryModule && (entry.adds(ModuleFeature.AudioSource) || entry.adds(ModuleFeature.Lyrics) || entry.adds(ModuleFeature.Metadata))) {
                     ModuleTest(entry, viewModel)
                 }
                 if (entry.removable) {
@@ -142,7 +143,7 @@ fun ModuleScreen(navController: NavController, id: String, viewModel: ModulesVie
                         navController.navigateUp()
                     }
                 }
-                if (id == SoundCloudModule.Id) {
+                if (id == SoundCloudModule.Id && entry.enabled) {
                     Spacer(Modifier.height(14.dp))
                     Text(
                         text = "Mở SoundCloud",

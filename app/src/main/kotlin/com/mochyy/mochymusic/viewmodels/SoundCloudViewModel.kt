@@ -9,6 +9,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -18,13 +19,25 @@ import javax.inject.Inject
 
 /** SoundCloud browsing state. Blocking module HTTP calls never run on the UI thread. */
 @HiltViewModel
-class SoundCloudViewModel @Inject constructor(
-    private val moduleRegistry: ModuleRegistry,
+class SoundCloudViewModel internal constructor(
+    private val enabledNow: () -> Boolean,
+    enabledChanges: Flow<Boolean>,
+    private val findModule: () -> SoundCloudModule?,
 ) : ViewModel() {
+    @Inject constructor(registry: ModuleRegistry) : this(
+        { registry.isEnabled(SoundCloudModule.Id) },
+        registry.observeEnabled(SoundCloudModule.Id),
+        { registry.module(SoundCloudModule.Id) as? SoundCloudModule },
+    )
 
     enum class Tab { Tracks, Playlists, Recommendations }
 
     data class UiState(
+        val enabled: Boolean = false,
+        val commentsFor: SoundCloudModule.Upload? = null,
+        val comments: List<SoundCloudModule.Comment> = emptyList(),
+        val commentsLoading: Boolean = false,
+        val commentsError: String? = null,
         val query: String = "",
         val tab: Tab = Tab.Tracks,
         val region: SoundCloudModule.ChartRegion = SoundCloudModule.ChartRegion.Global,
@@ -38,16 +51,57 @@ class SoundCloudViewModel @Inject constructor(
     )
 
     private val module: SoundCloudModule?
-        get() = moduleRegistry.all().filterIsInstance<SoundCloudModule>().firstOrNull()
+        get() = if (enabledNow()) findModule() else null
 
-    private val _state = MutableStateFlow(UiState())
+    private val _state = MutableStateFlow(UiState(enabled = enabledNow()))
     val state = _state.asStateFlow()
     private var generation = 0L
     private var requestJob: Job? = null
     private var debounceJob: Job? = null
     private var beforeRelated: List<SoundCloudModule.Upload> = emptyList()
+    private var commentsJob: Job? = null
+    private var commentsGeneration = 0L
 
-    init { refresh() }
+    init {
+        viewModelScope.launch {
+            enabledChanges.collect { enabled ->
+                if (enabled != enabledNow()) return@collect
+                val token = beginRequest()
+                closeComments()
+                beforeRelated = emptyList()
+                _state.update {
+                    it.copy(enabled = enabled, loading = false, error = null, uploads = emptyList(),
+                        playlists = emptyList(), open = null, relatedTo = null)
+                }
+                if (enabled) {
+                    if (_state.value.query.isNotBlank()) launchRequest(token) { searchNow(token) }
+                    else refreshForCurrentTab(token)
+                }
+            }
+        }
+    }
+
+    fun openComments(upload: SoundCloudModule.Upload) {
+        val source = module ?: return
+        closeComments()
+        val token = commentsGeneration
+        _state.update { it.copy(commentsFor = upload, commentsLoading = true) }
+        commentsJob = viewModelScope.launch {
+            val result = request { source.comments(upload.id) }
+            if (token != commentsGeneration || !enabledNow()) return@launch
+            _state.update {
+                it.copy(comments = result.getOrDefault(emptyList()), commentsLoading = false,
+                    commentsError = result.exceptionOrNull()?.let { error -> error.message ?: GenericFailure })
+            }
+        }
+    }
+
+    fun closeComments() {
+        commentsGeneration++
+        commentsJob?.cancel()
+        commentsJob = null
+        _state.update { it.copy(commentsFor = null, comments = emptyList(), commentsLoading = false, commentsError = null) }
+    }
 
     fun onQueryChange(text: String) {
         _state.update { it.copy(query = text, loading = text.isNotBlank(), uploads = emptyList(), playlists = emptyList(), error = null, open = null, relatedTo = null) }
@@ -214,6 +268,7 @@ class SoundCloudViewModel @Inject constructor(
     }
 
     private suspend fun <T> request(block: () -> T): Result<T> = withContext(Dispatchers.IO) {
+        if (!enabledNow()) throw CancellationException("SoundCloud is disabled")
         try {
             Result.success(block())
         } catch (cancelled: CancellationException) {

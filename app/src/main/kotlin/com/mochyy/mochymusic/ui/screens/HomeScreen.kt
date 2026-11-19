@@ -617,6 +617,7 @@ fun HomeScreen(
     // handed to the cards as a lambda so only the active cover's indicator reads it
     val isPlayingNow: () -> Boolean = remember(isPlayingState) { { isPlayingState.value } }
 
+    val soundCloudEnabled by viewModel.soundCloudEnabled.collectAsState(viewModel.soundCloudInitiallyEnabled)
     val forgottenFavorites by viewModel.forgottenFavorites.collectAsState()
     val keepListening by viewModel.keepListening.collectAsState()
     val accountPlaylists by viewModel.accountPlaylists.collectAsState()
@@ -1172,9 +1173,7 @@ fun HomeScreen(
         derivedStateOf {
             val list = mutableListOf<HomeSection>()
 
-            // SoundCloud's catalog first: it is what this build adds, and it was otherwise only
-            // reachable from the module's own settings page
-            list.add(HomeSection.SoundCloud)
+            if (soundCloudEnabled) list.add(HomeSection.SoundCloud)
 
             // the recommendation rows are dealt out between Home's own rows, the way Apple Music
             // and Spotify mix "because you like" shelves in with your history

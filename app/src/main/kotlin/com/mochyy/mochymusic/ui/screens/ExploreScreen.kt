@@ -96,6 +96,7 @@ fun ExploreScreen(
     val isPlaying by playerConnection.isEffectivelyPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
 
+    val soundCloudEnabled by exploreViewModel.soundCloudEnabled.collectAsState(exploreViewModel.soundCloudInitiallyEnabled)
     val explorePage by exploreViewModel.explorePage.collectAsState()
     val chartsPage by chartsViewModel.chartsPage.collectAsState()
     val isChartsLoading by chartsViewModel.isLoading.collectAsState()
@@ -132,7 +133,9 @@ fun ExploreScreen(
                 ),
             )
 
-            SoundCloudEntry(onClick = { navController.navigate("soundcloud") })
+            if (soundCloudEnabled) {
+                SoundCloudEntry(onClick = { navController.navigate("soundcloud") })
+            }
 
             if (isChartsLoading || chartsPage == null || explorePage == null) {
                 ShimmerHost {

@@ -5145,6 +5145,9 @@ class MusicService :
         // an upload from the app's own SoundCloud screen: it is opened by its own id, so no
         // search runs and the upload that was tapped is the one that plays
         if (mediaId.startsWith(com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.MediaIdPrefix)) {
+            if (!sourceModules.isEnabled(com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.Id)) {
+                throw com.mochyy.mochymusic.playback.custom.NoProviderException("SoundCloud đang tắt. Bật lại module để phát bài này.")
+            }
             val soundCloud = sourceModules.module(com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.Id)
                 as? com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
                 ?: throw com.mochyy.mochymusic.playback.custom.NoProviderException("the SoundCloud module is not loaded")

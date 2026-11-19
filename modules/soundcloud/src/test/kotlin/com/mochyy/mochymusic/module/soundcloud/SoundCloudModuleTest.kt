@@ -31,12 +31,11 @@ class SoundCloudModuleTest {
     }
 
     @Test
-    fun `regional charts send SoundCloud region urn and cap page size`() {
-        val query = module.chartsQuery(10_000, SoundCloudModule.ChartRegion.GB)
-        assertEquals("soundcloud:regions:GB", query["region"])
+    fun `charts omit unsupported region parameter and cap page size`() {
+        val query = module.chartsQuery(10_000)
+        assertNull(query["region"])
         assertEquals("200", query["limit"])
         assertEquals("trending", query["kind"])
-        assertEquals(null, module.chartsQuery(20, SoundCloudModule.ChartRegion.Global)["region"])
     }
 
     @Test
@@ -79,8 +78,27 @@ class SoundCloudModuleTest {
     }
 
     @Test
-    fun `recommendations fall back to regional charts for an unknown seed`() {
-        assertEquals("soundcloud:regions:GB", module.chartsQuery(20, SoundCloudModule.ChartRegion.GB)["region"])
+    fun `Vietnam discovery is keyword search not fake country chart`() {
+        assertEquals("nhạc Việt", SoundCloudModule.ChartRegion.VN.discoveryQuery)
+        assertNull(module.chartsQuery(20)["region"])
+    }
+
+    @Test
+    fun `public comments preserve author timestamp and skip malformed entries`() {
+        val parsed = module.commentsIn("""{"collection":[{"id":1,"body":"Hay quá","timestamp":4500,"user":{"username":"Listener"}},{"id":2,"body":""},{"body":"missing id"}]}""")
+        assertEquals(1, parsed.size)
+        assertEquals("Hay quá", parsed.single().body)
+        assertEquals("Listener", parsed.single().author)
+        assertEquals(4500L, parsed.single().timestampMs)
+    }
+
+    @Test
+    fun `track exposes public counts without fabricating missing values`() {
+        val track = module.tracksIn("""{"collection":[{"id":7,"title":"Track","likes_count":120,"comment_count":4,"permalink_url":"https://soundcloud.com/artist/song"}]}""").single()
+        assertEquals(120L, track.likesCount)
+        assertEquals(4L, track.commentCount)
+        assertEquals("https://soundcloud.com/artist/song", track.permalinkUrl)
+        assertNull(module.tracksIn("""{"collection":[{"id":8,"title":"No stats"}]}""").single().likesCount)
     }
 
     @Test

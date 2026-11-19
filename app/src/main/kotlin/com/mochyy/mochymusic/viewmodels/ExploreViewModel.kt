@@ -27,7 +27,10 @@ class ExploreViewModel
 constructor(
     @ApplicationContext val context: Context,
     val database: MusicDatabase,
+    modules: com.mochyy.mochymusic.modules.ModuleRegistry,
 ) : ViewModel() {
+    val soundCloudEnabled = modules.observeEnabled(com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.Id)
+    val soundCloudInitiallyEnabled = modules.isEnabled(com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.Id)
     val explorePage = MutableStateFlow<ExplorePage?>(null)
 
     private suspend fun load() {

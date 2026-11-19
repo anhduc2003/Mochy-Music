@@ -1,21 +1,31 @@
-# SoundCloud integration: limits and next steps
+# SoundCloud: verified capabilities and remaining integration
 
-## Current implementation
+## Fixes after v8.4.4
 
-- The app screen uses the public SoundCloud catalog for track/playlist search, trending charts, playlist tracks, related tracks and playback.
-- Requests run on the IO dispatcher, stale search results are ignored, result errors are shown with a retry action, expired public `client_id` values are rediscovered once, and transient network/429/5xx responses receive bounded retries.
-- The screen now exposes a recommendations tab and selectable chart regions. The region value is sent using SoundCloud's web-player `api-v2` chart query and has not yet been live-verified in this environment.
+- SoundCloud Home/Explore entries follow the module switch, independently of transient server/account failures. A disabled module does not begin catalog/comment requests; re-enabling reloads the current view. Old queue items cannot start a new SoundCloud network resolution while disabled. Existing library/history records are retained.
+- Live read-only probes on 2026-11-20 reproduced HTTP 400 from `/charts` with all tested `region` values (`soundcloud:regions:VN`, `soundcloud:regions:US`, `VN`, `vn`). Global charts return 200 without that parameter. `country=VN` returned the same leading IDs as global, so it is not a verified replacement.
+- Removed unsupported chart-region parameters and country chips. The **Nhạc Việt Nam** option searches `nhạc Việt`; it is explicitly keyword discovery, not a verified geographical chart, uploader-country filter, or license bypass.
+- Public track metadata includes optional `likes_count`/`favoritings_count` and `comment_count`; these now reach the screen. Missing counts remain absent rather than being invented as zero.
+- Public comment reads work with `threaded=0&filter_replies=0&offset=0`; omitting `threaded` reproduced 400. Track menus show author, text and timestamp for the first 50 public comments, plus retry and canonical SoundCloud link. Pagination is not yet implemented; the limit is visible.
+- Search, global charts, related tracks, track detail and comment endpoint shapes were checked against live SoundCloud. Mock HTTP tests protect the region/comment parameter corrections. These checks do not prove Android playback or visual performance.
 
-## Account features are not safely available yet
+## Account login and actions
 
-SoundCloud's current [API guide](https://developers.soundcloud.com/docs/api/guide) documents OAuth 2.1 with PKCE and account-scoped APIs for likes, comments and user feeds. It also says an API app must be registered, current clients require a `client_secret`, and user tokens must be refreshed. The current built-in module only scrapes the public web player's transient `client_id`; it does not authenticate a SoundCloud user. Therefore login, user's likes, posting comments, followed-feed recommendations and account-aware region/availability checks must not be simulated with that public key.
+The current module browses the public catalog. It does not authenticate a user. **Reading public comments and engagement totals works without login; signing in, liking/unliking, posting comments, private likes and following-feed recommendations are separate account operations.** The public web-player `client_id` is not a user session.
 
-A production implementation needs an approved SoundCloud developer app and a secure token-exchange design. Do not embed the confidential `client_secret` in the APK or repository. A backend token broker would need security/privacy review, or SoundCloud must offer a supported native public-client flow. Once that is resolved, add OAuth consent/PKCE + refresh/revoke, encrypted token storage, read-only likes/feed first, then explicit-write likes/comments with consent and rate-limit handling.
+SoundCloud's [API guide](https://developers.soundcloud.com/docs/api/guide) documents registered apps, OAuth 2.1 with PKCE, token exchange/refresh and account endpoints. This checkout has no SoundCloud registered-app client ID/redirect configuration or token-exchange service. Do not embed confidential client secrets in the APK or repository. An approved app and secure token-exchange design are needed before native account operations can be completed. The UI links to the canonical SoundCloud website for those interactions in the meantime and does not claim the app is signed in.
 
-## Remaining validation
+## Validation for this patch
 
-1. Run a live opt-in smoke test for search, playlist paging, charts, region filtering, related tracks and playback; current network test is opt-in and was skipped in this run.
-2. Confirm the public `api-v2` chart-region parameter still works for each offered region; if not, remove unavailable regions rather than silently returning global charts.
-3. Test offline, 401 key rotation, 429 retry, 403/private/DRM tracks, long mixes, app background/resume and rapid query changes on a real Android device.
-4. Add automated coroutine/ViewModel tests for stale-request suppression and visible error/retry states; unit tests currently cover module retry/key rotation/region query, not network playback or visual smoothness.
-5. Keep account login, comments and likes explicitly marked unavailable until official OAuth credentials and a safe token architecture are in place.
+- SoundCloud module: 29 test cases, 0 failures/errors, 1 opt-in live test skipped (28 executed).
+- FOSS app: 227 tests, 0 failures/errors. Includes a coroutine ViewModel test for disabled/no requests, enable/load, disable/clear, re-enable/reload and late-comment response suppression.
+- Live read-only probes independently verified chart, search, related, track detail and comment request shapes; no account tokens were used.
+- No Android device was connected (`adb devices -l` empty); no on-device playback/performance claim is made.
+- The user confirmed no registered SoundCloud Developer application is available. Native account login/write actions remain pending that configuration.
+
+## Remaining device validation
+
+- Toggle off/on from settings while a search or comment load is pending; confirm hidden UI, ignored old results and fresh load on enable.
+- Test direct routes and old queue entries while disabled; retain library/history instead of deleting user data.
+- Verify rapid queries, back navigation from related/playlist, airplane mode, rate limiting, private/DRM/deleted tracks, long mixes, background/resume and actual playback on Android.
+- Test complete account consent, refresh, revoke and encrypted token storage only after registered OAuth configuration is supplied.

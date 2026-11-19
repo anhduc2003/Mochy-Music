@@ -32,11 +32,9 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * SoundCloud's catalog, played the way the web player plays it: an HLS stream behind a signed URL.
  *
- * No account is needed, because none of the public catalog is. SoundCloud's own API requires a
- * `client_id`, and there is no way to register for one that still works — the web player gets one
- * handed to it in its javascript. That key rotates, so it is read out of the player's own bundles
- * when SoundCloud answers 401, and kept in the module's storage in between; the same shape as the
- * player-js lookup Mochy already does for YouTube.
+ * Public catalog requests currently use the web player's rotating client ID. Account APIs need
+ * separately registered OAuth credentials; a public client ID is not a logged-in user session.
+ * The web client ID is read from player bundles when expired or rejected.
  *
  * What it is good at is what the other sources are not: independent artists, DJ sets, remixes, and
  * uploads 40 minutes long.
@@ -46,8 +44,8 @@ class SoundCloudModule : SourceModule {
     override val info = ModuleInfo(
         id = Id,
         name = "SoundCloud",
-        version = "1.0",
-        description = "Danh mục công khai SoundCloud: tìm kiếm, thịnh hành, playlist, gợi ý và phát nhạc. Đăng nhập, thích và bình luận chưa được hỗ trợ.",
+        version = "1.1",
+        description = "Danh mục công khai SoundCloud: tìm kiếm, nhạc Việt, gợi ý, phát nhạc, xem bình luận và số lượt thích. Đăng nhập và tương tác tài khoản mở trên SoundCloud.",
     )
 
     private lateinit var host: ModuleHost
@@ -87,6 +85,12 @@ class SoundCloudModule : SourceModule {
             markUnreachable(reason)
             AccountState.Expired(reason)
         }
+    }
+
+    fun reactivate() {
+        host.storage.set("unreachable", null)
+        host.storage.set("unreachable_at", null)
+        misses.clear()
     }
 
     override fun signOut() {
@@ -233,8 +237,9 @@ class SoundCloudModule : SourceModule {
     class SoundCloudApiException(val statusCode: Int?) : RuntimeException(
         when (statusCode) {
             null -> "SoundCloud không phản hồi. Kiểm tra mạng rồi thử lại."
+            400 -> "SoundCloud từ chối tham số yêu cầu (400). Thử tải lại hoặc cập nhật ứng dụng."
             401 -> "SoundCloud từ chối mã truy cập công khai. Thử lại sau để làm mới kết nối."
-            403 -> "SoundCloud không cho phép nội dung này ở khu vực hiện tại."
+            403 -> "SoundCloud từ chối truy cập nội dung này (403). Nội dung có thể riêng tư hoặc bị giới hạn."
             404 -> "Nội dung SoundCloud này không còn tồn tại."
             429 -> "SoundCloud đang giới hạn yêu cầu. Chờ một lúc rồi thử lại."
             in 500..599 -> "SoundCloud đang gặp sự cố tạm thời. Thử lại sau."
@@ -242,14 +247,9 @@ class SoundCloudModule : SourceModule {
         },
     )
 
-    enum class ChartRegion(val apiId: String?, val label: String) {
+    enum class ChartRegion(val discoveryQuery: String?, val label: String) {
         Global(null, "Toàn cầu"),
-        US("soundcloud:regions:US", "Mỹ"),
-        GB("soundcloud:regions:GB", "Anh"),
-        DE("soundcloud:regions:DE", "Đức"),
-        FR("soundcloud:regions:FR", "Pháp"),
-        JP("soundcloud:regions:JP", "Nhật"),
-        BR("soundcloud:regions:BR", "Brazil"),
+        VN("nhạc Việt", "Nhạc Việt Nam"),
     }
 
     private fun catalogApi(path: String, query: Map<String, String>): HttpResponse {
@@ -322,6 +322,9 @@ class SoundCloudModule : SourceModule {
             authorization = upload.string("track_authorization").orEmpty(),
             streamable = upload.boolean("streamable") != false,
             artworkUrl = upload.string("artwork_url")?.replace("-large", "-t500x500"),
+            likesCount = upload.long("likes_count") ?: upload.long("favoritings_count"),
+            commentCount = upload.long("comment_count"),
+            permalinkUrl = upload.string("permalink_url"),
         )
     }
 
@@ -334,7 +337,38 @@ class SoundCloudModule : SourceModule {
         val artist: String,
         val durationMs: Long?,
         val artworkUrl: String?,
+        val likesCount: Long? = null,
+        val commentCount: Long? = null,
+        val permalinkUrl: String? = null,
     )
+
+    data class Comment(
+        val id: String,
+        val body: String,
+        val author: String,
+        val timestampMs: Long?,
+        val avatarUrl: String?,
+    )
+
+    fun comments(id: String, limit: Int = 50): List<Comment> {
+        require(TrackIdPattern.matches(id)) { "Invalid SoundCloud track id" }
+        val response = catalogApi("/tracks/$id/comments", mapOf(
+            "threaded" to "0", "filter_replies" to "0", "offset" to "0",
+            "limit" to limit.coerceIn(1, 100).toString(),
+        ))
+        return commentsIn(response.text)
+    }
+
+    internal fun commentsIn(text: String): List<Comment> =
+        (objectsIn(text, "collection") ?: emptyList()).mapNotNull { entry ->
+            val id = entry.long("id") ?: return@mapNotNull null
+            val body = entry.string("body")?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val user = entry["user"] as? JsonObject
+            Comment(
+                id.toString(), body, user?.string("username").orEmpty(),
+                entry.long("timestamp")?.takeIf { it >= 0 }, user?.string("avatar_url"),
+            )
+        }.distinctBy { it.id }
 
     /** A playable stream, resolved for one upload. */
     class Stream internal constructor(
@@ -399,16 +433,16 @@ class SoundCloudModule : SourceModule {
         return (objectsIn(response.text, "collection") ?: emptyList()).mapNotNull(::trackOf).mapNotNull(::uploadOf)
     }
 
-    internal fun chartsQuery(limit: Int, region: ChartRegion): Map<String, String> = buildMap {
-        put("kind", ChartsKind)
-        put("genre", ChartsGenre)
-        put("limit", limit.coerceIn(1, MaxCatalogLimit).toString())
-        region.apiId?.let { put("region", it) }
-    }
+    internal fun chartsQuery(limit: Int): Map<String, String> = mapOf(
+        "kind" to ChartsKind,
+        "genre" to ChartsGenre,
+        "limit" to limit.coerceIn(1, MaxCatalogLimit).toString(),
+    )
 
-    /** SoundCloud trending charts, optionally filtered by a documented SoundCloud region URN. */
+    /** api-v2 charts reject region URNs. Vietnam is keyword discovery, not a country chart. */
     fun charts(limit: Int = ChartsPage, region: ChartRegion = ChartRegion.Global): List<Upload> {
-        val response = catalogApi(ChartsPath, chartsQuery(limit, region))
+        region.discoveryQuery?.let { return search(it, limit) }
+        val response = catalogApi(ChartsPath, chartsQuery(limit))
         return chartTracks(response.text).mapNotNull(::uploadOf)
     }
 
@@ -438,6 +472,9 @@ class SoundCloudModule : SourceModule {
         artist = upload.catalog.artist,
         durationMs = upload.catalog.durationMs,
         artworkUrl = upload.artworkUrl,
+        likesCount = upload.likesCount,
+        commentCount = upload.commentCount,
+        permalinkUrl = upload.permalinkUrl,
     )
 
     internal fun playlistOf(element: JsonObject): Playlist? {
@@ -537,6 +574,9 @@ class SoundCloudModule : SourceModule {
         val authorization: String,
         val streamable: Boolean,
         val artworkUrl: String? = null,
+        val likesCount: Long? = null,
+        val commentCount: Long? = null,
+        val permalinkUrl: String? = null,
     )
 
     internal class ScTranscoding(val preset: String, val url: String, val protocol: String?)

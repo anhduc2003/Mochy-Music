@@ -36,7 +36,7 @@ fun SoundCloudHomeRow(
 ) {
     val state by viewModel.state.collectAsState()
     val uploads = state.uploads
-    if (uploads.isEmpty()) return
+    if (!state.enabled || uploads.isEmpty()) return
 
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
