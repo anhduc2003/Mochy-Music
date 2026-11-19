@@ -25,6 +25,12 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.Locale
 
+/**
+ * How many songs' translations stay in memory. Enough for an album-long queue plus what the
+ * lyrics screen has shown, without letting a long listening session grow the map without bound.
+ */
+private const val TranslationCacheEntries = 64
+
 object LyricsTranslationHelper {
     private val _status = MutableStateFlow<TranslationStatus>(TranslationStatus.Idle)
     val status: StateFlow<TranslationStatus> = _status.asStateFlow()
@@ -53,10 +59,24 @@ object LyricsTranslationHelper {
     private var translationJob: Job? = null
     private var isCompositionActive = true
 
-    private val translationCache = mutableMapOf<String, List<String>>()
+    /**
+     * Translations by the lyrics they were made from, most recently used last.
+     *
+     * Bounded and keyed by a digest: the full text of every song ever translated otherwise stayed
+     * in memory for the life of the process, and `String.hashCode()` is 32 bits, so two different
+     * songs could land on the same key and one would show the other's translation.
+     */
+    private val translationCache = object : LinkedHashMap<String, List<String>>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<String>>) =
+            size > TranslationCacheEntries
+    }
 
-    private fun getCacheKey(lyricsText: String, mode: String, language: String): String =
-        "${lyricsText.hashCode()}_${mode}_$language"
+    private fun getCacheKey(lyricsText: String, mode: String, language: String): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(lyricsText.toByteArray())
+            .joinToString("") { "%02x".format(it) }
+        return "${digest}_${mode}_$language"
+    }
 
     private fun tryParsePartialTranslation(content: String, expectedCount: Int): List<String> {
         val startIdx = content.indexOf('[')

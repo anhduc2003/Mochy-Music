@@ -180,6 +180,25 @@ class CrossmixAnalysisRepository(
         }
         // written whole, then swapped in: a crash mid-write can't leave a half file to misread
         temp.renameTo(target)
+        trimCache()
+    }
+
+    /**
+     * Keeps the analysis cache under [CacheBudgetBytes], oldest first.
+     *
+     * Android is free to clear a cache directory, but it does not do it until it needs the space:
+     * without this, every song ever played left a file behind and a large library grew the cache
+     * into tens of megabytes that were never used again.
+     */
+    private fun trimCache() {
+        val files = cacheDir.listFiles()?.filter { it.isFile } ?: return
+        var total = files.sumOf { it.length() }
+        if (total <= CacheBudgetBytes) return
+        for (file in files.sortedBy { it.lastModified() }) {
+            if (total <= CacheBudgetBytes) return
+            val size = file.length()
+            if (file.delete()) total -= size
+        }
     }
 
     private fun cacheFile(mediaId: String): File {
@@ -213,6 +232,8 @@ class CrossmixAnalysisRepository(
         /** the next song: two minutes of possible entry points plus room for the blend after one */
         const val HeadMs = 150_000L
         const val MaxTrackMs = 15 * 60_000L
+        /** how much of the analysis cache survives; about a thousand songs at the sizes seen */
+        const val CacheBudgetBytes = 48L * 1024 * 1024
     }
 }
 
