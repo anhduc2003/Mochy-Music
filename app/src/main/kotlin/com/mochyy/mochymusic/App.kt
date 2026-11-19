@@ -51,6 +51,9 @@ import com.mochyy.mochymusic.link.isTelevision
 // how long after the launch intro the PoToken WebView may boot (Home's reveal runs ~1s)
 private const val PoTokenAfterIntroMillis = 2_500L
 
+/** The process [CrashActivity] is declared in: the one that shows a crash report after the app died. */
+private const val CrashProcess = ":crash"
+
 // one character from each system fallback font titles commonly reach for: japanese, chinese, korean, emoji
 private const val FallbackFontWarmup = "あ漢한😀"
 
@@ -69,6 +72,13 @@ class App : Application(), SingletonImageLoader.Factory {
     lateinit var phoneLink: dagger.Lazy<com.mochyy.mochymusic.link.phone.PhoneLinkHost>
 
     override fun onCreate() {
+        // the crash report screen gets a process of its own, and that is all it should use: this
+        // one is showing an error the last process died of, so opening the database or starting
+        // the player in it is the last thing anyone wants
+        if (isCrashProcess()) {
+            super.onCreate()
+            return
+        }
         // before super, because that's where hilt builds the database and the player caches
         com.mochyy.mochymusic.importer.transfer.TransferRestore.applyPending(this)
         // the folders a move to another drive left behind, cleared once nothing has them open
@@ -399,3 +409,14 @@ class App : Application(), SingletonImageLoader.Factory {
         }
     }
 }
+
+/**
+ * True in the process that only exists to show [com.mochyy.mochymusic.ui.screens.CrashActivity].
+ *
+ * Read from `/proc/self/cmdline` rather than `applicationInfo.processName`: the latter is the
+ * package's default process and reads the same from every process, so it cannot tell them apart.
+ */
+private fun isCrashProcess(): Boolean = runCatching {
+    // the cmdline is the full "<package>:crash", the constant is only the suffix
+    java.io.File("/proc/self/cmdline").readText().trimEnd('\u0000').endsWith(CrashProcess)
+}.getOrDefault(false)
