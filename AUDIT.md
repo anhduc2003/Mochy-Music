@@ -92,6 +92,42 @@ là crash thật:
   Android 8 là mức hỗ trợ chính thức. Nay bỏ qua việc so địa chỉ trên máy cũ (nó chỉ để phân biệt
   hai tai nghe), dùng thiết bị đầu tiên như nhánh dự phòng sẵn có.
 
+### 2.7 — Cài đè bản mới mà không mất thư viện (tính năng đã land)
+
+Lỗ hổng 2.1 chỉ là một nửa của chuyện "cập nhật mà không mất dữ liệu". Nửa còn lại là chữ ký: APK chỉ
+cài đè được lên bản cũ khi **cùng package và cùng khoá ký**, mà mỗi lần CI chạy lại sinh một khoá mới,
+nên mỗi bản phát hành là một ứng dụng khác với Android và cách duy nhất để đi tiếp là gỡ — mất sạch.
+
+Giờ đã có:
+
+- `core/updater/UpdateInstaller.kt`: đọc APK tải về (tên package, dấu vân tay SHA-256 của chứng chỉ
+  ký, versionCode) **trước khi** đưa cho hệ thống, và nói rõ vì sao không cài đè được thay vì để lại
+  một câu "App not installed". Việc cài đi qua `PackageInstaller` với `MODE_FULL_INSTALL`, đúng chế
+  độ thay mã và giữ `files/`, database, cài đặt.
+- `core/updater/UpdateInstallReceiver.kt`: nhận câu trả lời của hệ thống, kể cả khi nó tới lúc Mochy
+  đang bị thay — đúng lúc ấy app không còn màn hình nào để hiện thông báo.
+- `app/build.gradle.kts` + hai workflow: mọi biến thể ký bằng một khoá duy nhất ở
+  `app/keystore/persistent-debug.keystore` khi tệp đó tồn tại; workflow giải mã secret
+  `MOCHY_KEYSTORE_B64` vào đó, thiếu secret thì vẫn build được nhưng phần mô tả bản phát hành nói rõ
+  là bản này **không** cài đè được. `scripts/persistent-signing-key.sh` tạo khoá một lần.
+
+> **Việc cần làm một lần, phía bạn:** chạy `./scripts/persistent-signing-key.sh --print`, dán chuỗi
+> base64 vào Settings → Secrets and variables → Actions, tên `MOCHY_KEYSTORE_B64`. Bản đang cài trên
+> máy bạn mang khoá cũ ngẫu nhiên nên **lần đầu vẫn phải gỡ**; từ đó về sau mọi bản cài đè được.
+> Nhớ xuất bản sao lưu (Cài đặt → Nhập/Xuất) trước lần gỡ đó, và giữ tệp khoá cẩn thận.
+
+### 2.8 — Bốn chỗ `NewApi` còn lại
+
+- `ui/screens/settings/modules/ModulePageShaders.kt`: hàm biên dịch shader dùng `RuntimeShader`
+  (API 33). Chỗ gọi **đã** chặn dưới 13, nhưng lint không nhìn qua được ranh giới hàm, nên hàm được
+  đánh dấu `@RequiresApi(33)` để lint theo đúng chỗ chặn đó.
+- `playback/audio/pass/PassRouterSink.kt`: `setOffloadMode`/`setOffloadDelayPadding` là API 29.
+  media3 chỉ gọi khi máy có offload; chú thích nằm trên interface mà lớp này cài đặt.
+- `ui/player/PlayerHandle.kt`: `PixelCopy` là API 26. Dưới 26 giờ trả `false` — đúng thứ chỗ gọi vốn
+  đã hiểu là "lượt này không lấy được mẫu".
+- `floating/StatusWindow.kt`: `displayCutout` được tra trong nhánh kiểm API 28 nhưng **bốn cạnh** của
+  nó lại được đọc ngoài nhánh đó; nay đọc gọn trong cùng nhánh.
+
 ## 3. Tình trạng tính năng
 
 Đã kiểm từng nhóm dưới đây xem có mã thật đứng sau không (số tệp, số dòng, đường dẫn nêu ở cột
@@ -133,25 +169,33 @@ Chưa sửa trong lần này, xếp theo mức độ và mức rủi ro khi sử
 | P2 | 81 khoá preference được khai nhưng **không nơi nào đọc** (di sản của các tính năng đã bỏ) | `constants/PreferenceKeys.kt` |
 | P2 | Build không có `LASTFM_API_KEY` vẫn hiện mục Last.fm, bấm vào chỉ nhận lỗi thô của dịch vụ | `ui/screens/settings/integrations/IntegrationsScreen.kt:40` |
 | P2 | `Crossfade` + reverb vẫn là hai đường độc lập, không gặp nhau | `eq/audio/ReverbAudioProcessor.kt` vs `crossmix/CrossmixStyles.kt` |
+| P2 | Nhánh `fix/stability-audit` còn giữ các bản sửa chưa vào `main`: lưu hàng đợi đúng lúc `onDestroy`, ghi tệp trạng thái nguyên tử, `SupervisorJob` cho scope của service, vòng khung hình lyric dừng khi tạm dừng. Nên tách phần sửa khỏi `lint-baseline.xml` 30.000 dòng trong nhánh đó rồi land | `playback/MusicService.kt`, `utils/AtomicObjectFile.kt`, `ui/player/LyricsGlowLine.kt` |
 | — | `Roadmap.md` lỗi thời: nhiều mục ghi "chưa xong" nhưng đã xong | `Roadmap.md` |
 
 ### 4.1 — Cổng lint của repo
 
-`:app:lintUniversalFossDebug` đang đỏ **715 lỗi** trên `main` (đo trên chính máy này). Phân loại:
+`:app:lintUniversalFossDebug` đo trên `main` trước đợt sửa này: **715 lỗi**. Nhóm `NewApi` (12 lỗi)
+đã sửa hết ở mục 2.6 và 2.8; các nhóm còn lại:
 
 | Số | Loại | Có nguy hiểm không |
 |---|---|---|
 | 413 | `ExtraTranslation` — chuỗi trong `values-*` không còn trong `values/` | không, chỉ là chuỗi chết |
 | 123 + 19 | `MissingQuantity` / `ImpliedQuantity` — dạng số nhiều thiếu | không, tự lùi về bản khác |
-| 12 | `NewApi` — gọi API cao hơn `minSdk` 24 | **có**, 2 chỗ đã sửa ở mục 2.6 |
+| 12 | `NewApi` — gọi API cao hơn `minSdk` 24 | **có**, đã sửa hết (mục 2.6, 2.8) |
+| 111 | `LocalContextGetResourceValueCall` — hỏi resource qua `LocalContext` trong composition | nhẹ, nhưng sửa 111 chỗ mà không xem được giao diện là rủi ro thật |
 | 7 | `StringFormatMatches` — định dạng chuỗi lệch giữa các ngôn ngữ | không, `%s` nhận mọi kiểu |
-| ~14 | lỗi quy tắc Compose (`LocalContext` lấy resource, `StateFlow.value` trong composition, …) | nhẹ |
+| 6 + 6 + 2 + 1 + 1 | quy tắc Compose thật: `StateFlow.value` trong composition, flow operator, `launch` trong composition, cast `Context`→`Activity`, `getBackStackEntry` không `remember` | nhẹ nhưng đúng là lỗi; sửa phải xem trên máy |
 | còn lại | `RestrictedApi`, `ByteOrderMark`, … | nhẹ |
 
-Vì cổng này đỏ sẵn, **mọi pull request đều không thể xanh** — đó là lý do hai PR đang mở
-(`feat/install-over`, `fix/stability-audit`) chờ mãi. Hướng xử lý đề nghị: sửa nốt nhóm `NewApi` và
-nhóm Compose (khoảng 26 lỗi, làm được trong một buổi), rồi dọn 413 `ExtraTranslation` bằng một lần
-đối chiếu tự động; chỉ dùng baseline nếu muốn có cổng xanh **trước** khi dọn xong, và khi đó baseline
+Vì cổng này đỏ sẵn, **mọi pull request đều không thể xanh** — đó chính là lý do `feat/install-over`
+và `fix/stability-audit` nằm chờ. `feat/install-over` đã được đưa vào `main` (mục 2.7) sau khi nhóm
+`NewApi` và cổng test được sửa.
+
+Thứ tự đề nghị cho phần còn lại: (1) ~16 lỗi quy tắc Compose, làm cùng một thiết bị thật vì chúng
+đụng vào vòng đời và recomposition; (2) 111 `LocalContextGetResourceValueCall` — đổi sang
+`stringResource`/`LocalResources.current`, cơ học nhưng nhiều chỗ, nên làm theo từng màn hình và xem
+lại giao diện; (3) ~555 lỗi dịch thuật (`ExtraTranslation` chỉ là chuỗi chết, `MissingQuantity` cần
+người biết từng ngôn ngữ). Baseline chỉ nên dùng nếu muốn cổng xanh **trước** khi dọn xong, và khi đó
 phải là tạm thời, có ngày hết hạn.
 
 ## 5. Kế hoạch
@@ -162,7 +206,9 @@ Mục 2.1–2.5. Rủi ro thấp: chỉ chạm đường lỗi, đường thoát
 
 ### Đợt 2 — mượt và pin (1–2 tuần)
 
-0. **Dọn cổng lint** (mục 4.1) để mọi pull request chạy được test và lint như thiết kế.
+0. **Dọn cổng lint** (mục 4.1) để mọi pull request chạy được test và lint như thiết kế. `NewApi` xong;
+   còn 111 `LocalContextGetResourceValueCall` + ~16 lỗi quy tắc Compose + ~555 lỗi dịch thuật. Nhóm
+   Compose đụng vào vòng đời và recomposition của TV/player nên phải làm cùng một thiết bị thật.
 1. **DataStore**: bỏ `runBlocking` ở lần đọc đầu, để màn hình đầu tiên không phải chờ đọc đĩa
    (`utils/DataStore.kt:65`). Đo bằng macrobenchmark khởi động nguội trước/sau.
 2. **HeroCarousel**: đưa `collectAsState` xuống từng trang.
