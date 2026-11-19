@@ -88,13 +88,6 @@
             android:name="org.apache.http.legacy"
             android:required="false" />
 
-        <activity
-            android:name=".ui.screens.CrashActivity"
-            android:exported="false"
-            android:theme="@style/Theme.mochy"
-            android:excludeFromRecents="true"
-            android:process=":crash" />
-
         <!-- the big-screen app; the tv home screen only lists main + leanback launcher, so this is what a tv opens -->
         <activity
             android:name=".ui.tv.TvActivity"
