@@ -273,14 +273,80 @@ class SoundCloudModule : SourceModule {
         val codec: String?,
     )
 
+    /** A playlist (a set) as the browse screen lists it. */
+    class Playlist internal constructor(
+        val id: String,
+        val title: String,
+        val artist: String,
+        val trackCount: Int,
+        val artworkUrl: String?,
+    )
+
     /** Searches the catalog. Blocking: call it off the main thread. */
     fun search(text: String, limit: Int = SearchPage): List<Upload> {
         if (text.isBlank()) return emptyList()
         val response = api(SearchPath, mapOf("q" to text.trim(), "limit" to limit.toString())) ?: return emptyList()
         if (!response.ok) return emptyList()
-        return tracksIn(response.text).map { upload ->
-            Upload(upload.catalog.id, upload.catalog.title, upload.catalog.artist, upload.catalog.durationMs, upload.artworkUrl)
-        }
+        return tracksIn(response.text).mapNotNull(::uploadOf)
+    }
+
+    /** Searches playlists and sets. Blocking, as [search]. */
+    fun searchPlaylists(text: String, limit: Int = SearchPage): List<Playlist> {
+        if (text.isBlank()) return emptyList()
+        val response = api(PlaylistsPath, mapOf("q" to text.trim(), "limit" to limit.toString())) ?: return emptyList()
+        if (!response.ok) return emptyList()
+        val collection = objectsIn(response.text, "collection") ?: return emptyList()
+        return collection.mapNotNull(::playlistOf)
+    }
+
+    /** the uploads of a playlist, in its own order. Blocking, as [search]. */
+    fun playlistTracks(id: String): List<Upload> {
+        val response = api("/playlists/$id", emptyMap()) ?: return emptyList()
+        if (!response.ok) return emptyList()
+        val root = runCatching { json.parseToJsonElement(response.text) as? JsonObject }.getOrNull() ?: return emptyList()
+        val tracks = root["tracks"] as? JsonArray ?: return emptyList()
+        return tracks.mapNotNull { (it as? JsonObject)?.let(::trackOf) }.mapNotNull(::uploadOf)
+    }
+
+    /** what SoundCloud is playing this week, so the screen has something before a search. Blocking. */
+    fun charts(limit: Int = ChartsPage): List<Upload> {
+        val response = api(
+            ChartsPath,
+            mapOf("kind" to ChartsKind, "genre" to ChartsGenre, "limit" to limit.toString()),
+        ) ?: return emptyList()
+        if (!response.ok) return emptyList()
+        return chartTracks(response.text).mapNotNull(::uploadOf)
+    }
+
+    /** the uploads a charts answer lists: each entry wraps its track, the way the web player's own answer does */
+    internal fun chartTracks(text: String): List<ScTrack> {
+        val collection = objectsIn(text, "collection") ?: return emptyList()
+        return collection.mapNotNull { it["track"] as? JsonObject }.mapNotNull(::trackOf)
+    }
+
+    private fun uploadOf(upload: ScTrack) = Upload(
+        id = upload.catalog.id,
+        title = upload.catalog.title,
+        artist = upload.catalog.artist,
+        durationMs = upload.catalog.durationMs,
+        artworkUrl = upload.artworkUrl,
+    )
+
+    internal fun playlistOf(element: JsonObject): Playlist? {
+        val id = element.long("id") ?: return null
+        val title = element.string("title")?.takeIf { it.isNotBlank() } ?: return null
+        return Playlist(
+            id = id.toString(),
+            title = title,
+            artist = (element["user"] as? JsonObject)?.string("username").orEmpty(),
+            trackCount = element.long("track_count")?.toInt() ?: 0,
+            artworkUrl = element.string("artwork_url")?.replace("-large", "-t500x500"),
+        )
+    }
+
+    private fun objectsIn(text: String, key: String): List<JsonObject>? {
+        val root = runCatching { json.parseToJsonElement(text) as? JsonObject }.getOrNull() ?: return null
+        return (root[key] as? JsonArray)?.mapNotNull { it as? JsonObject }
     }
 
     /**
@@ -370,6 +436,11 @@ class SoundCloudModule : SourceModule {
 
         private const val ApiBase = "https://api-v2.soundcloud.com"
         private const val SearchPath = "/search/tracks"
+        private const val PlaylistsPath = "/search/playlists"
+        private const val ChartsPath = "/charts"
+        private const val ChartsKind = "trending"
+        private const val ChartsGenre = "soundcloud:genres:all-music"
+        private const val ChartsPage = 20
         private const val HomePage = "https://soundcloud.com/"
         private const val MaxBundles = 12
         private const val MaxMatches = 10

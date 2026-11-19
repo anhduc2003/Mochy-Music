@@ -8,43 +8,99 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
-/** the SoundCloud screen's state: what was typed, what the catalog answered */
+/**
+ * the SoundCloud screen: what was typed, what the catalog answered, and the one playlist that is
+ * open. Everything that talks to SoundCloud is blocking, so each call runs off the main thread.
+ */
 @HiltViewModel
 class SoundCloudViewModel @Inject constructor(
     private val moduleRegistry: ModuleRegistry,
 ) : ViewModel() {
 
-    private val _query = MutableStateFlow("")
-    val query = _query.asStateFlow()
+    enum class Tab { Tracks, Playlists }
 
-    private val _results = MutableStateFlow<List<SoundCloudModule.Upload>>(emptyList())
-    val results = _results.asStateFlow()
+    data class UiState(
+        val query: String = "",
+        val tab: Tab = Tab.Tracks,
+        val loading: Boolean = false,
+        val uploads: List<SoundCloudModule.Upload> = emptyList(),
+        val playlists: List<SoundCloudModule.Playlist> = emptyList(),
+        /** the playlist being looked at; null while browsing or searching */
+        val open: SoundCloudModule.Playlist? = null,
+    )
 
-    private val _loading = MutableStateFlow(false)
-    val loading = _loading.asStateFlow()
+    private val _state = MutableStateFlow(UiState())
+    val state = _state.asStateFlow()
 
     /** the module that answers, when it's installed and loaded */
     private val module: SoundCloudModule?
         get() = moduleRegistry.all().filterIsInstance<SoundCloudModule>().firstOrNull()
 
-    fun onQueryChange(text: String) {
-        _query.value = text
+    init {
+        loadTrending()
     }
 
+    fun onQueryChange(text: String) = _state.update { it.copy(query = text) }
+
+    fun onTabChange(tab: Tab) = _state.update { it.copy(tab = tab) }
+
     fun search() {
-        val text = _query.value.trim()
+        val current = _state.value
+        val text = current.query.trim()
         val module = module ?: return
         if (text.isEmpty()) return
         viewModelScope.launch {
-            _loading.value = true
-            _results.value = withContext(Dispatchers.IO) {
-                runCatching { module.search(text) }.getOrDefault(emptyList())
+            _state.update { it.copy(loading = true, open = null) }
+            if (current.tab == Tab.Tracks) {
+                val found = withContext(Dispatchers.IO) {
+                    runCatching { module.search(text) }.getOrDefault(emptyList())
+                }
+                _state.update { it.copy(loading = false, uploads = found, playlists = emptyList()) }
+            } else {
+                val found = withContext(Dispatchers.IO) {
+                    runCatching { module.searchPlaylists(text) }.getOrDefault(emptyList())
+                }
+                _state.update { it.copy(loading = false, playlists = found, uploads = emptyList()) }
             }
-            _loading.value = false
+        }
+    }
+
+    fun openPlaylist(playlist: SoundCloudModule.Playlist) {
+        val module = module ?: return
+        viewModelScope.launch {
+            _state.update { it.copy(loading = true, open = playlist, playlists = emptyList()) }
+            val tracks = withContext(Dispatchers.IO) {
+                runCatching { module.playlistTracks(playlist.id) }.getOrDefault(emptyList())
+            }
+            _state.update { it.copy(loading = false, uploads = tracks) }
+        }
+    }
+
+    /** back out of a playlist to what the screen showed before: the charts, or the last search */
+    fun closePlaylist() {
+        _state.update { it.copy(open = null, uploads = emptyList()) }
+        loadTrending()
+    }
+
+    private fun loadTrending() {
+        val module = module ?: return
+        viewModelScope.launch {
+            _state.update { it.copy(loading = true) }
+            val found = withContext(Dispatchers.IO) {
+                runCatching { module.charts() }.getOrDefault(emptyList())
+            }
+            _state.update {
+                if (it.open == null && it.query.isBlank() && it.uploads.isEmpty()) {
+                    it.copy(loading = false, uploads = found)
+                } else {
+                    it.copy(loading = false)
+                }
+            }
         }
     }
 }

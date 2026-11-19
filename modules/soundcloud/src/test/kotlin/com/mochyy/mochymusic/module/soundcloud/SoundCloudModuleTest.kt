@@ -1,6 +1,8 @@
 package com.mochyy.mochymusic.module.soundcloud
 
 import com.mochyy.mochymusic.module.StreamFormat
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -47,6 +49,40 @@ class SoundCloudModuleTest {
         assertTrue(first.streamable)
         assertEquals(3, first.transcodings.size)
         assertEquals("auth-token", first.authorization)
+    }
+
+    @Test
+    fun `reads a playlist the way the browse screen lists it`() {
+        val playlist = module.playlistOf(
+            Json.parseToJsonElement(playlistAnswer).jsonObject,
+        )
+
+        assertEquals("352480527", playlist?.id)
+        assertEquals("Lofi Chill", playlist?.title)
+        assertEquals("DiviSoul", playlist?.artist)
+        assertEquals(120, playlist?.trackCount)
+        // the screen shows the 500px cover, not the 100px one the api hands out
+        assertEquals("https://i1.sndcdn.com/artworks-69w3TzoluUm8kQIy-D5uwGw-t500x500.jpg", playlist?.artworkUrl)
+    }
+
+    @Test
+    fun `a playlist with no title is not listed`() {
+        assertNull(module.playlistOf(Json.parseToJsonElement("""{"id":7}""").jsonObject))
+    }
+
+    @Test
+    fun `reads the tracks out of a charts answer`() {
+        val tracks = module.chartTracks(chartsAnswer)
+
+        assertEquals(1, tracks.size)
+        assertEquals("2211456898", tracks.first().catalog.id)
+        assertEquals("Midnight Drive", tracks.first().catalog.title)
+        assertEquals("Neon Kite", tracks.first().catalog.artist)
+    }
+
+    @Test
+    fun `a charts answer without a collection lists nothing`() {
+        assertTrue(module.chartTracks("{}").isEmpty())
     }
 
     @Test
@@ -102,6 +138,38 @@ class SoundCloudModuleTest {
            "track_authorization":"other-token","duration":180000,
            "user":{"username":"Ai Đó"},"media":null}
         ]}
+    """.trimIndent()
+
+    private val playlistAnswer = """
+        {
+          "artwork_url": "https://i1.sndcdn.com/artworks-69w3TzoluUm8kQIy-D5uwGw-large.jpg",
+          "id": 352480527,
+          "kind": "playlist",
+          "title": "Lofi Chill",
+          "track_count": 120,
+          "user": {"username": "DiviSoul"}
+        }
+    """.trimIndent()
+
+    private val chartsAnswer = """
+        {
+          "genre": "soundcloud:genres:all-music",
+          "kind": "trending",
+          "collection": [
+            {
+              "track": {
+                "id": 2211456898,
+                "title": "Midnight Drive",
+                "full_duration": 214000,
+                "streamable": true,
+                "user": {"username": "Neon Kite"},
+                "media": {"transcodings": [
+                  {"preset": "aac_96k", "url": "https://api-v2.soundcloud.com/media/1", "format": {"protocol": "hls"}}
+                ]}
+              }
+            }
+          ]
+        }
     """.trimIndent()
 }
 
