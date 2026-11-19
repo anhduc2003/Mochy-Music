@@ -76,13 +76,23 @@ fun UpdatePromptSheet(
 
     var needsPermission by remember { mutableStateOf(false) }
 
+    val installScope = androidx.compose.runtime.rememberCoroutineScope()
     val startInstall: (java.io.File) -> Unit = { file ->
-        if (installApk(context, file)) {
-            needsPermission = false
-        } else {
-            needsPermission = true
-            readyToInstall = true
-            error = "Hãy cho phép mochy “Cài đặt ứng dụng không rõ nguồn gốc”, rồi nhấn “Cài đặt tại đây” lần nữa."
+        installScope.launch {
+            when (val start = installApk(context, file)) {
+                is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.Started -> needsPermission = false
+                is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.NeedsPermission -> {
+                    needsPermission = true
+                    readyToInstall = true
+                    error = "Hãy cho phép mochy “Cài đặt ứng dụng không rõ nguồn gốc”, rồi nhấn “Cài đặt tại đây” lần nữa."
+                }
+                // the download cannot replace what is installed, or the session was refused
+                is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.Refused,
+                is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.Failed -> {
+                    needsPermission = false
+                    error = com.mochyy.mochymusic.core.updater.UpdateInstaller.messageFor(context, start)
+                }
+            }
         }
     }
 

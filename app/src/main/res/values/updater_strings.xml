@@ -95,4 +95,16 @@
     <string name="channel_yes">Yes</string>
     <string name="channel_no">No</string>
     <string name="update_allow_unknown_apps">Let Mochy install unknown apps in Settings, then come back and press Install here again.</string>
+    <!-- update install: installing a new build over the one on the phone, keeping its data -->
+    <string name="update_install_done">Update installed</string>
+    <string name="update_install_failed">Could not install the update: %1$s</string>
+    <string name="update_install_aborted">Install cancelled</string>
+    <string name="update_install_blocked">Android blocked this install. Allow Mochy to install unknown apps, then try again.</string>
+    <string name="update_install_incompatible">This build cannot replace the installed one. Download the update again, or use the APK built from the same source.</string>
+    <string name="update_install_storage">Not enough free space to install the update</string>
+    <string name="update_apk_unreadable">The downloaded file is not a usable APK. Download it again.</string>
+    <string name="update_apk_other_app">That APK is %1$s, not Mochy.</string>
+    <string name="update_apk_older">That build is older (version code %1$d) than the one installed (%2$d), so Android will refuse it.</string>
+    <string name="update_apk_other_key">That APK is signed with a different key than the copy installed, so Android cannot install it over Mochy. Only a build from the same source can be installed in place: install that one, or export a backup and uninstall first.</string>
+    <string name="update_install_title">Update not installed</string>
 </resources>
