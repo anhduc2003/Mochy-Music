@@ -79,10 +79,24 @@ nút **Hoàn tác** (`ui/menu/AddToPlaylistDialog.kt`) xoá đúng những dòng
   có hai mục "Tiếng Đức" và "Tiếng Đức (Đức)". So theo ngôn ngữ vẫn bắt được đúng thứ cần bắt — thêm
   thư mục ngôn ngữ mà quên thêm mục chọn thì test đỏ — mà không đòi một danh sách vô nghĩa.
 
+### 2.6 — Hai chỗ gọi API cao hơn `minSdk` (P1, crash thật trên máy cũ)
+
+Lint báo 12 lỗi `NewApi`; phần lớn là báo nhầm vì chỗ chặn phiên bản nằm ở tầng trên, nhưng hai chỗ
+là crash thật:
+
+- `ui/player/styles/ExpressiveText.kt:1114` — `Shader.TileMode.DECAL` chỉ có từ Android 12. Tên field
+  được phân giải **trước khi** `BlurEffectCache.get` kịp trả `null` cho máy cũ, nên vẽ một dòng lời
+  có blur trên Android 11 trở xuống ném `NoSuchFieldError` ngay trong lượt vẽ. Nay chọn tile mode
+  sau khi kiểm phiên bản.
+- `playback/audio/BluetoothCodecs.kt:141` — `AudioDeviceInfo#getAddress` chỉ có từ Android 9, mà
+  Android 8 là mức hỗ trợ chính thức. Nay bỏ qua việc so địa chỉ trên máy cũ (nó chỉ để phân biệt
+  hai tai nghe), dùng thiết bị đầu tiên như nhánh dự phòng sẵn có.
+
 ## 3. Tình trạng tính năng
 
-Đã đối chiếu từng mục của README và `Roadmap.md` với một tệp triển khai cụ thể. **Không có tính
-năng nào chỉ được quảng cáo mà không có mã.**
+Đã kiểm từng nhóm dưới đây xem có mã thật đứng sau không (số tệp, số dòng, đường dẫn nêu ở cột
+cuối), và đối chiếu với các mục của README cùng `Roadmap.md`. **Không có tính năng nào chỉ được
+quảng cáo mà không có mã.** Chỗ duy nhất hứa mà chưa làm được là một công tắc cài đặt, ghi ở dưới.
 
 | Nhóm | Trạng thái | Bằng chứng |
 |---|---|---|
@@ -121,6 +135,25 @@ Chưa sửa trong lần này, xếp theo mức độ và mức rủi ro khi sử
 | P2 | `Crossfade` + reverb vẫn là hai đường độc lập, không gặp nhau | `eq/audio/ReverbAudioProcessor.kt` vs `crossmix/CrossmixStyles.kt` |
 | — | `Roadmap.md` lỗi thời: nhiều mục ghi "chưa xong" nhưng đã xong | `Roadmap.md` |
 
+### 4.1 — Cổng lint của repo
+
+`:app:lintUniversalFossDebug` đang đỏ **715 lỗi** trên `main` (đo trên chính máy này). Phân loại:
+
+| Số | Loại | Có nguy hiểm không |
+|---|---|---|
+| 413 | `ExtraTranslation` — chuỗi trong `values-*` không còn trong `values/` | không, chỉ là chuỗi chết |
+| 123 + 19 | `MissingQuantity` / `ImpliedQuantity` — dạng số nhiều thiếu | không, tự lùi về bản khác |
+| 12 | `NewApi` — gọi API cao hơn `minSdk` 24 | **có**, 2 chỗ đã sửa ở mục 2.6 |
+| 7 | `StringFormatMatches` — định dạng chuỗi lệch giữa các ngôn ngữ | không, `%s` nhận mọi kiểu |
+| ~14 | lỗi quy tắc Compose (`LocalContext` lấy resource, `StateFlow.value` trong composition, …) | nhẹ |
+| còn lại | `RestrictedApi`, `ByteOrderMark`, … | nhẹ |
+
+Vì cổng này đỏ sẵn, **mọi pull request đều không thể xanh** — đó là lý do hai PR đang mở
+(`feat/install-over`, `fix/stability-audit`) chờ mãi. Hướng xử lý đề nghị: sửa nốt nhóm `NewApi` và
+nhóm Compose (khoảng 26 lỗi, làm được trong một buổi), rồi dọn 413 `ExtraTranslation` bằng một lần
+đối chiếu tự động; chỉ dùng baseline nếu muốn có cổng xanh **trước** khi dọn xong, và khi đó baseline
+phải là tạm thời, có ngày hết hạn.
+
 ## 5. Kế hoạch
 
 ### Đợt 1 — đã xong trong lần này ✔
@@ -129,6 +162,7 @@ Mục 2.1–2.5. Rủi ro thấp: chỉ chạm đường lỗi, đường thoát
 
 ### Đợt 2 — mượt và pin (1–2 tuần)
 
+0. **Dọn cổng lint** (mục 4.1) để mọi pull request chạy được test và lint như thiết kế.
 1. **DataStore**: bỏ `runBlocking` ở lần đọc đầu, để màn hình đầu tiên không phải chờ đọc đĩa
    (`utils/DataStore.kt:65`). Đo bằng macrobenchmark khởi động nguội trước/sau.
 2. **HeroCarousel**: đưa `collectAsState` xuống từng trang.
