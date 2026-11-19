@@ -876,7 +876,6 @@
     <string name="video_mode">Toàn bộ video</string>
     <string name="video_mode_exit">Thoát chế độ video</string>
     <string name="video_mode_close_player">Đóng trình phát</string>
-    <string name="video_mode_rotate">Xoay trình phát</string>
     <string name="video_mode_exit_full_screen">Thoát toàn màn hình</string>
     <string name="video_mode_finding">Đang tìm video…</string>
     <string name="video_mode_no_video">Bài hát này không có video. Lời bài hát vẫn hiển thị ở đây khi phát.</string>

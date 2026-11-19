@@ -360,7 +360,6 @@
     <string name="error_premium_only_login">YouTube chỉ phát bài này cho thành viên Music Premium. Đăng nhập bằng tài khoản Premium để phát.</string>
     <string name="error_rate_limited">YouTube đang giới hạn yêu cầu từ mạng này. Hãy thử lại sau vài phút.</string>
     <string name="lyrics_file_added">Đang dùng tệp lời của bạn</string>
-    <string name="settings_blend_skips_crossmix">Tắt khi Crossmix bật: Crossmix đã phối rồi nên tua chỉ là tua. Hai bài hai bên vẫn được tải trước</string>
     <string name="song_edit_menu">Sửa thông tin bài hát</string>
     <string name="transition_crossmix">CrossMix</string>
     <string name="transition_fade_desc">Nhạc nhỏ dần khi bạn tạm dừng, tua hay chọn bài khác, và lớn lại khi phát</string>

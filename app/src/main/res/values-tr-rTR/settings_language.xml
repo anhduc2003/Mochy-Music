@@ -53,10 +53,7 @@
     <string name="playback_hires">Hi-res çıkış</string>
     <string name="playback_hifi">Hi-fi resampler</string>
     <string name="settings_app_behaviour">Uygulama davranışı</string>
-    <string name="settings_local_section">Yerel ayarlar</string>
-    <string name="settings_player_behaviour">Oynatıcı davranışı</string>
     <string name="settings_on_the_player">Oynatıcıda</string>
-    <string name="settings_other">Diğer</string>
     <string name="settings_related">İlgili</string>
     <string name="settings_hide_descriptions">Ayarlardaki açıklamaları kapat</string>
     <string name="settings_hide_descriptions_desc">Sadece başlıklar gözükür, ne işe yaradığını okumak için ayara basılı tut</string>
@@ -65,8 +62,6 @@
     <string name="settings_rec_blur">Bulanıklık ayarlarını yapılandır</string>
     <string name="settings_rec_crossfade">Çapraz geçiş ayarlarını yapılandır</string>
     <string name="settings_rec_equalizer">Ekolayzer ayarlarını yapılandır</string>
-    <string name="settings_crumb_customisation">Ayarlar › Özelleştirme</string>
-    <string name="settings_crumb_audio_lab">Ayarlar › Ses Laboratuvarı</string>
     <string name="customise_title">Özelleştir</string>
     <string name="customise_nothing_matches">Burada “%1$s” ile eşleşen bir şey yok. Başka bir kelime dene.</string>
     <string name="customise_cover_rounding">Kapak\nyuvarlaklığı</string>

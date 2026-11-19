@@ -85,10 +85,7 @@
     <string name="playback_hires">Đầu ra âm thanh độ phân giải cao</string>
     <string name="playback_hifi">Bộ lấy mẫu lại âm thanh độ trung thực cao</string>
     <string name="settings_app_behaviour">Cách hoạt động của ứng dụng</string>
-    <string name="settings_local_section">Cài đặt cục bộ</string>
-    <string name="settings_player_behaviour">Cách hoạt động của trình phát</string>
     <string name="settings_on_the_player">Trên trình phát</string>
-    <string name="settings_other">Khác</string>
     <string name="settings_related">Liên quan</string>
     <string name="settings_hide_descriptions">Ẩn mô tả trong cài đặt</string>
     <string name="settings_hide_descriptions_desc">Chỉ hiển thị tiêu đề. Nhấn giữ một tùy chọn cài đặt để đọc mô tả chức năng.</string>
@@ -100,8 +97,6 @@
     <string name="settings_rec_blur">Cài đặt hiệu ứng làm mờ</string>
     <string name="settings_rec_crossfade">Cài đặt chuyển tiếp mượt</string>
     <string name="settings_rec_equalizer">Cài đặt bộ cân bằng âm thanh</string>
-    <string name="settings_crumb_customisation">Cài đặt › Tùy chỉnh</string>
-    <string name="settings_crumb_audio_lab">Cài đặt › Phòng thử nghiệm âm thanh</string>
     <string name="customise_title">Tùy chỉnh</string>
     <string name="customise_nothing_matches">Không có mục nào khớp với “%1$s”. Hãy thử từ khác.</string>
     <string name="customise_reset">Đặt lại mặc định</string>

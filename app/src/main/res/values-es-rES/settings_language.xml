@@ -53,10 +53,7 @@
     <string name="playback_hires">Hi-res output</string>
     <string name="playback_hifi">Hi-fi resampler</string>
     <string name="settings_app_behaviour">App behaviour</string>
-    <string name="settings_local_section">Local settings</string>
-    <string name="settings_player_behaviour">Player behaviour</string>
     <string name="settings_on_the_player">On the player</string>
-    <string name="settings_other">Other</string>
     <string name="settings_related">Related</string>
     <string name="settings_hide_descriptions">Disable description on settings</string>
     <string name="settings_hide_descriptions_desc">Only the titles show, hold a setting to read what it does</string>
@@ -65,8 +62,6 @@
     <string name="settings_rec_blur">Configure Blur settings</string>
     <string name="settings_rec_crossfade">Configure Crossfade settings</string>
     <string name="settings_rec_equalizer">Configure Equalizer settings</string>
-    <string name="settings_crumb_customisation">Settings › Customisation</string>
-    <string name="settings_crumb_audio_lab">Settings › Audio Lab</string>
     <string name="customise_title">Customize</string>
     <string name="customise_nothing_matches">Nothing here matches “%1$s”. Try another word.</string>
     <string name="customise_cover_rounding">Cover\nrounding</string>

@@ -140,13 +140,6 @@
     <string name="skin_customise_title">Tùy chỉnh</string>
     <string name="skin_customise_body">Các mục này thay đổi diện mạo của %1$s. Chúng là cùng các cài đặt như ở trang của module.</string>
     <string name="skin_customise_empty">Hãy bật module để thay đổi các mục này.</string>
-    <string name="modules_intro">Giao diện mới, nguồn nhạc mới và lời bài hát mới dưới dạng mô-đun từ bên thứ ba.</string>
-    <string name="module_by">%1$s · của %2$s</string>
-    <string name="modules_find_more_desc">Thêm mô-đun từ danh mục hoặc liên kết</string>
-    <string name="module_use">Sử dụng %1$s</string>
-    <string name="module_test_body">Thực hiện mọi bước trên điện thoại này với “%1$s”: tìm bài hát, mở luồng phát và giải mã phần đầu của luồng mà không phát âm thanh.</string>
-    <string name="module_test_body_drm">Thực hiện mọi bước trên điện thoại này với “%1$s”: tìm bài hát, mở luồng phát, lấy giấy phép từ Widevine của điện thoại này và giải mã phần đầu của luồng mà không phát âm thanh.</string>
-    <string name="module_testing">Đang kiểm tra…</string>
     <string name="skin_audio_lossy">Nén mất dữ liệu</string>
     <string name="skin_audio_lossless">Không nén mất dữ liệu</string>
     <string name="skin_output_speaker">Loa</string>

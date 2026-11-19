@@ -4,7 +4,6 @@
     <string name="module_adds_lyrics">Sözler</string>
     <string name="module_adds_look">Görünüm</string>
     <string name="modules_beta">BETA</string>
-    <string name="modules_intro">yeni görünümler, yeni kaynaklar, yeni sözler modül olarak geliyor. 3. parti..</string>
     <string name="module_status_signed_out">Giriş yapılmadı</string>
     <string name="module_status_expired">Tekrar giriş yap · %1$s</string>
     <string name="module_status_on">Açık · %1$s</string>
@@ -12,9 +11,7 @@
     <string name="module_origin_built_in">Dahili · v%1$s</string>
     <string name="module_origin_app">Modül uygulaması · v%1$s</string>
     <string name="module_origin_web">Bir bağlantıdan · v%1$s</string>
-    <string name="module_by">%1$s · %2$s yapmış</string>
     <string name="modules_find_more">Daha fazla kaynak bul</string>
-    <string name="modules_find_more_desc">Katalogdan ya da bir bağlantıdan modül ekle</string>
     <string name="modules_find_more_body">Modül, başkasının işlettiği bir servis. Mochy ondan sadece şarkı, söz ya da görünüm ister, uygulamanın başka hiçbir yerine dokunamaz.</string>
     <string name="modules_add_from_link">Bağlantıdan ekle</string>
     <string name="modules_link_hint">https://…</string>
@@ -37,16 +34,12 @@
     <string name="module_check_account">Hesabı kontrol et</string>
     <string name="module_check_server">Sunucuyu kontrol et</string>
     <string name="module_sign_out">Çıkış yap</string>
-    <string name="module_use">%1$s kullan</string>
     <string name="module_use_sign_in_first">Önce giriş yap, sonra buradan aç.</string>
     <string name="module_use_songs">Şarkılar, varsa %1$s üzerinden çalınır. Sıra, Ses Kalitesi ayarındaki gibi.</string>
     <string name="module_use_lyrics">Sözleri, söz kaynaklarına eklenir.</string>
     <string name="module_use_look">Açıkken görünüm ayarlarının yerine geçer, kapatınca seninkiler geri gelir.</string>
     <string name="module_test">Oynatmayı test et</string>
-    <string name="module_test_body">“%1$s” ile bu telefonda her adımı dener: şarkıyı bulur, yayını açar ve başlangıcını sessizce çözer.</string>
-    <string name="module_test_body_drm">“%1$s” ile bu telefonda her adımı dener: şarkıyı bulur, yayını açar, telefonun Widevine\'ından lisans alır ve başlangıcını sessizce çözer.</string>
     <string name="module_run_test">Testi başlat</string>
-    <string name="module_testing">Test ediliyor…</string>
     <string name="module_test_passed">Her şey çalışıyor. %1$s açıkken istediğin şarkıyı çal, küçük bir bildirim her şarkının nereden geldiğini söyler.</string>
     <string name="module_remove">Bu modülü kaldır</string>
     <string name="module_apple_limits">Olmayanlar: kayıpsız ses, Dolby Atmos ve Apple\'ın Uzamsal miksi (Apple bunları sadece kendi DRM\'i FairPlay için kodluyor) ve indirmeler (web oynatıcılara çevrimdışı lisans vermiyorlar).</string>
