@@ -5138,11 +5138,11 @@ class MusicService :
         if (com.mochyy.mochymusic.utils.OfflineMode.isOn || mediaId.startsWith("LOCAL_")) return null
         // an upload from the app's own SoundCloud screen: it is opened by its own id, so no
         // search runs and the upload that was tapped is the one that plays
-        if (mediaId.startsWith(com.mochyy.mochymusic.ui.screens.soundcloud.SOUNDCLOUD_PREFIX)) {
+        if (mediaId.startsWith(com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.MediaIdPrefix)) {
             val soundCloud = sourceModules.module(com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.Id)
                 as? com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
                 ?: throw com.mochyy.mochymusic.playback.custom.NoProviderException("the SoundCloud module is not loaded")
-            val uploadId = mediaId.removePrefix(com.mochyy.mochymusic.ui.screens.soundcloud.SOUNDCLOUD_PREFIX)
+            val uploadId = mediaId.removePrefix(com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.MediaIdPrefix)
             val stream = withContext(Dispatchers.IO) { soundCloud.streamFor(uploadId) }
                 ?: throw com.mochyy.mochymusic.playback.custom.NoProviderException("SoundCloud no longer has this upload")
             streamFacts.update { it + (mediaId to StreamFacts(codec = stream.codec, fromModule = true)) }

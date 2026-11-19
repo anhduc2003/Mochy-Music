@@ -29,7 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.mochyy.mochymusic.LocalPlayerConnection
@@ -195,12 +195,9 @@ private fun Artwork(url: String?) {
 
 /** the queue's copy of an upload: its own id, so the service opens that upload and not a title match */
 private fun SoundCloudModule.Upload.toMediaItem() = MediaMetadata(
-    id = "$SOUNDCLOUD_PREFIX$id",
+    id = "${SoundCloudModule.MediaIdPrefix}$id",
     title = title,
     artists = listOf(MediaMetadata.Artist(null, artist)),
     duration = ((durationMs ?: 0L) / 1000L).toInt(),
     thumbnailUrl = artworkUrl,
 ).toMediaItem()
-
-/** media ids the app gives its own SoundCloud uploads */
-const val SOUNDCLOUD_PREFIX = "SC_"

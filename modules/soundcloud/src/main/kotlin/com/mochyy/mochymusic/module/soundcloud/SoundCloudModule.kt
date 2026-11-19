@@ -304,8 +304,23 @@ class SoundCloudModule : SourceModule {
         val response = api("/playlists/$id", emptyMap()) ?: return emptyList()
         if (!response.ok) return emptyList()
         val root = runCatching { json.parseToJsonElement(response.text) as? JsonObject }.getOrNull() ?: return emptyList()
-        val tracks = root["tracks"] as? JsonArray ?: return emptyList()
-        return tracks.mapNotNull { (it as? JsonObject)?.let(::trackOf) }.mapNotNull(::uploadOf)
+        val entries = (root["tracks"] as? JsonArray)?.mapNotNull { it as? JsonObject } ?: return emptyList()
+        // a playlist answers with its first few uploads whole and the rest as bare ids: without
+        // asking for those by id, a 416-track set lists as five tracks
+        val known = mutableMapOf<String, Upload>()
+        val stubs = mutableListOf<String>()
+        entries.forEach { entry ->
+            val upload = trackOf(entry)?.let(::uploadOf)
+            if (upload != null) known[upload.id] = upload else entry.long("id")?.let { stubs += it.toString() }
+        }
+        stubs.chunked(IdsPerAsk).forEach { ids ->
+            val answer = api(TracksPath, mapOf("ids" to ids.joinToString(","))) ?: return@forEach
+            if (!answer.ok) return@forEach
+            val whole = runCatching { json.parseToJsonElement(answer.text) as? JsonArray }.getOrNull() ?: return@forEach
+            whole.mapNotNull { (it as? JsonObject)?.let(::trackOf) }.mapNotNull(::uploadOf)
+                .forEach { known[it.id] = it }
+        }
+        return entries.mapNotNull { entry -> entry.long("id")?.toString()?.let(known::get) }
     }
 
     /** uploads like this one, the way the web player's related tracks do. Blocking, as [search]. */
@@ -433,6 +448,9 @@ class SoundCloudModule : SourceModule {
     internal class ScStream(val url: String, val format: StreamFormat, val quality: String, val codec: String?)
 
     companion object {
+        /** the media id the app gives an upload of this module: the upload's own id, so playback opens it by id */
+        const val MediaIdPrefix = "SC_"
+
         const val Id = "soundcloud"
         const val ChoiceQuality = "quality"
         const val OptionBest = "best"
@@ -445,6 +463,8 @@ class SoundCloudModule : SourceModule {
         private const val ApiBase = "https://api-v2.soundcloud.com"
         private const val SearchPath = "/search/tracks"
         private const val PlaylistsPath = "/search/playlists"
+        private const val TracksPath = "/tracks"
+        private const val IdsPerAsk = 50
         private const val ChartsPath = "/charts"
         private const val ChartsKind = "trending"
         private const val ChartsGenre = "soundcloud:genres:all-music"
