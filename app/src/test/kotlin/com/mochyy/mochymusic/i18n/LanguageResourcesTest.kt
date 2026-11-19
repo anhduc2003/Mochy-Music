@@ -26,22 +26,30 @@ class LanguageResourcesTest {
         .filter { it.tagName in setOf("string", "plurals") && it.getAttribute("translatable") != "false" }
         .associateBy { it.getAttribute("name") }
 
-    @Test fun `picker lists exactly the app translated resource locales`() {
+    @Test fun `picker lists exactly the app translated languages`() {
         val array = children(File(resDir, "values/app_language_tags.xml"))
             .single { it.tagName == "string-array" && it.getAttribute("name") == "app_language_tags" }
         val nodes = array.childNodes
         val tags = (0 until nodes.length).mapNotNull { nodes.item(it) as? Element }
             .map { it.textContent.trim() }
-        val locales = resDir.listFiles().orEmpty()
+        // `values-de` and `values-de-rDE` are both German; the picker offers the language, and
+        // Android itself chooses the regional variant that fits the phone. Comparing whole tags
+        // instead forced a list with "German" and "German (Germany)" in it as two options.
+        fun language(tag: String): String {
+            val parts = tag.split('-')
+            val first = when (parts.firstOrNull()) { "in" -> "id"; "iw" -> "he"; else -> parts.firstOrNull() }
+            return first.orEmpty()
+        }
+        val languages = resDir.listFiles().orEmpty()
             .filter { it.isDirectory && it.name.startsWith("values-") && values(it).isNotEmpty() }
             .map { folder ->
                 val qualifier = folder.name.removePrefix("values-")
                 val tag = if (qualifier.startsWith("b+")) qualifier.removePrefix("b+").replace('+', '-')
                     else qualifier.replace("-r", "-")
-                when (tag) { "in" -> "id"; "iw" -> "he"; else -> tag }
+                language(tag)
             }.toSet() + "en"
         assertEquals("Duplicate language tags", tags.size, tags.toSet().size)
-        assertEquals(locales, tags.toSet())
+        assertEquals(languages, tags.map(::language).toSet())
     }
 
     @Test fun `Indonesian strings preserve the default format arguments`() {
