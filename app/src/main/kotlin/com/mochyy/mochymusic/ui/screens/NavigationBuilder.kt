@@ -378,6 +378,10 @@ fun NavGraphBuilder.navigationBuilder(
         ProfileScreen(navController = navController)
     }
 
+    composable("soundcloud") {
+        com.mochyy.mochymusic.ui.screens.soundcloud.SoundCloudScreen(navController = navController)
+    }
+
     composable("stats") {
         com.mochyy.mochymusic.ui.screens.recap.StatsScreen(navController = navController)
     }

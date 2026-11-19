@@ -5119,6 +5119,25 @@ class MusicService :
         // offline: no provider is asked; the song plays if it's cached, and is skipped if not.
         // An imported file is never looked for online, even one whose file has gone missing.
         if (com.mochyy.mochymusic.utils.OfflineMode.isOn || mediaId.startsWith("LOCAL_")) return null
+        // an upload from the app's own SoundCloud screen: it is opened by its own id, so no
+        // search runs and the upload that was tapped is the one that plays
+        if (mediaId.startsWith(com.mochyy.mochymusic.ui.screens.soundcloud.SOUNDCLOUD_PREFIX)) {
+            val soundCloud = sourceModules.module(com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.Id)
+                as? com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
+                ?: throw com.mochyy.mochymusic.playback.custom.NoProviderException("the SoundCloud module is not loaded")
+            val uploadId = mediaId.removePrefix(com.mochyy.mochymusic.ui.screens.soundcloud.SOUNDCLOUD_PREFIX)
+            val stream = withContext(Dispatchers.IO) { soundCloud.streamFor(uploadId) }
+                ?: throw com.mochyy.mochymusic.playback.custom.NoProviderException("SoundCloud no longer has this upload")
+            streamFacts.update { it + (mediaId to StreamFacts(codec = stream.codec, fromModule = true)) }
+            notePlayingFrom(mediaId, PlayingFrom(soundCloud.info.id, soundCloud.info.name, stream.qualityLabel))
+            return com.mochyy.mochymusic.playback.custom.CustomStreamResult(
+                streamUrl = stream.url,
+                isHls = stream.format == com.mochyy.mochymusic.module.StreamFormat.Hls,
+                isDash = stream.format == com.mochyy.mochymusic.module.StreamFormat.Dash,
+                source = "${soundCloud.info.name} \u00b7 ${stream.qualityLabel}",
+                cacheKey = "$ModuleCacheKeyPrefix${soundCloud.info.id}|$mediaId",
+            )
+        }
         forcedRoutes[mediaId]?.let { forced ->
             if (forced.providerId == com.mochyy.mochymusic.modules.SourceModules.YouTubeId) return youTubeRoute(mediaId)
             forcedModuleStream(mediaId, forced)?.let { return it }

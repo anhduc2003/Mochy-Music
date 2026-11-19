@@ -55,6 +55,7 @@ import com.mochyy.mochymusic.module.ItemListModule
 import com.mochyy.mochymusic.module.ModuleFeature
 import com.mochyy.mochymusic.module.ServerListModule
 import com.mochyy.mochymusic.module.applemusic.AppleMusicModule
+import com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
 import com.mochyy.mochymusic.modules.ModuleEntry
 import com.mochyy.mochymusic.ui.component.LocalZoomOutOverlayState
 import com.mochyy.mochymusic.ui.component.coverTintBackground
@@ -140,6 +141,18 @@ fun ModuleScreen(navController: NavController, id: String, viewModel: ModulesVie
                         viewModel.remove(id)
                         navController.navigateUp()
                     }
+                }
+                if (id == SoundCloudModule.Id) {
+                    Spacer(Modifier.height(14.dp))
+                    Text(
+                        text = "Mở SoundCloud",
+                        fontFamily = InterFontFamily, fontSize = 14.sp,
+                        color = Color.White.copy(alpha = 0.9f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { navController.navigate("soundcloud") }
+                            .padding(horizontal = 6.dp, vertical = 10.dp),
+                    )
                 }
                 if (id == AppleMusicModule.Id) {
                     Spacer(Modifier.height(14.dp))

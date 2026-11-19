@@ -230,25 +230,70 @@ class SoundCloudModule : SourceModule {
     internal fun tracksIn(text: String): List<ScTrack> {
         val root = runCatching { json.parseToJsonElement(text) as? JsonObject }.getOrNull() ?: return emptyList()
         val collection = root["collection"] as? JsonArray ?: return emptyList()
-        return collection.mapNotNull { element ->
-            val upload = element as? JsonObject ?: return@mapNotNull null
-            val id = upload.long("id") ?: return@mapNotNull null
-            val title = upload.string("title")?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            val transcodings = (upload["media"] as? JsonObject)?.let { it["transcodings"] as? JsonArray }
-                ?.mapNotNull { (it as? JsonObject)?.let(::transcodingOf) }
-                .orEmpty()
-            ScTrack(
-                catalog = CatalogTrack(
-                    id = id.toString(),
-                    title = title,
-                    artist = (upload["user"] as? JsonObject)?.string("username").orEmpty(),
-                    durationMs = upload.long("full_duration")?.takeIf { it > 0 } ?: upload.long("duration"),
-                ),
-                transcodings = transcodings,
-                authorization = upload.string("track_authorization").orEmpty(),
-                streamable = upload.boolean("streamable") != false,
-            )
+        return collection.mapNotNull { element -> (element as? JsonObject)?.let(::trackOf) }
+    }
+
+    /** one upload as the api describes it, from a search answer or from `/tracks/{id}` */
+    private fun trackOf(upload: JsonObject): ScTrack? {
+        val id = upload.long("id") ?: return null
+        val title = upload.string("title")?.takeIf { it.isNotBlank() } ?: return null
+        val transcodings = (upload["media"] as? JsonObject)?.let { it["transcodings"] as? JsonArray }
+            ?.mapNotNull { (it as? JsonObject)?.let(::transcodingOf) }
+            .orEmpty()
+        return ScTrack(
+            catalog = CatalogTrack(
+                id = id.toString(),
+                title = title,
+                artist = (upload["user"] as? JsonObject)?.string("username").orEmpty(),
+                durationMs = upload.long("full_duration")?.takeIf { it > 0 } ?: upload.long("duration"),
+            ),
+            transcodings = transcodings,
+            authorization = upload.string("track_authorization").orEmpty(),
+            streamable = upload.boolean("streamable") != false,
+            artworkUrl = upload.string("artwork_url")?.replace("-large", "-t500x500"),
+        )
+    }
+
+    // ---- what the app's own SoundCloud screen asks for ----
+
+    /** An upload as the browse screen lists it. */
+    class Upload internal constructor(
+        val id: String,
+        val title: String,
+        val artist: String,
+        val durationMs: Long?,
+        val artworkUrl: String?,
+    )
+
+    /** A playable stream, resolved for one upload. */
+    class Stream internal constructor(
+        val url: String,
+        val format: StreamFormat,
+        val qualityLabel: String,
+        val codec: String?,
+    )
+
+    /** Searches the catalog. Blocking: call it off the main thread. */
+    fun search(text: String, limit: Int = SearchPage): List<Upload> {
+        if (text.isBlank()) return emptyList()
+        val response = api(SearchPath, mapOf("q" to text.trim(), "limit" to limit.toString())) ?: return emptyList()
+        if (!response.ok) return emptyList()
+        return tracksIn(response.text).map { upload ->
+            Upload(upload.catalog.id, upload.catalog.title, upload.catalog.artist, upload.catalog.durationMs, upload.artworkUrl)
         }
+    }
+
+    /**
+     * Opens the upload with this id, without searching for it by name: the browse screen knows
+     * exactly which upload was tapped, and three uploads can share a title. Blocking, as [search].
+     */
+    fun streamFor(id: String, quality: String = OptionBest): Stream? {
+        val response = api("/tracks/$id", emptyMap()) ?: return null
+        if (!response.ok) return null
+        val upload = (runCatching { json.parseToJsonElement(response.text) as? JsonObject }.getOrNull())?.let(::trackOf) ?: return null
+        if (!upload.streamable) return null
+        val opened = openStream(upload, quality) ?: return null
+        return Stream(opened.url, opened.format, opened.quality, opened.codec)
     }
 
     private fun transcodingOf(element: JsonObject): ScTranscoding? {
@@ -306,6 +351,7 @@ class SoundCloudModule : SourceModule {
         val transcodings: List<ScTranscoding>,
         val authorization: String,
         val streamable: Boolean,
+        val artworkUrl: String? = null,
     )
 
     internal class ScTranscoding(val preset: String, val url: String)
@@ -327,6 +373,7 @@ class SoundCloudModule : SourceModule {
         private const val HomePage = "https://soundcloud.com/"
         private const val MaxBundles = 12
         private const val MaxMatches = 10
+        private const val SearchPage = 30
         private const val ClientIdKey = "client_id"
         private const val ClientIdAtKey = "client_id_at"
         /** how long a key is trusted before it is read again even if it still answers */
