@@ -4,6 +4,7 @@ package com.mochyy.mochymusic.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
@@ -46,7 +47,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
+import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -60,6 +64,7 @@ import com.music.innertube.models.SongItem
 import com.music.innertube.models.WatchEndpoint
 import com.mochyy.mochymusic.LocalPlayerAwareWindowInsets
 import com.mochyy.mochymusic.LocalPlayerConnection
+import com.mochyy.mochymusic.ui.theme.InterFontFamily
 import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.constants.ListItemHeight
 import com.mochyy.mochymusic.models.toMediaMetadata
@@ -126,6 +131,8 @@ fun ExploreScreen(
                     LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding(),
                 ),
             )
+
+            SoundCloudEntry(onClick = { navController.navigate("soundcloud") })
 
             if (isChartsLoading || chartsPage == null || explorePage == null) {
                 ShimmerHost {
@@ -421,5 +428,30 @@ fun ExploreScreen(
                 )
             )
         }
+    }
+}
+
+/** the way into the SoundCloud catalog from where people already look for music */
+@Composable
+private fun SoundCloudEntry(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = 0.06f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(text = "SoundCloud", fontFamily = InterFontFamily, fontSize = 15.sp, color = Color.White)
+            Text(
+                text = "Nhạc độc lập, DJ set, remix",
+                fontFamily = InterFontFamily, fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.6f),
+            )
+        }
+        Text(text = "›", fontSize = 20.sp, color = Color.White.copy(alpha = 0.5f))
     }
 }
