@@ -6,8 +6,8 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import android.provider.MediaStore
-import com.mochyy.mochymusic.db.AllMigrations
 import com.mochyy.mochymusic.db.MusicDatabaseVersion
+import com.mochyy.mochymusic.db.hasMigrationPath
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -254,16 +254,5 @@ class TransferImporter @Inject constructor(
 
     companion object {
         private const val SpareBytes = 64L * 1024 * 1024
-
-        /** true when room can walk the old database up to this version without wiping it, picking migrations the way room does */
-        fun hasMigrationPath(from: Int, to: Int): Boolean {
-            if (from == to) return true
-            if (from <= 0 || from > to) return false
-            var at = from
-            while (at < to) {
-                at = AllMigrations.filter { it.startVersion == at && it.endVersion <= to }.maxOfOrNull { it.endVersion } ?: return false
-            }
-            return true
-        }
     }
 }

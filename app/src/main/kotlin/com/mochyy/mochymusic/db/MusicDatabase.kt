@@ -152,8 +152,10 @@ abstract class InternalDatabase : RoomDatabase() {
     companion object {
         const val DB_NAME = "mochy.db"
 
-        fun newInstance(context: Context): MusicDatabase =
-            MusicDatabase(
+        fun newInstance(context: Context): MusicDatabase {
+            // a file room cannot migrate is either rebuilt here or copied aside: room drops it whole
+            PreUpgradeBackup.prepareForOpen(context, DB_NAME)
+            return MusicDatabase(
                 delegate =
                 Room
                     .databaseBuilder(context, InternalDatabase::class.java, DB_NAME)
@@ -177,6 +179,7 @@ abstract class InternalDatabase : RoomDatabase() {
                     })
                     .build(),
             )
+        }
     }
 }
 
@@ -201,6 +204,24 @@ val AllMigrations: Array<Migration>
         MIGRATION_41_42,
         MIGRATION_42_43,
     )
+
+/**
+ * True when room can walk a database at [from] up to [to] without dropping it, choosing the steps
+ * the way room does. False means the next open would destroy the library, which is what every caller
+ * checks it for: keeping an old export readable, and keeping a copy of a phone's own file.
+ *
+ * This lived inside `TransferImport` while only imports needed it; the database itself needs the
+ * same answer before it opens, so it lives here now and both read the one list.
+ */
+fun hasMigrationPath(from: Int, to: Int): Boolean {
+    if (from == to) return true
+    if (from <= 0 || from > to) return false
+    var at = from
+    while (at < to) {
+        at = AllMigrations.filter { it.startVersion == at && it.endVersion <= to }.maxOfOrNull { it.endVersion } ?: return false
+    }
+    return true
+}
 
 val MIGRATION_1_2 =
     object : Migration(1, 2) {
