@@ -183,6 +183,13 @@ object UpdateInstaller {
         is Start.Refused -> describe(context, start.verdict)
     }
 
+    /**
+     * The system installer finished without installing. Whatever was staged is gone, so the next
+     * attempt has to be allowed to stage it again — otherwise a tap on Cancel leaves the Install
+     * button doing nothing until the app is restarted.
+     */
+    fun forgetHandedOver() = handedOver.clear()
+
     /** The verdict in the listener's own words, or null when there is nothing to say. */
     fun describe(context: Context, verdict: Verdict): String? = when (verdict) {
         is Verdict.Ready -> null

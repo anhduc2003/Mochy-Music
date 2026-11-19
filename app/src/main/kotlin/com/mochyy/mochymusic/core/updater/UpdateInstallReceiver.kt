@@ -43,6 +43,8 @@ class UpdateInstallReceiver : BroadcastReceiver() {
             }
 
             else -> {
+                // nothing was installed: let the next attempt stage the APK again
+                UpdateInstaller.forgetHandedOver()
                 val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
                 Timber.tag(TAG).w("Install of $version failed: status=$status message=$message")
                 val reason = reasonFor(context, status, message)
