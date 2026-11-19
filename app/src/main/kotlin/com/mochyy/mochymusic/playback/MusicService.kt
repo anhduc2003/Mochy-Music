@@ -252,6 +252,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -403,7 +404,13 @@ class MusicService :
         }
     }
 
-    private var scope = CoroutineScope(Dispatchers.Main) + Job()
+    // a supervisor, so one collector throwing ends only itself: under a plain Job it cancelled every
+    // sibling with it, which left playback running with the queue runway, the retry jobs, the sleep
+    // timer and the persistence loops dead for the rest of the session
+    private var scope = CoroutineScope(Dispatchers.Main) + SupervisorJob()
+
+    /** the controller this service opens on itself in onCreate, released in onDestroy */
+    private var selfController: MediaController? = null
 
     private val binder = MusicBinder()
 
@@ -722,7 +729,9 @@ class MusicService :
     private var retryCount = 0
     private var silenceSkipJob: Job? = null
 
-    private val songUrlCache = HashMap<String, Pair<String, Long>>()
+    // concurrent: the loader resolves against it on media3's own loading thread while the player's
+    // side clears entries here, and a plain HashMap written during a resize loses or duplicates them
+    private val songUrlCache = java.util.concurrent.ConcurrentHashMap<String, Pair<String, Long>>()
 
     /**
      * Headers that must accompany the stream request for each track, keyed by media id.
@@ -735,7 +744,8 @@ class MusicService :
     private val musicVideoAudioSongs = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
     private var lastMusicVideoNoticeId: String? = null
 
-    private val bypassCacheForQualityChange = mutableSetOf<String>()
+    // read on the loading thread, written from here, so not a plain set either
+    private val bypassCacheForQualityChange = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
 
     private var currentMediaIdRetryCount = mutableMapOf<String, Int>()
     private val MAX_RETRY_PER_SONG = 3
@@ -899,7 +909,11 @@ class MusicService :
 
         val sessionToken = SessionToken(this, ComponentName(this, MusicService::class.java))
         val controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
-        controllerFuture.addListener({ controllerFuture.get() }, MoreExecutors.directExecutor())
+        // held so onDestroy can let it go: a controller is a live bound client of this very service,
+        // and one left behind kept the session and every loop in onCreate alive after playback ended
+        controllerFuture.addListener({
+            selfController = runCatching { controllerFuture.get() }.getOrNull()
+        }, MoreExecutors.directExecutor())
 
         connectivityManager = getSystemService()!!
         connectivityObserver = NetworkConnectivityObserver(this)
@@ -1269,12 +1283,12 @@ class MusicService :
                             }
                         }
                     }.onFailure { error ->
-                        Timber.tag(TAG).w(error, "Failed to restore persisted queue, clearing data")
-                        clearPersistedQueueFiles()
+                        Timber.tag(TAG).w(error, "Failed to restore persisted queue, dropping it")
+                        deletePersisted(PERSISTENT_QUEUE_FILE)
                     }
                 }.onFailure { error ->
-                    Timber.tag(TAG).w(error, "Failed to read persisted queue, clearing data")
-                    clearPersistedQueueFiles()
+                    Timber.tag(TAG).w(error, "Failed to read persisted queue, dropping it")
+                    deletePersisted(PERSISTENT_QUEUE_FILE)
                 }
             }
 
@@ -1290,12 +1304,12 @@ class MusicService :
                     runCatching {
                         automixItems.value = queue.items.map { it.toMediaItem() }
                     }.onFailure { error ->
-                        Timber.tag(TAG).w(error, "Failed to restore automix queue, clearing data")
-                        clearPersistedQueueFiles()
+                        Timber.tag(TAG).w(error, "Failed to restore automix queue, dropping it")
+                        deletePersisted(PERSISTENT_AUTOMIX_FILE)
                     }
                 }.onFailure { error ->
-                    Timber.tag(TAG).w(error, "Failed to read automix queue, clearing data")
-                    clearPersistedQueueFiles()
+                    Timber.tag(TAG).w(error, "Failed to read automix queue, dropping it")
+                    deletePersisted(PERSISTENT_AUTOMIX_FILE)
                 }
             }
 
@@ -1322,8 +1336,8 @@ class MusicService :
                         }
                     }
                 }.onFailure { error ->
-                    Timber.tag(TAG).w(error, "Failed to read player state, clearing data")
-                    clearPersistedQueueFiles()
+                    Timber.tag(TAG).w(error, "Failed to read player state, dropping it")
+                    deletePersisted(PERSISTENT_PLAYER_STATE_FILE)
                 }
             }
         }
@@ -1682,11 +1696,12 @@ class MusicService :
         )
     }
 
-    private fun clearPersistedQueueFiles() {
-        runCatching { filesDir.resolve(PERSISTENT_QUEUE_FILE).delete() }
-        runCatching { filesDir.resolve(PERSISTENT_AUTOMIX_FILE).delete() }
-        runCatching { filesDir.resolve(PERSISTENT_MANUAL_QUEUE_FILE).delete() }
-        runCatching { filesDir.resolve(PERSISTENT_PLAYER_STATE_FILE).delete() }
+    /**
+     * Drops one saved file. A read that fails says nothing about the other three, which used to go
+     * with it: a truncated queue file took the automix, the hand-queued marks and the place with it.
+     */
+    private fun deletePersisted(name: String) {
+        runCatching { filesDir.resolve(name).delete() }
     }
 
     fun hasAudioFocusForPlayback(): Boolean {
@@ -1852,6 +1867,16 @@ class MusicService :
         streamFailure.value = null
     }
 
+    /**
+     * The listener went back into a stream the player had given up on. A paused player stays IDLE
+     * through a seek, so nothing else clears the countdown, and it fired a few seconds later: the
+     * queue jumped to the next song and started playing it under the finger. Only a pending skip is
+     * theirs to cancel - the retry-every-few-seconds loop of "don't skip on failure" keeps trying.
+     */
+    fun userSeekedIntoFailedStream() {
+        if (streamFailure.value != null) clearStreamFailure()
+    }
+
     private fun stopOnError() = failStream()
 
     private var lastPlaybackError: PlaybackException? = null
@@ -2003,7 +2028,7 @@ class MusicService :
         queue: Queue,
         playWhenReady: Boolean = true,
     ) {
-        if (!scope.isActive) scope = CoroutineScope(Dispatchers.Main) + Job()
+        if (!scope.isActive) scope = CoroutineScope(Dispatchers.Main) + SupervisorJob()
 
         if (!playerInitialized.value) {
             Timber.tag(TAG).w("playQueue called before player initialization, queuing request")
@@ -3394,7 +3419,7 @@ class MusicService :
             )
         }
         // a module's copy that won't parse would fail the same way every time that module is asked
-        if (mediaId != null && isContainerParseError(error)) dropModuleCache(mediaId)
+        if (mediaId != null && isContainerParseError(error)) scope.launch { dropModuleCache(mediaId) }
         if (mediaId != null && forceFallBack(mediaId, announce = !decoderNotices.containsKey(mediaId))) return
 
         if (mediaId != null && hasExceededRetryLimit(mediaId)) {
@@ -3405,7 +3430,9 @@ class MusicService :
         }
 
         if (mediaId != null) {
-            performAggressiveCacheClear(mediaId)
+            // dropping cached spans is a file delete under the cache's own lock: off this thread, the
+            // same way the quality-change reload already does it
+            scope.launch { performAggressiveCacheClear(mediaId) }
         }
 
         when {
@@ -3452,13 +3479,13 @@ class MusicService :
         failStream()
     }
 
-    private fun performAggressiveCacheClear(mediaId: String) {
+    private suspend fun performAggressiveCacheClear(mediaId: String) {
         Timber.tag(TAG).d("Performing aggressive cache clear for $mediaId")
 
         songUrlCache.remove(mediaId)
 
         try {
-            playerCache.removeResource(mediaId)
+            withContext(Dispatchers.IO) { playerCache.removeResource(mediaId) }
             Timber.tag(TAG).d("Cleared player cache for $mediaId")
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Failed to clear player cache for $mediaId")
@@ -3479,10 +3506,12 @@ class MusicService :
             error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED
 
     /** Every source module's cached copy of [mediaId], which lives under its own key. */
-    private fun dropModuleCache(mediaId: String) {
-        playerCache.keys
-            .filter { it.startsWith(ModuleCacheKeyPrefix) && it.endsWith("|$mediaId") }
-            .forEach { key -> runCatching { playerCache.removeResource(key) } }
+    private suspend fun dropModuleCache(mediaId: String) {
+        withContext(Dispatchers.IO) {
+            playerCache.keys
+                .filter { it.startsWith(ModuleCacheKeyPrefix) && it.endsWith("|$mediaId") }
+                .forEach { key -> runCatching { playerCache.removeResource(key) } }
+        }
     }
 
     private fun hasExceededRetryLimit(mediaId: String): Boolean {
@@ -4308,7 +4337,7 @@ class MusicService :
         return key
     }
 
-    private fun saveQueueToDisk(onlyChanges: Boolean = false) {
+    private fun saveQueueToDisk(onlyChanges: Boolean = false, waitForWrite: Boolean = false) {
         if (player.mediaItemCount == 0) {
             Timber.tag(TAG).d("Skipping queue save - no media items")
             return
@@ -4362,51 +4391,14 @@ class MusicService :
                 playbackState = player.playbackState
             )
 
-            scope.launch(Dispatchers.IO) {
-                if (persistQueue != null) runCatching {
-                    filesDir.resolve(PERSISTENT_QUEUE_FILE).outputStream().use { fos ->
-                        ObjectOutputStream(fos).use { oos ->
-                            oos.writeObject(persistQueue)
-                        }
-                    }
-                    Timber.tag(TAG).d("Queue saved successfully")
-                }.onFailure {
-                    Timber.tag(TAG).e(it, "Failed to save queue")
-                    reportException(it)
+            if (waitForWrite) {
+                // onDestroy: the scope below is about to be cancelled, so this write is the caller's to wait on
+                runBlocking(Dispatchers.IO) {
+                    writePersistedState(persistQueue, manualIndices, persistAutomix, persistPlayerState)
                 }
-
-                if (manualIndices != null) runCatching {
-                    filesDir.resolve(PERSISTENT_MANUAL_QUEUE_FILE).outputStream().use { fos ->
-                        ObjectOutputStream(fos).use { oos ->
-                            oos.writeObject(manualIndices)
-                        }
-                    }
-                }.onFailure {
-                    Timber.tag(TAG).e(it, "Failed to save manual queue marks")
-                }
-
-                if (persistAutomix != null) runCatching {
-                    filesDir.resolve(PERSISTENT_AUTOMIX_FILE).outputStream().use { fos ->
-                        ObjectOutputStream(fos).use { oos ->
-                            oos.writeObject(persistAutomix)
-                        }
-                    }
-                    Timber.tag(TAG).d("Automix saved successfully")
-                }.onFailure {
-                    Timber.tag(TAG).e(it, "Failed to save automix")
-                    reportException(it)
-                }
-
-                runCatching {
-                    filesDir.resolve(PERSISTENT_PLAYER_STATE_FILE).outputStream().use { fos ->
-                        ObjectOutputStream(fos).use { oos ->
-                            oos.writeObject(persistPlayerState)
-                        }
-                    }
-                    Timber.tag(TAG).d("Player state saved successfully")
-                }.onFailure {
-                    Timber.tag(TAG).e(it, "Failed to save player state")
-                    reportException(it)
+            } else {
+                scope.launch(Dispatchers.IO) {
+                    writePersistedState(persistQueue, manualIndices, persistAutomix, persistPlayerState)
                 }
             }
         } catch (e: Exception) {
@@ -4415,8 +4407,55 @@ class MusicService :
         }
     }
 
+    private fun writePersistedState(
+        persistQueue: PersistQueue?,
+        manualIndices: IntArray?,
+        persistAutomix: PersistQueue?,
+        persistPlayerState: PersistPlayerState,
+    ) {
+        if (persistQueue != null) runCatching {
+            writePersisted(PERSISTENT_QUEUE_FILE, persistQueue)
+            Timber.tag(TAG).d("Queue saved successfully")
+        }.onFailure {
+            Timber.tag(TAG).e(it, "Failed to save queue")
+            reportException(it)
+        }
+
+        if (manualIndices != null) runCatching {
+            writePersisted(PERSISTENT_MANUAL_QUEUE_FILE, manualIndices)
+        }.onFailure {
+            Timber.tag(TAG).e(it, "Failed to save manual queue marks")
+        }
+
+        if (persistAutomix != null) runCatching {
+            writePersisted(PERSISTENT_AUTOMIX_FILE, persistAutomix)
+            Timber.tag(TAG).d("Automix saved successfully")
+        }.onFailure {
+            Timber.tag(TAG).e(it, "Failed to save automix")
+            reportException(it)
+        }
+
+        runCatching {
+            writePersisted(PERSISTENT_PLAYER_STATE_FILE, persistPlayerState)
+            Timber.tag(TAG).d("Player state saved successfully")
+        }.onFailure {
+            Timber.tag(TAG).e(it, "Failed to save player state")
+            reportException(it)
+        }
+    }
+
+    /** One saved file, written whole or not at all — see [com.mochyy.mochymusic.utils.AtomicObjectFile]. */
+    private fun writePersisted(name: String, value: Any) =
+        com.mochyy.mochymusic.utils.AtomicObjectFile.write(java.io.File(filesDir, name), value)
+
     override fun onDestroy() {
         isRunning = false
+
+        // the last save runs here and waits for its write: everything below cancels the scope it was
+        // written on, so the queue used to be left at whatever the last timed save had put down
+        if (dataStore.get(PersistentQueueKey, true)) {
+            saveQueueToDisk(waitForWrite = true)
+        }
 
         // Stability: cancel every delayed job first. Without this, failure/retry/
         // crossfade jobs fired after player.release() and crashed on a released
@@ -4435,9 +4474,8 @@ class MusicService :
         audioOutputs.release()
         audioPass.release()
         castConnectionHandler?.release()
-        if (dataStore.get(PersistentQueueKey, true)) {
-            saveQueueToDisk()
-        }
+        selfController?.release()
+        selfController = null
         discordPresence.update(null)
         // sends the last stretch of the song that was playing while the player can still say where it stopped
         playReporter.onSongStop()

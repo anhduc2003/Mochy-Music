@@ -29,8 +29,13 @@ class CrashHandler private constructor(
             // Read it back with `adb shell run-as <package> cat files/last_crash.txt`.
             runCatching { java.io.File(applicationContext.filesDir, LAST_CRASH_FILE).writeText(crashLog) }
 
-            android.os.Process.killProcess(android.os.Process.myPid())
-            exitProcess(1)
+            // the platform's own handler ends the process and records the crash: killing it here
+            // meant no "Mochy keeps stopping" dialog and nothing in Play's vitals, so every release
+            // crash looked like the app quietly vanishing
+            defaultHandler?.uncaughtException(thread, throwable) ?: run {
+                android.os.Process.killProcess(android.os.Process.myPid())
+                exitProcess(1)
+            }
         } catch (e: Exception) {
 
             Timber.e(e, "Error handling crash")

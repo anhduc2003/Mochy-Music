@@ -922,7 +922,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun loadStarterSongs() {
-        if (database.eventCount().first() > 0) {
+        if (database.hasAnyEvent().first()) {
             starterSongs.value = emptyList()
             return
         }
