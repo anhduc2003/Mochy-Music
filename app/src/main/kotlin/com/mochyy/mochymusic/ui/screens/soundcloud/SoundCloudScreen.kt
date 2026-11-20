@@ -5,9 +5,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -73,8 +71,6 @@ fun SoundCloudScreen(
 
     // the page's capsule is the catalog's search box, so what is typed there is what is searched
     var query by remember { mutableStateOf(TextFieldValue(state.query)) }
-    val uriHandler = LocalUriHandler.current
-    var accountLinkError by remember { mutableStateOf(false) }
 
     val uploads = state.uploads
     val totalSeconds = remember(uploads) { (uploads.sumOf { it.durationMs ?: 0L } / 1000L).toInt() }
@@ -126,7 +122,6 @@ fun SoundCloudScreen(
             }
         },
         onBackLongClick = { navController.backToMain() },
-        onMoreClick = { runCatching { uriHandler.openUri(SoundCloudSignInUrl) }.onFailure { accountLinkError = true } },
         creator = when {
             state.open != null -> state.open?.artist
             state.relatedTo != null -> "Tương tự ${state.relatedTo?.title.orEmpty()}"
@@ -174,13 +169,6 @@ fun SoundCloudScreen(
                             )
                         }
                     }
-                    TextButton(onClick = {
-                        accountLinkError = false
-                        runCatching { uriHandler.openUri(SoundCloudSignInUrl) }
-                            .onFailure { accountLinkError = true }
-                    }) { Text("Đăng nhập trên SoundCloud") }
-                    Text("Mở trang SoundCloud. Mochy chưa đồng bộ tài khoản.")
-                    if (accountLinkError) Text("Không mở được trang đăng nhập. Hãy thử lại.")
                 }
             }
         }
@@ -244,7 +232,6 @@ fun SoundCloudScreen(
                         upload.likesCount?.let { "$it lượt thích" },
                         upload.commentCount?.let { "$it bình luận" },
                     ).joinToString(" • "))
-                    Text("Bình luận công khai. Đăng nhập và tương tác tài khoản hiện thực hiện trên SoundCloud.")
                     when {
                         state.commentsLoading -> CircularProgressIndicator()
                         state.commentsError != null -> {
@@ -283,17 +270,9 @@ fun SoundCloudScreen(
             confirmButton = {
                 TextButton(onClick = viewModel::closeComments) { Text("Đóng") }
             },
-            dismissButton = {
-                val link = upload.permalinkUrl?.takeIf {
-                    val parsed = Uri.parse(it)
-                    parsed.scheme == "https" && parsed.host in setOf("soundcloud.com", "www.soundcloud.com")
-                }
-                if (link != null) TextButton(onClick = { uriHandler.openUri(link) }) { Text("Mở trên SoundCloud") }
-            },
         )
     }
 }
 
 /** the media id prefix the app gives a SoundCloud upload, kept next to the screen that builds them */
 private const val SC = SoundCloudModule.MediaIdPrefix
-private const val SoundCloudSignInUrl = "https://soundcloud.com/signin"

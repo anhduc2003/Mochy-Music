@@ -46,7 +46,7 @@ class SoundCloudModule : SourceModule {
         id = Id,
         name = "SoundCloud",
         version = "1.1",
-        description = "Danh mục SoundCloud: tìm kiếm, gợi ý nhạc Việt theo metadata công khai, phát nhạc, xem bình luận và lượt thích. Đăng nhập tài khoản mở trên SoundCloud.",
+        description = "Danh mục SoundCloud công khai: tìm kiếm, gợi ý nhạc Việt theo metadata, phát nhạc, xem bình luận và lượt thích. Không cần tài khoản SoundCloud.",
     )
 
     private lateinit var host: ModuleHost
