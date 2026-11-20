@@ -72,7 +72,7 @@ jobs:
           LIBREFM_API_KEY: ${{ secrets.LIBREFM_API_KEY }}
           LIBREFM_SECRET: ${{ secrets.LIBREFM_SECRET }}
           DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
-        run: ./gradlew :app:testUniversalFossDebugUnitTest --tests '*StatusGeometryTest*' :app:assembleUniversalFossRelease --no-configuration-cache --console=plain --warning-mode summary
+        run: ./gradlew :modules:soundcloud:test :app:testUniversalFossDebugUnitTest :app:assembleUniversalFossRelease --no-configuration-cache --console=plain --warning-mode summary
 
       - name: Rename APK
         run: |
@@ -124,20 +124,12 @@ jobs:
           name="${RELEASE_NAME:-Mochy Music $VERSION_NAME}"
 
           cat > notes.md <<EOF
-          This build is about keeping what you already have, not new screens.
-
-          ### Your library survives an update
-          - **A phone on an old database schema no longer loses everything.** Upgrades jumped straight over schemas 26-34, and the database opens with \`fallbackToDestructiveMigration\`, so those installs had their songs, playlists, likes and listening history dropped on the first start after an update. The file is now rebuilt to the current schema with its rows kept, and a copy is taken first in case the rebuild cannot finish.
-          - **Updates install over the installed copy.** The download is checked against what is on the phone (package, signing certificate digest, version code) before it goes to the system installer, which replaces the code and leaves \`files/\`, the database and settings alone. Refusals say what actually happened instead of a bare "App not installed".
-
-          ### Fixed
-          - A crash shows the report screen the manifest always declared, in its own process, with share and copy, instead of the app just disappearing.
-          - Songs added to a playlist go to the end again. They were numbered from the song count, so after any deletion they landed in the middle of the list.
-          - Home shelves keep your scroll position while the library refreshes.
-          - The crossmix analysis cache and the lyric translation cache are bounded. Translations were keyed in a way that could show one song's translation on another.
-          - The floating lyrics stop asking for the overlay permission after 30 seconds instead of every second for the whole song.
-          - Drawing a blurred lyric line on Android 11 and below no longer throws; reading a Bluetooth device address on Android 8 no longer throws.
-          - Afrikaans, Danish and Norwegian were translated but could not be picked in the language list.
+          ### SoundCloud fixes
+          - The module switch hides and restores SoundCloud browsing; re-enabling reloads data.
+          - Removed invalid chart-region parameters responsible for HTTP 400. Vietnamese music discovery is keyword search, not an official country chart.
+          - Public like counts and paginated comments are available from track menus, with retry and duplicate protection.
+          - Back navigation restores playlists/search results. Media fallback, HLS detection and quality/data-saver settings are corrected.
+          - Native account login and write actions still need registered OAuth configuration. No Android device playback validation was performed.
 
           ### Build
           - \`versionCode $VERSION_CODE\`, \`versionName $VERSION_NAME\`
