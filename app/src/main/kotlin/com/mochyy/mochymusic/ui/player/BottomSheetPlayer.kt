@@ -308,6 +308,9 @@ private fun PlayerSheet(
     var showPlaybackSpeed by remember { mutableStateOf(false) }
     var showDeviceOutput by remember { mutableStateOf(false) }
     var showLyricsSource by remember { mutableStateOf(false) }
+    var showComments by remember { mutableStateOf(false) }
+    val commentsViewModel: com.mochyy.mochymusic.viewmodels.PlayerCommentsViewModel =
+        androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel()
 
     var showExpandMenu by remember { mutableStateOf(false) }
     var seeVideo by remember { mutableStateOf(false) }
@@ -878,6 +881,12 @@ private fun PlayerSheet(
         val menuExtras = com.mochyy.mochymusic.ui.player.studio.rememberPlayerMenuExtras(
             playerConnection = playerConnection,
             openLyrics = { if (transition.page != PlayerPage.LYRICS) transition.open(PlayerPage.LYRICS) },
+            openComments = {
+                playerConnection.mediaMetadata.value?.let { song ->
+                    commentsViewModel.open(song.id, song.title)
+                }
+                showComments = true
+            },
         )
         fun menuActionActive(action: com.mochyy.mochymusic.ui.player.studio.PlayerMenuAction): Boolean = when (action) {
             com.mochyy.mochymusic.ui.player.studio.PlayerMenuAction.LIKE -> trackInfo.liked
@@ -1803,6 +1812,23 @@ private fun PlayerSheet(
             )
         }
 
+        if (showComments) {
+            val commentsState by commentsViewModel.state.collectAsState()
+            com.mochyy.mochymusic.ui.player.PlayerCommentsDialog(
+                state = commentsState,
+                onRetry = {
+                    playerConnection.mediaMetadata.value?.let { song ->
+                        commentsViewModel.open(song.id, song.title)
+                    }
+                },
+                onLoadMore = commentsViewModel::loadMore,
+                onDismiss = {
+                    showComments = false
+                    commentsViewModel.close()
+                },
+            )
+        }
+
         if (showSongDetails) {
             // Opening an artist or the album leaves the player: it closes on its way to the page,
             // the way the song menus' "view artist" does
@@ -1830,6 +1856,12 @@ private fun PlayerSheet(
                 fromLyrics = menuFromLyrics,
                 onFullVideo = enterVideoMode,
                 onEqualizer = openEqualizer,
+                onComments = {
+                    playerConnection.mediaMetadata.value?.let { song ->
+                        commentsViewModel.open(song.id, song.title)
+                    }
+                    showComments = true
+                },
                 onOpenRoute = { route ->
                     navController.navigate(route)
                     state.collapseSoft()

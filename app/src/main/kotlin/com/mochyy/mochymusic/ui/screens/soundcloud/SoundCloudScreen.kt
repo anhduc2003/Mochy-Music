@@ -1,11 +1,6 @@
 package com.mochyy.mochymusic.ui.screens.soundcloud
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -217,61 +212,11 @@ fun SoundCloudScreen(
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     viewModel.openRelated(upload)
                 },
-                onMenuClick = { viewModel.openComments(upload) },
+                onMenuClick = { viewModel.openRelated(upload) },
             )
         }
     }
 
-    state.commentsFor?.let { upload ->
-        AlertDialog(
-            onDismissRequest = viewModel::closeComments,
-            title = { Text(upload.title) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(listOfNotNull(
-                        upload.likesCount?.let { "$it lượt thích" },
-                        upload.commentCount?.let { "$it bình luận" },
-                    ).joinToString(" • "))
-                    when {
-                        state.commentsLoading -> CircularProgressIndicator()
-                        state.commentsError != null -> {
-                            Text(state.commentsError.orEmpty())
-                            TextButton(onClick = { viewModel.openComments(upload) }) { Text("Thử lại") }
-                        }
-                        state.comments.isEmpty() -> Text("Chưa có bình luận công khai.")
-                        else -> LazyColumn(
-                            modifier = Modifier.fillMaxWidth().heightIn(max = 320.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            items(state.comments, key = { it.id }) { comment ->
-                                Column {
-                                    Text(
-                                        listOfNotNull(comment.author.takeIf { it.isNotBlank() }, comment.timestampMs?.let(::makeTimeString)).joinToString(" • "),
-                                        fontWeight = FontWeight.SemiBold,
-                                    )
-                                    Text(comment.body)
-                                }
-                            }
-                        }
-                    }
-                    state.commentsMoreError?.let { Text(it) }
-                    if (state.commentsLoadingMore) CircularProgressIndicator()
-                    else if (state.commentsNextOffset != null && !state.commentsLoading && state.commentsError == null) {
-                        TextButton(onClick = viewModel::loadMoreComments) {
-                            Text(if (state.commentsMoreError != null) "Thử tải thêm lần nữa" else "Tải thêm bình luận")
-                        }
-                    }
-                    TextButton(onClick = {
-                        viewModel.closeComments()
-                        viewModel.openRelated(upload)
-                    }) { Text("Nghe bài tương tự") }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = viewModel::closeComments) { Text("Đóng") }
-            },
-        )
-    }
 }
 
 /** the media id prefix the app gives a SoundCloud upload, kept next to the screen that builds them */

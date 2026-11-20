@@ -190,6 +190,8 @@
     <string name="ps_action_shuffle">Shuffle</string>
     <string name="ps_action_lyrics">Lyrics</string>
     <string name="ps_action_queue">Queue</string>
+    <string name="ps_action_comments">Comments</string>
+    <string name="ps_comments_only_soundcloud">Comments are only available for SoundCloud songs</string>
     <string name="ps_action_speed">Playback speed</string>
     <string name="ps_action_equalizer">Equalizer</string>
     <string name="ps_action_output">Device output</string>

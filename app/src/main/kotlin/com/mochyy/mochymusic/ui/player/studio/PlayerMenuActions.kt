@@ -24,6 +24,7 @@ enum class PlayerMenuAction(val label: String, @param:StringRes val labelRes: In
     SHUFFLE("Shuffle", R.string.ps_action_shuffle, R.drawable.shuffle),
     LYRICS("Lyrics", R.string.ps_action_lyrics, R.drawable.lyrics),
     QUEUE("Queue", R.string.ps_action_queue, R.drawable.queue_music),
+    COMMENTS("Comments", R.string.ps_action_comments, R.drawable.chat_msg),
     SPEED("Playback speed", R.string.ps_action_speed, R.drawable.speed),
     // the equalizer page, the player stepping down out of its way
     EQUALIZER("Equalizer", R.string.ps_action_equalizer, R.drawable.equalizer),

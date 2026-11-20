@@ -65,6 +65,7 @@ import com.mochyy.mochymusic.LocalPlayerConnection
 import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.constants.KeepScreenOn
 import com.mochyy.mochymusic.constants.PlayVideoBackgroundKey
+import com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
 import com.mochyy.mochymusic.ui.menu.songedit.SongEditSheet
 import com.mochyy.mochymusic.ui.menu.songedit.VideoPickerSheet
 import com.mochyy.mochymusic.ui.player.hasFoundVideo
@@ -100,6 +101,8 @@ fun PlayerActionMenu(
     onEqualizer: (() -> Unit)? = null,
     // opens a page of the app for a module's row (its own page, a search)
     onOpenRoute: ((String) -> Unit)? = null,
+    // the playing song's public comments, only offered for a SoundCloud upload
+    onComments: (() -> Unit)? = null,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val trackInfo by playerConnection.uiState.trackInfo.collectAsState()
@@ -276,6 +279,17 @@ fun PlayerActionMenu(
                     )
                 }
                 Spacer(modifier = Modifier.height(10.dp))
+                if (onComments != null && currentMetadata?.id?.startsWith(SoundCloudModule.MediaIdPrefix) == true) {
+                    MenuRow(
+                        icon = R.drawable.chat_msg,
+                        title = stringResource(R.string.ps_action_comments),
+                        onClick = {
+                            onDismiss()
+                            onComments()
+                        },
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
                 SheetActionCardRow {
                     SheetDownloadCard(
                         downloadState = download?.state,
