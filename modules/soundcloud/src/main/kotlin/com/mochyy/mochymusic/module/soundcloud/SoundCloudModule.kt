@@ -337,6 +337,7 @@ class SoundCloudModule : SourceModule {
         val likesCount: Long? = null,
         val commentCount: Long? = null,
         val permalinkUrl: String? = null,
+        val hasVietnameseEvidence: Boolean = false,
     )
 
     data class Comment(
@@ -404,6 +405,7 @@ class SoundCloudModule : SourceModule {
         val artist: String,
         val trackCount: Int,
         val artworkUrl: String?,
+        val hasVietnameseEvidence: Boolean,
     )
 
     /** Searches the full catalog. Blocking: call it off the main thread. */
@@ -415,12 +417,15 @@ class SoundCloudModule : SourceModule {
         return requireObjectsIn(response.text, "collection").mapNotNull(::trackOf)
     }
 
-    /** Searches playlists and sets. Blocking, as [search]. */
+    /** App-facing song search: only playable uploads with Vietnamese public metadata signals. */
+    fun vietnameseSearch(text: String, limit: Int = SearchPage): List<Upload> =
+        searchTracks(text, candidateLimit(limit)).vietnameseUploads(limit, excludedId = null)
+
+    /** Searches playlists, then keeps only sets whose public metadata supports Vietnamese curation. */
     fun searchPlaylists(text: String, limit: Int = SearchPage): List<Playlist> {
         if (text.isBlank()) return emptyList()
         val response = catalogApi(PlaylistsPath, mapOf("q" to text.trim(), "limit" to limit.coerceIn(1, MaxCatalogLimit).toString()))
-        val collection = requireObjectsIn(response.text, "collection")
-        return collection.mapNotNull(::playlistOf)
+        return requireObjectsIn(response.text, "collection").mapNotNull(::playlistOf).filter { it.hasVietnameseEvidence }
     }
 
     /** the uploads of a playlist, in its own order. Blocking, as [search]. */
@@ -445,6 +450,7 @@ class SoundCloudModule : SourceModule {
                 .forEach { known[it.id] = it }
         }
         return entries.mapNotNull { entry -> entry.long("id")?.toString()?.let(known::get) }
+            .filter { it.hasVietnameseEvidence }
     }
 
     /** Explicit related-track browse. Blocking, as [search]. */
@@ -515,6 +521,7 @@ class SoundCloudModule : SourceModule {
         likesCount = upload.likesCount,
         commentCount = upload.commentCount,
         permalinkUrl = upload.permalinkUrl,
+        hasVietnameseEvidence = upload.hasVietnameseEvidence,
     )
 
     internal fun playlistOf(element: JsonObject): Playlist? {
@@ -526,6 +533,9 @@ class SoundCloudModule : SourceModule {
             artist = (element["user"] as? JsonObject)?.string("username").orEmpty(),
             trackCount = element.long("track_count")?.toInt() ?: 0,
             artworkUrl = element.string("artwork_url")?.replace("-large", "-t500x500"),
+            hasVietnameseEvidence = vietnameseEvidence(
+                title, (element["user"] as? JsonObject)?.string("username").orEmpty(), element, element["user"] as? JsonObject,
+            ),
         )
     }
 

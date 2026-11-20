@@ -125,7 +125,7 @@ jobs:
 
           cat > notes.md <<EOF
           ### SoundCloud · Việt Nam
-          - Home recommendations and the SoundCloud discovery feed use Vietnamese discovery and Vietnamese metadata signals; there is no global-chart fallback or global-region filter.
+          - Home recommendations, track search, related suggestions and playlists require Vietnamese metadata evidence; there is no global-chart fallback or global-region filter.
           - Explicit non-Vietnam country metadata is excluded. This is metadata-based curation, not a guarantee of the uploader's physical location or track licensing.
           - Public like counts and paginated comments are available. Sign-in opens SoundCloud's official site; native account syncing and write actions require registered OAuth configuration.
           - Native account syncing and write actions require registered OAuth configuration. No on-device playback validation is included in this build.

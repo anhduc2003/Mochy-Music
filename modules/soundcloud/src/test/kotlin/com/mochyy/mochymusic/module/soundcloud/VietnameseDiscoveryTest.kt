@@ -22,6 +22,16 @@ class VietnameseDiscoveryTest {
         assertFalse(host.paths.any { it.contains("/charts") || it.contains("country=") || it.contains("region=") })
     }
 
+    @Test fun `app-facing track and playlist searches exclude explicit foreign country metadata`() {
+        val host = Host(
+            search = mixedTracks,
+            playlists = """[{"id":11,"title":"Playlist Việt","user":{"username":"Host","country_code":"VN"}},{"id":12,"title":"Đường về quê hương","user":{"username":"Foreign host","country_code":"US"}}]""",
+        )
+        val module = SoundCloudModule().also { it.attach(host) }
+        assertEquals(listOf("2", "3", "4", "5", "6", "7"), module.vietnameseSearch("mix").map { it.id })
+        assertEquals(listOf("11"), module.searchPlaylists("nhạc Việt").map { it.id })
+    }
+
     @Test fun `related recommendations never leak unverified foreign tracks and preserve general browse`() {
         val host = Host(related = mixedTracks)
         val module = SoundCloudModule().also { it.attach(host) }
@@ -73,7 +83,7 @@ class VietnameseDiscoveryTest {
         {"id":9,"title":"Café","user":{"username":"José"}}
     ]"""
 
-    private class Host(val search: String = "[]", val related: String = "[]") : ModuleHost {
+    private class Host(val search: String = "[]", val related: String = "[]", val playlists: String = "[]") : ModuleHost {
         val paths = mutableListOf<String>()
         private val data = ConcurrentHashMap(mapOf("client_id" to "0123456789abcdefghijklmnopqrstuv", "client_id_at" to System.currentTimeMillis().toString()))
         override val storage = object : ModuleStorage {
@@ -87,6 +97,7 @@ class VietnameseDiscoveryTest {
             paths += "${uri.path}?${uri.rawQuery}"
             val collection = when (uri.path) {
                 "/search/tracks" -> search
+                "/search/playlists" -> playlists
                 "/tracks/99/related" -> related
                 else -> error("Unexpected catalog route ${uri.path}")
             }

@@ -232,7 +232,7 @@ class SoundCloudViewModel internal constructor(
                         target.tab == Tab.Recommendations -> source.recommendations(
                             query.takeIf(String::isNotEmpty) ?: target.recommendationSeed,
                         )
-                        query.isNotEmpty() -> source.search(query)
+                        query.isNotEmpty() -> source.vietnameseSearch(query)
                         else -> source.vietnameseDiscovery()
                     }
                 }

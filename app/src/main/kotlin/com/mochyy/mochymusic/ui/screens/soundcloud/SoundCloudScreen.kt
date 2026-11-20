@@ -166,7 +166,7 @@ fun SoundCloudScreen(
                                     Text(
                                         when (tab) {
                                             SoundCloudViewModel.Tab.Tracks -> "Nhạc Việt"
-                                            SoundCloudViewModel.Tab.Playlists -> "Playlist"
+                                            SoundCloudViewModel.Tab.Playlists -> "Playlist Việt"
                                             SoundCloudViewModel.Tab.Recommendations -> "Gợi ý"
                                         },
                                     )

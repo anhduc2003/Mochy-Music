@@ -4,7 +4,7 @@
 
 - SoundCloud Home/Explore entries follow the module switch. A disabled module does not begin catalog/comment requests; re-enabling reloads the current view. Old queue items cannot start a new SoundCloud network resolution while disabled. Existing library/history records are retained.
 - Live read-only probes on 2026-11-20 reproduced HTTP 400 from `/charts` with all tested `region` values (`soundcloud:regions:VN`, `soundcloud:regions:US`, `VN`, `vn`). Global charts return 200 without that parameter. `country=VN` returned the same leading IDs as global, so it is not a verified replacement.
-- Removed unsupported chart-region parameters and country chips. The **Nhạc Việt** discovery searches `nhạc Việt`, then conservatively keeps streamable results with Vietnamese evidence (VN metadata, vi language, Vietnamese-specific characters or tags/genre). Explicit foreign country metadata excludes a result. This is metadata-based curation, not a geographic/licensing guarantee. The manual search tab remains a general catalog search.
+- Removed unsupported chart-region parameters and country chips. **Nhạc Việt** searches `nhạc Việt`; automatic Home recommendations, track search, related recommendations and playlist search keep only streamable entries with Vietnamese public metadata evidence (VN metadata, `vi` language, Vietnamese-specific characters or tags/genre). Explicit foreign country metadata excludes a result; entries without evidence are omitted. This is metadata curation, not a verified physical-location or licensing guarantee. Manual sign-in link opens SoundCloud but does not synchronize authentication into Mochy.
 - Public track metadata includes optional `likes_count`/`favoritings_count` and `comment_count`; these now reach the screen. Missing counts remain absent rather than being invented as zero.
 - Public comment reads work with `threaded=0&filter_replies=0`; omitting `threaded` reproduced 400. Menus show author, text and timestamp, with pages of 50 comments and a load-more action. Loading a later page preserves existing rows on failure, supports retry, deduplicates IDs and stops on a repeated page. Offsets are computed locally; response URLs are never followed with credentials.
 - Nested playlist/related views retain a stack of browse states. Back restores the original playlist/search; retry reloads the same view rather than replacing its parent snapshot. Android system back follows the same behavior as the toolbar.
@@ -21,7 +21,7 @@ SoundCloud's [API guide](https://developers.soundcloud.com/docs/api/guide) docum
 
 ## Validation for this patch
 
-- SoundCloud module: 34 test cases, 0 failures/errors, 1 opt-in live test skipped (33 executed).
+- SoundCloud module: 35 test cases, 0 failures/errors, 1 opt-in live test skipped (34 executed).
 - FOSS app: 229 tests, 0 failures/errors. Includes deterministic coroutine tests for module toggles, late-response suppression, nested playlist/related back navigation after retry, and comment pagination failure/retry/deduplication.
 - Live comment pagination returned HTTP 200 for offsets 0 and 2 with distinct IDs and next offsets 2 and 4; each page contained 2 raw comments. No response URL or client ID was exposed.
 - Live read-only probes independently verified chart, search, related, track detail and comment request shapes; no account tokens were used.

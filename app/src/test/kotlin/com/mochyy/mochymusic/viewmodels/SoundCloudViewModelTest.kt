@@ -94,8 +94,8 @@ class SoundCloudViewModelTest {
         var relatedCalls = 0
         val host = CatalogHost { uri ->
             when (uri.path) {
-                "/search/playlists" -> HttpResponse(200, """{"collection":[{"id":17,"title":"My playlist"}]}""".encodeToByteArray())
-                "/playlists/17" -> HttpResponse(200, """{"tracks":[{"id":7,"title":"Playlist track"}]}""".encodeToByteArray())
+                "/search/playlists" -> HttpResponse(200, """{"collection":[{"id":17,"title":"My playlist","user":{"country_code":"VN"}}]}""".encodeToByteArray())
+                "/playlists/17" -> HttpResponse(200, """{"tracks":[{"id":7,"title":"Playlist track","user":{"country_code":"VN"}}]}""".encodeToByteArray())
                 "/tracks/7/related" -> if (++relatedCalls == 1) HttpResponse(400, byteArrayOf()) else
                     HttpResponse(200, """{"collection":[{"id":8,"title":"Related track","user":{"country_code":"VN"}}]}""".encodeToByteArray())
                 else -> null
