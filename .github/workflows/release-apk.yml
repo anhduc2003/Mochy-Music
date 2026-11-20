@@ -116,28 +116,37 @@ jobs:
         run: |
           # the note in the release body has to match how the APK was actually signed
           if [ -n "${MOCHY_KEYSTORE_B64}" ]; then
-            export SIGNING_NOTE="Signed with this repository's persistent key: a new release installs over the previous one and keeps your library."
+            export SIGNING_NOTE="Ký bằng khoá cố định của repo: bản mới cài đè lên bản cũ và giữ nguyên thư viện."
           else
-            export SIGNING_NOTE="Signed with a key generated for this run: **for testing only**. It cannot upgrade an install signed by a different key. Add the MOCHY_KEYSTORE_B64 secret (see scripts/persistent-signing-key.sh) to make releases install in place."
+            export SIGNING_NOTE="Ký bằng khoá sinh riêng cho lần build này: **chỉ để thử**. Nó không cài đè được lên bản ký bằng khoá khác — hãy thêm secret MOCHY_KEYSTORE_B64 (xem scripts/persistent-signing-key.sh) để các bản sau cài đè được."
           fi
           set -euo pipefail
           name="${RELEASE_NAME:-Mochy Music $VERSION_NAME}"
 
-          cat > notes.md <<EOF
-          ### SoundCloud · Việt Nam
-          - Home recommendations, track search, related suggestions and playlists require Vietnamese metadata evidence; there is no global-chart fallback or global-region filter.
-          - Explicit non-Vietnam country metadata is excluded. This is metadata-based curation, not a guarantee of the uploader's physical location or track licensing.
-          - Public like counts and paginated comments are available. Sign-in opens SoundCloud's official site; native account syncing and write actions require registered OAuth configuration.
-          - Native account syncing and write actions require registered OAuth configuration. No on-device playback validation is included in this build.
-          - **Signing:** $SIGNING_NOTE
+          # the notes are the release's own file when there is one: docs/releases/<tag>.md is what
+          # the person releasing writes, in Vietnamese, so a release says what actually changed
+          # instead of repeating one block from months ago
+          if [ -f "docs/releases/$TAG.md" ]; then
+            cp "docs/releases/$TAG.md" notes.md
+          else
+            cat > notes.md <<EOF
+          ## Có gì mới
 
-          ### Build
+          Bản dựng này đi kèm các thay đổi trong \`$VERSION_NAME\`. Xem lịch sử commit từ bản trước để biết chi tiết.
+
+          EOF
+          fi
+
+          cat >> notes.md <<EOF
+
+          ## Bản dựng
+
           - \`versionCode $VERSION_CODE\`, \`versionName $VERSION_NAME\`
           - Universal FOSS, minSdk 24, targetSdk 37
           - $SIGNING_NOTE
           - SHA-256 \`$APK_SHA\`
 
-          Built by the \`Build Release APK\` workflow on \`$SHORT_SHA\`. APK size: $APK_SIZE.
+          Dựng từ commit \`$SHORT_SHA\` bằng workflow \`Build Release APK\`. Dung lượng APK: $APK_SIZE.
           EOF
 
           # idempotent: drop an existing release/tag so a re-run republishes cleanly
