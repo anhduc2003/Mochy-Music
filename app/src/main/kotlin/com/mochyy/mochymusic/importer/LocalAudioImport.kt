@@ -55,7 +55,7 @@ suspend fun importLocalAudio(
     // the picture inside the file, else the one beside it
     val thumbnailUrl = withContext(Dispatchers.IO) {
         (metadata.embeddedArtwork ?: coverFile?.let { LocalSidecars.readCover(context, it) })
-            ?.let { LocalArtwork.save(context, songId, it) }
+            ?.let { LocalArtwork.save(context, it) }
     }
     val albumTitle = metadata.album?.trim()?.takeIf { it.isNotEmpty() }
     val albumArtist = metadata.albumArtist?.trim()?.takeIf { it.isNotEmpty() } ?: metadata.artist
@@ -72,26 +72,30 @@ suspend fun importLocalAudio(
                     isLocal = true,
                     inLibrary = LocalDateTime.now(),
                     localUri = uri.toString(),
+                    genre = metadata.genre.orEmpty(),
                 ),
             )
 
-            val artistName = metadata.artist
-            val artistId = artistByName(artistName)?.id
-                ?: ArtistEntity.generateArtistId()
-            insert(
-                ArtistEntity(
-                    id = artistId,
-                    name = artistName,
-                    isLocal = true,
-                ),
-            )
-            insert(
-                SongArtistMap(
-                    songId = songId,
-                    artistId = artistId,
-                    position = 0,
-                ),
-            )
+            // a tag naming several artists gives the song to each of them, in the tag's order
+            LocalArtistNames.split(metadata.artist, metadata.albumArtist) { artistByName(it) != null }
+                .forEachIndexed { position, artistName ->
+                    val artistId = artistByName(artistName)?.id
+                        ?: ArtistEntity.generateArtistId()
+                    insert(
+                        ArtistEntity(
+                            id = artistId,
+                            name = artistName,
+                            isLocal = true,
+                        ),
+                    )
+                    insert(
+                        SongArtistMap(
+                            songId = songId,
+                            artistId = artistId,
+                            position = position,
+                        ),
+                    )
+                }
 
             if (albumTitle != null) {
                 linkLocalAlbum(songId, albumTitle, albumArtist, metadata.year, metadata.discNumber, metadata.trackNumber, thumbnailUrl)
@@ -149,6 +153,14 @@ suspend fun groupLocalAlbums(context: Context, database: MusicDatabase) {
         database.transaction {
             linkLocalAlbum(song.id, title, albumArtist, tags?.year, tags?.discNumber, tags?.trackNumber, song.song.thumbnailUrl)
         }
+    }
+}
+
+/** reads the genre of local files imported before genres were kept, once each; a file with none is marked so it isn't read again */
+suspend fun readLocalGenres(context: Context, database: MusicDatabase) {
+    database.localSongsWithoutGenre().forEach { song ->
+        val genre = withContext(Dispatchers.IO) { readGenreTag(context, Uri.parse(song.localUri)) } ?: return@forEach
+        withContext(Dispatchers.IO) { database.setSongGenre(song.id, genre) }
     }
 }
 

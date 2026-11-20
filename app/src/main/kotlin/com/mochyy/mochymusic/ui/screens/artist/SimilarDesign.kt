@@ -51,6 +51,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -158,9 +159,9 @@ internal fun SimilarPage(
     groups: SimilarGroups?,
     deepLoading: Boolean,
     artistsTitle: String,
-    playlistsTitle: String = "Danh sách phát nổi bật",
-    songsTitle: String = "Bài hát nổi bật",
-    albumsTitle: String = "Bản phát hành mới",
+    playlistsTitle: String = stringResource(R.string.supplemental_featured_playlist),
+    songsTitle: String = stringResource(R.string.supplemental_featured_songs),
+    albumsTitle: String = stringResource(R.string.supplemental_artist_new_releases),
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val menuState = LocalMenuState.current

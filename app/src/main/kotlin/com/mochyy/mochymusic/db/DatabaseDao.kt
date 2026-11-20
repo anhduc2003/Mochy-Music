@@ -41,6 +41,7 @@ import com.mochyy.mochymusic.db.entities.ImportedPlaylist
 import com.mochyy.mochymusic.db.entities.ImportedPlaylistTrack
 import com.mochyy.mochymusic.db.entities.ImportedSong
 import com.mochyy.mochymusic.db.entities.ImportedAlbumRow
+import com.mochyy.mochymusic.db.entities.ImportedLike
 import com.mochyy.mochymusic.db.entities.ImportedSourceCount
 import com.mochyy.mochymusic.db.entities.PlaylistEvent
 import com.mochyy.mochymusic.db.entities.PlaylistSong
@@ -702,6 +703,10 @@ interface DatabaseDao {
     @Query("SELECT * FROM song WHERE id IN (:songIds)")
     suspend fun getSongsByIds(songIds: List<String>): List<Song>
 
+    // just the rows, no artists or album, for checking thousands of likes at once
+    @Query("SELECT * FROM song WHERE id IN (:songIds) AND NOT liked")
+    fun unlikedSongEntities(songIds: List<String>): List<SongEntity>
+
     /** [getSongsByIds] that keeps up: a like or a new artist picture shows without asking again. */
     @Transaction
     @Query("SELECT * FROM song WHERE id IN (:songIds)")
@@ -1138,6 +1143,21 @@ interface DatabaseDao {
     @Query("SELECT * FROM song WHERE isLocal AND albumId IS NULL AND albumName IS NOT NULL AND albumName != ''")
     suspend fun localSongsWithoutAlbum(): List<Song>
 
+    // local files whose genre tag hasn't been read yet
+    @Query("SELECT * FROM song WHERE isLocal AND genre IS NULL AND localUri IS NOT NULL")
+    suspend fun localSongsWithoutGenre(): List<SongEntity>
+
+    @Query("UPDATE song SET genre = :genre WHERE id = :songId")
+    fun setSongGenre(songId: String, genre: String)
+
+    // songs the genres tab can sort: tagged files, plus anything saved, liked or played for a minute, which goes by its artist's genre
+    @Transaction
+    @Query(
+        "SELECT * FROM song WHERE (isLocal AND genre IS NOT NULL AND genre != '') OR inLibrary IS NOT NULL OR liked OR totalPlayTime >= 60000 " +
+            "ORDER BY title COLLATE NOCASE",
+    )
+    fun songsForGenres(): Flow<List<Song>>
+
     @Transaction
     @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY rowId")
     fun playlistsByCreateDateAsc(): Flow<List<Playlist>>
@@ -1396,6 +1416,14 @@ interface DatabaseDao {
     /** Every play in [fromTimeStamp, toTimeStamp), bare - the monthly recap and Stats aggregate these themselves. */
     @Query("SELECT songId, timestamp, playTime FROM event WHERE timestamp >= :fromTimeStamp AND timestamp < :toTimeStamp")
     suspend fun recapEvents(fromTimeStamp: Long, toTimeStamp: Long): List<RecapEventRow>
+
+    // which of these songs were already played before a period started, so stats can tell new finds from old favourites
+    @Query("SELECT DISTINCT songId FROM event WHERE timestamp < :beforeTimeStamp AND songId IN (:songIds)")
+    suspend fun songsPlayedBefore(songIds: List<String>, beforeTimeStamp: Long): List<String>
+
+    // all the listening in a period added up, for stats' "more than last month"
+    @Query("SELECT COALESCE(SUM(playTime), 0) FROM event WHERE timestamp >= :fromTimeStamp AND timestamp < :toTimeStamp")
+    suspend fun listeningTotal(fromTimeStamp: Long, toTimeStamp: Long): Long
 
     @Query("SELECT MIN(timestamp) FROM event")
     suspend fun firstEventTimestamp(): Long?
@@ -1798,6 +1826,13 @@ interface DatabaseDao {
     @Query("UPDATE import_session_song SET liked = 1 WHERE sessionId = :sessionId AND songId = :songId")
     fun markLikedByImport(sessionId: Long, songId: String)
 
+    @Query(
+        "SELECT import_session_song.songId AS songId, MAX(import_session.startedAt) AS importedAt FROM import_session_song " +
+            "JOIN import_session ON import_session.id = import_session_song.sessionId " +
+            "WHERE import_session_song.liked GROUP BY import_session_song.songId"
+    )
+    fun likesFromImports(): List<ImportedLike>
+
     @Query("SELECT * FROM import_session WHERE source = :source ORDER BY id DESC")
     fun importSessions(source: String): List<ImportSession>
 
@@ -1869,12 +1904,22 @@ interface DatabaseDao {
     @Query("SELECT * FROM imported_playlist WHERE source = :source AND remoteId = :remoteId ORDER BY importedAt DESC LIMIT 1")
     fun importedPlaylistByRemoteId(source: String, remoteId: String): ImportedPlaylist?
 
-    /** Remembers where the playlist lives (an unknown id or link keeps the one already saved). */
+    /** remembers where the playlist lives and who made it, anything unknown keeps what's already saved */
     @Query(
         "UPDATE imported_playlist SET remoteId = COALESCE(:remoteId, remoteId), " +
-            "remoteUrl = COALESCE(:remoteUrl, remoteUrl), lastSyncedAt = :syncedAt WHERE playlistId = :playlistId"
+            "remoteUrl = COALESCE(:remoteUrl, remoteUrl), lastSyncedAt = :syncedAt, " +
+            "authorName = COALESCE(:authorName, authorName), authorAvatarUrl = COALESCE(:authorAvatarUrl, authorAvatarUrl), " +
+            "authorUrl = COALESCE(:authorUrl, authorUrl) WHERE playlistId = :playlistId"
     )
-    fun updateImportedPlaylistOrigin(playlistId: String, remoteId: String?, remoteUrl: String?, syncedAt: LocalDateTime)
+    fun updateImportedPlaylistOrigin(
+        playlistId: String,
+        remoteId: String?,
+        remoteUrl: String?,
+        syncedAt: LocalDateTime,
+        authorName: String?,
+        authorAvatarUrl: String?,
+        authorUrl: String?,
+    )
 
     @Query("SELECT trackKey FROM imported_playlist_track WHERE playlistId = :playlistId")
     fun importedPlaylistTrackKeys(playlistId: String): List<String>
@@ -1906,6 +1951,20 @@ interface DatabaseDao {
     /** Every file already in the library, so a storage scan only offers the new ones. */
     @Query("SELECT localUri FROM song WHERE localUri IS NOT NULL")
     fun localUris(): List<String>
+
+    // how many songs, albums, playlists and artists show this picture: local songs share cover files, so one only goes with its last user
+    @Query(
+        "SELECT (SELECT COUNT(*) FROM song WHERE thumbnailUrl = :url) + (SELECT COUNT(*) FROM album WHERE thumbnailUrl = :url) + " +
+            "(SELECT COUNT(*) FROM playlist WHERE thumbnailUrl = :url) + (SELECT COUNT(*) FROM artist WHERE thumbnailUrl = :url)"
+    )
+    fun thumbnailUsers(url: String): Int
+
+    // the songs and albums that still name an artist, so a name that got split into its artists only goes once nothing uses it
+    @Query(
+        "SELECT (SELECT COUNT(*) FROM song_artist_map WHERE artistId = :artistId) + " +
+            "(SELECT COUNT(*) FROM album_artist_map WHERE artistId = :artistId)"
+    )
+    fun artistUses(artistId: String): Int
 
     @Query("DELETE FROM format WHERE id = :songId")
     fun deleteFormat(songId: String)

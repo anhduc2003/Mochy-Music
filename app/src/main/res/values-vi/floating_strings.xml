@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="floating_lyrics_expand">Hiện điều khiển phát</string>
+    <string name="floating_lyrics_collapse">Ẩn điều khiển phát</string>
+</resources>

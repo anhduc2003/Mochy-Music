@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_np_2x2">Đang phát 2×2</string>
+    <string name="widget_np_4x1">Đang phát 4×1</string>
+    <string name="widget_np_4x2">Đang phát 4×2</string>
+    <string name="widget_np_description">Thẻ đang phát với nút trước, phát và tiếp theo</string>
+    <string name="widget_np_pill_description">Thanh đang phát gọn nhẹ với nút thích, điều khiển phát và lặp lại</string>
+    <string name="widget_np_preview_title">Tên bài hát</string>
+    <string name="widget_np_preview_artist">Nghệ sĩ</string>
+    <string name="widget_np_preview_title_artist">Tên bài hát - Nghệ sĩ</string>
+    <string name="widget_np_previous">Trước</string>
+    <string name="widget_np_next">Tiếp</string>
+    <string name="widget_np_repeat">Lặp lại</string>
+    <string name="widget_np_lyrics_unavailable">Không có lời bài hát</string>
+    <string name="widget_np_lyrics_loading">Đang tìm lời bài hát…</string>
+    <string name="widget_np_lyrics_not_synced">Bài này không có lời khớp thời gian</string>
+    <string name="widget_np_time_zero">00:00</string>
+</resources>

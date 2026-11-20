@@ -198,7 +198,11 @@ private fun NavGraphBuilder.composable(
     exitTransition = { motionExit { exitTransition?.invoke(this) } },
     popEnterTransition = { motionEnter { popEnterTransition?.invoke(this) } },
     popExitTransition = { motionExit { popExitTransition?.invoke(this) } },
-    content = content,
+    // a module's page can stand in for any page here, every route at once (ModuleTakeover)
+    content = { entry ->
+        val scope = this
+        com.mochyy.mochymusic.ui.screens.settings.modules.ModuleTakeover(route, entry) { scope.content(entry) }
+    },
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -314,6 +318,14 @@ fun NavGraphBuilder.navigationBuilder(
         com.mochyy.mochymusic.ui.screens.library.LibraryRecentlyAddedScreen(navController = navController)
     }
 
+    // one genre from the Library's Genres tab: the songs on the phone tagged with it
+    coverSourceComposable(
+        route = "local_genre/{name}",
+        arguments = listOf(navArgument("name") { type = NavType.StringType }),
+    ) {
+        com.mochyy.mochymusic.ui.screens.library.LibraryGenreScreen(navController = navController)
+    }
+
     // The Library's Local and Cached tabs open these: the same pages again, counting only that
     // tab's songs. "library/local/albums", "library/cached/albums" and so on.
     com.mochyy.mochymusic.viewmodels.LibraryShelfKind.entries.forEach { shelf ->
@@ -424,6 +436,10 @@ fun NavGraphBuilder.navigationBuilder(
         com.mochyy.mochymusic.ui.screens.settings.integrations.discord.DiscordScreen(navController = navController)
     }
 
+    composable(com.mochyy.mochymusic.ui.screens.settings.integrations.backup.BackupRoute) {
+        com.mochyy.mochymusic.ui.screens.settings.integrations.backup.BackupScreen(navController = navController)
+    }
+
     composable(
         route = com.mochyy.mochymusic.ui.screens.settings.integrations.ScrobbleServiceRoute,
         arguments = listOf(navArgument("site") { type = NavType.StringType }),
@@ -527,6 +543,10 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable("audio_fx") {
         com.mochyy.mochymusic.ui.screens.audiolab.AudioFxScreen(navController = navController)
+    }
+
+    composable("audio_stage") {
+        com.mochyy.mochymusic.ui.screens.audiolab.stage.StageScreen(navController = navController)
     }
 
     composable("audio_quality") {

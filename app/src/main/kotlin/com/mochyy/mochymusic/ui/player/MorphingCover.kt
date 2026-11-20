@@ -43,6 +43,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.key
@@ -102,6 +103,7 @@ import com.mochyy.mochymusic.ui.player.models.TrackInfo
 import com.mochyy.mochymusic.ui.utils.resize
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.mochyy.mochymusic.ui.component.BlurEffectCache
@@ -125,6 +127,8 @@ import com.mochyy.mochymusic.constants.PlayVideoBackgroundKey
 import com.mochyy.mochymusic.constants.DisableVideoAutoplayKey
 import com.mochyy.mochymusic.constants.PlayerBackgroundStyle
 import com.mochyy.mochymusic.constants.PlayerCoverStyle
+import com.mochyy.mochymusic.constants.PlayerCoverZoomKey
+import com.mochyy.mochymusic.ui.player.customize.ZoomedCover
 import com.mochyy.mochymusic.ui.player.customize.DiscCoverStack
 import com.mochyy.mochymusic.ui.player.customize.PlayerBackgroundContent
 import com.mochyy.mochymusic.ui.player.customize.CoverGradientBackdrop
@@ -465,6 +469,9 @@ fun MorphingCover(
     // data saver turns video backgrounds and auto-playing videos off; the full video mode still plays when asked for
     val dataSaving = com.mochyy.mochymusic.utils.rememberDataSaverActive()
     val playVideoPref = rememberPreference(PlayVideoBackgroundKey, defaultValue = false).value && !dataSaving
+    // the disc styles crop the cover into the disc, so the zoom is only for the squared and edge to edge ones
+    val coverZoom = rememberPreference(PlayerCoverZoomKey, defaultValue = 1f).value
+        .takeIf { !coverStyle.isDisc && !alternateStyle && it < 1f }
     val disableVideoAutoplay = rememberPreference(DisableVideoAutoplayKey, defaultValue = false).value || dataSaving
     val currentMetadata by (playerConnection?.mediaMetadata ?: remember { kotlinx.coroutines.flow.MutableStateFlow(null) })
         .collectAsState()
@@ -717,6 +724,17 @@ fun MorphingCover(
             endpointsPx = endpointsPx,
             pureBlack = pureBlack,
         )
+
+        // a look's own mini player draws in the pill in place of mochy's words and buttons; the cover stays mochy's, so it still grows into the player
+        val moduleMini = com.mochyy.mochymusic.modules.skin.ActiveSkin.mini?.takeIf { !pillFrame.merged }
+        if (moduleMini != null) {
+            com.mochyy.mochymusic.ui.player.styles.ModuleMiniPlayer(
+                mini = moduleMini,
+                carousel = carousel,
+                progress = progressProvider,
+                space = com.mochyy.mochymusic.ui.player.styles.MiniPillSpace(pillFrame.start, pillFrame.end, pillFrame.height, endpoints.miniTextX),
+            )
+        }
 
         val isEdgeToEdge = coverStyle == PlayerCoverStyle.EDGE_TO_EDGE
         // a record player stays put when paused: the record stops, the arm says where it is
@@ -1071,6 +1089,14 @@ fun MorphingCover(
                         thumbnailUrl = url,
                         modifier = (if (squaredCards) pictureModifier.then(cardGreyFilter) else pictureModifier)
                             .graphicsLayer { if (pictureHidden(url)) alpha = 0f },
+                        // filled as before in the mini player and the lyrics header, zoomed out once open
+                        zoom = coverZoom?.let { zoom ->
+                            {
+                                val open = ((progressProvider() - 0.5f) / 0.45f).coerceIn(0f, 1f) *
+                                    (1f - lyricsProgressProvider()).coerceIn(0f, 1f)
+                                1f - (1f - zoom) * open
+                            }
+                        },
                     )
                 }
 
@@ -1119,6 +1145,7 @@ fun MorphingCover(
                                 onFrameColors = if (playing && feedsAmbient) ambient?.let { it::live } else null,
                                 onLiveEnd = if (playing && feedsAmbient) ambient?.let { it::endLive } else null,
                                 onShowingChange = if (playing) { shown -> liveCanvasShown = shown } else null,
+                                feedsMenu = playing,
                             )
 
                             if (playing && !isDiscStyle && playVideoBackground && videoInfo != null && miniVideoShown) {
@@ -1191,89 +1218,91 @@ fun MorphingCover(
             }
         }
 
-        MiniSongInfo(
-            carousel = carousel,
-            trackInfo = trackInfo,
-            progressProvider = progressProvider,
-            horizontalOffsetProvider = horizontalOffsetProvider,
-            endpointsPx = endpointsPx,
-        )
+        if (moduleMini == null) {
+            MiniSongInfo(
+                carousel = carousel,
+                trackInfo = trackInfo,
+                progressProvider = progressProvider,
+                horizontalOffsetProvider = horizontalOffsetProvider,
+                endpointsPx = endpointsPx,
+            )
 
-        if (pillFrame.withPrevious) {
-            MiniPreviousButton(progressProvider = progressProvider, endpointsPx = endpointsPx, size = miniPlaySize)
-        }
+            if (pillFrame.withPrevious) {
+                MiniPreviousButton(progressProvider = progressProvider, endpointsPx = endpointsPx, size = miniPlaySize)
+            }
 
-        Box(
-            modifier = Modifier
-                .morphLayout(
-                    progressProvider = progressProvider,
-                    horizontalOffsetProvider = { 0f },
-                    endpointsPx = endpointsPx,
-                    element = MorphElement.PLAY,
-                )
-                .requiredSize(miniPlaySize)
-                .graphicsLayer {
-                    val p = progressProvider()
-                    val playScale = 1f + (p * 1.0f)
-                    scaleX = playScale
-                    scaleY = playScale
-                    transformOrigin = TransformOrigin(0.5f, 0.5f)
-                    alpha = (1f - (p / 0.5f)).coerceIn(0f, 1f)
-                }
-        ) {
-            MiniPlayerButton(onClick = { playerConnection?.togglePlayPause() }) {
-                val tint = MaterialTheme.colorScheme.onSurface
-                // replay pops in for a finished song; play and pause swap with the flagship's squash
-                AnimatedContent(
-                    targetState = playbackState == Player.STATE_ENDED,
-                    transitionSpec = { MiniIconSwap },
-                    contentAlignment = Alignment.Center,
-                    label = "miniPlayerIcon",
-                ) { ended ->
-                    if (ended) {
-                        Icon(painter = painterResource(R.drawable.replay), contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
-                    } else {
-                        AnimatedPlayGlyph(playing = isPlaying, color = tint, height = MiniPlayHeight)
+            Box(
+                modifier = Modifier
+                    .morphLayout(
+                        progressProvider = progressProvider,
+                        horizontalOffsetProvider = { 0f },
+                        endpointsPx = endpointsPx,
+                        element = MorphElement.PLAY,
+                    )
+                    .requiredSize(miniPlaySize)
+                    .graphicsLayer {
+                        val p = progressProvider()
+                        val playScale = 1f + (p * 1.0f)
+                        scaleX = playScale
+                        scaleY = playScale
+                        transformOrigin = TransformOrigin(0.5f, 0.5f)
+                        alpha = (1f - (p / 0.5f)).coerceIn(0f, 1f)
+                    }
+            ) {
+                MiniPlayerButton(onClick = { playerConnection?.togglePlayPause() }) {
+                    val tint = MaterialTheme.colorScheme.onSurface
+                    // replay pops in for a finished song; play and pause swap with the flagship's squash
+                    AnimatedContent(
+                        targetState = playbackState == Player.STATE_ENDED,
+                        transitionSpec = { MiniIconSwap },
+                        contentAlignment = Alignment.Center,
+                        label = "miniPlayerIcon",
+                    ) { ended ->
+                        if (ended) {
+                            Icon(painter = painterResource(R.drawable.replay), contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+                        } else {
+                            AnimatedPlayGlyph(playing = isPlaying, color = tint, height = MiniPlayHeight)
+                        }
                     }
                 }
             }
-        }
 
-        Box(
-            modifier = Modifier
-                .morphLayout(
-                    progressProvider = progressProvider,
-                    horizontalOffsetProvider = { 0f },
-                    endpointsPx = endpointsPx,
-                    element = MorphElement.SKIP,
-                )
-                .requiredSize(miniPlaySize)
-                .graphicsLayer {
-                    val p = progressProvider()
-                    val playScale = 1f + (p * 1.0f)
-                    scaleX = playScale
-                    scaleY = playScale
-                    transformOrigin = TransformOrigin(0.5f, 0.5f)
-                    alpha = (1f - (p / 0.5f)).coerceIn(0f, 1f)
-                }
-        ) {
-            val skipScope = rememberCoroutineScope()
-            val skipCycle = remember { SkipCycleState() }
-            MiniPlayerButton(
-                onClick = {
-                    skipScope.launch { skipCycle.step() }
-                    playerConnection?.let { connection ->
-                        // through the same skip as every other button (its fade, the cast), with the row gliding first so the song change can't make it stutter
-                        val row = currentCarousel
-                        if (row == null) {
-                            connection.seekToNext()
-                        } else {
-                            row.skipToNext(connection.player, connection.service.transport.skipDelayMs()) { connection.seekToNext() }
-                        }
+            Box(
+                modifier = Modifier
+                    .morphLayout(
+                        progressProvider = progressProvider,
+                        horizontalOffsetProvider = { 0f },
+                        endpointsPx = endpointsPx,
+                        element = MorphElement.SKIP,
+                    )
+                    .requiredSize(miniPlaySize)
+                    .graphicsLayer {
+                        val p = progressProvider()
+                        val playScale = 1f + (p * 1.0f)
+                        scaleX = playScale
+                        scaleY = playScale
+                        transformOrigin = TransformOrigin(0.5f, 0.5f)
+                        alpha = (1f - (p / 0.5f)).coerceIn(0f, 1f)
                     }
-                },
             ) {
-                AnimatedSkipGlyph(cycle = skipCycle, backwards = false, color = MaterialTheme.colorScheme.onSurface, width = MiniSkipWidth)
+                val skipScope = rememberCoroutineScope()
+                val skipCycle = remember { SkipCycleState() }
+                MiniPlayerButton(
+                    onClick = {
+                        skipScope.launch { skipCycle.step() }
+                        playerConnection?.let { connection ->
+                            // through the same skip as every other button (its fade, the cast), with the row gliding first so the song change can't make it stutter
+                            val row = currentCarousel
+                            if (row == null) {
+                                connection.seekToNext()
+                            } else {
+                                row.skipToNext(connection.player, connection.service.transport.skipDelayMs()) { connection.seekToNext() }
+                            }
+                        }
+                    },
+                ) {
+                    AnimatedSkipGlyph(cycle = skipCycle, backwards = false, color = MaterialTheme.colorScheme.onSurface, width = MiniSkipWidth)
+                }
             }
         }
     }
@@ -1442,7 +1471,7 @@ private fun MiniSongLines(title: String, artist: String, album: String, modifier
 }
 
 @Composable
-private fun CoverPicture(thumbnailUrl: String?, modifier: Modifier = Modifier) {
+private fun CoverPicture(thumbnailUrl: String?, modifier: Modifier = Modifier, zoom: (() -> Float)? = null) {
     val context = LocalContext.current
     val imageRequest = remember(thumbnailUrl) {
         ImageRequest.Builder(context)
@@ -1452,6 +1481,10 @@ private fun CoverPicture(thumbnailUrl: String?, modifier: Modifier = Modifier) {
             .precision(Precision.INEXACT)
             .crossfade(false)
             .build()
+    }
+    if (zoom != null) {
+        ZoomedCover(model = imageRequest, zoom = zoom, modifier = modifier)
+        return
     }
     AsyncImage(
         model = imageRequest,
@@ -2050,8 +2083,14 @@ private fun CoverCanvasLayer(
     onLiveEnd: (() -> Unit)? = null,
     // told when the canvas's picture is up over the cover, and when it's gone
     onShowingChange: ((Boolean) -> Unit)? = null,
+    // the playing song's canvas tells the player's menu what size it plays
+    feedsMenu: Boolean = false,
 ) {
     val context = LocalContext.current
+    val sizeOwner = remember { Any() }
+    var playingSide by remember { mutableIntStateOf(0) }
+    LaunchedEffect(feedsMenu, playingSide) { PlayerCanvasPlayback.report(sizeOwner, if (feedsMenu) playingSide else 0) }
+    DisposableEffect(Unit) { onDispose { PlayerCanvasPlayback.report(sizeOwner, 0) } }
     val playerConnection = LocalPlayerConnection.current
     var canvasArtwork by remember(trackInfo.mediaId) { mutableStateOf<CanvasArtwork?>(null) }
     val canvasEnabled = rememberPreference(CanvasThumbnailAnimationKey, defaultValue = true).value && !alternateStyle
@@ -2121,6 +2160,7 @@ private fun CoverCanvasLayer(
                 if (!ready) onLiveEnd?.invoke()
             },
             onFrameColors = onFrameColors,
+            onPlayingSize = { playingSide = it },
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer { alpha = sheetFade(progressProvider()) }

@@ -155,6 +155,7 @@ enum class AudioDeviceType {
 @Composable
 fun AudioDeviceBottomSheet(onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val bluetoothPermissionMessage = stringResource(R.string.bluetooth_permission_required)
     var audioDevices by remember { mutableStateOf<List<AudioDevice>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -183,12 +184,13 @@ fun AudioDeviceBottomSheet(onDismiss: () -> Unit, modifier: Modifier = Modifier)
                 isLoading = false
             })
         } else {
-            errorMessage = context.getString(R.string.bluetooth_permission_required)
+            errorMessage = bluetoothPermissionMessage
             isLoading = false
         }
     }
 
     fun refreshDevices() {
+        if (!checkBluetoothPermission(context)) return
         loadDevices(context, service?.preferredDeviceId, onSuccess = { devices ->
             audioDevices = devices
         }, onError = {})
@@ -212,13 +214,16 @@ fun AudioDeviceBottomSheet(onDismiss: () -> Unit, modifier: Modifier = Modifier)
             }
         }
 
-        context.registerReceiver(
+        ContextCompat.registerReceiver(
+            context,
             volumeChangeReceiver,
-            IntentFilter("android.media.VOLUME_CHANGED_ACTION")
+            IntentFilter("android.media.VOLUME_CHANGED_ACTION"),
+            ContextCompat.RECEIVER_EXPORTED,
         )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            context.registerReceiver(
+            ContextCompat.registerReceiver(
+                context,
                 audioDeviceReceiver,
                 IntentFilter().apply {
                     addAction(AudioManager.ACTION_HEADSET_PLUG)
@@ -226,7 +231,8 @@ fun AudioDeviceBottomSheet(onDismiss: () -> Unit, modifier: Modifier = Modifier)
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                         addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
                     }
-                }
+                },
+                ContextCompat.RECEIVER_EXPORTED,
             )
         }
 
@@ -269,12 +275,14 @@ fun AudioDeviceBottomSheet(onDismiss: () -> Unit, modifier: Modifier = Modifier)
             }
         }
 
-        context.registerReceiver(
+        ContextCompat.registerReceiver(
+            context,
             bluetoothReceiver,
             IntentFilter().apply {
                 addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
                 addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
-            }
+            },
+            ContextCompat.RECEIVER_EXPORTED,
         )
 
         val batteryPollingRunnable = object : Runnable {
@@ -890,7 +898,7 @@ private fun loadDevices(
                         } else null
 
                         AudioDevice(
-                            name = deviceInfo.productName?.toString() ?: "Thiết bị Bluetooth",
+                            name = deviceInfo.productName?.toString() ?: context.getString(R.string.ps_device_bluetooth_device),
                             type = AudioDeviceType.BLUETOOTH,
                             isConnected = true,
                             isActive = false,
@@ -910,7 +918,7 @@ private fun loadDevices(
                     }
                     AudioDeviceInfo.TYPE_USB_HEADSET, AudioDeviceInfo.TYPE_USB_DEVICE -> {
                         AudioDevice(
-                            name = deviceInfo.productName?.toString() ?: "USB Audio",
+                            name = deviceInfo.productName?.toString() ?: context.getString(R.string.ps_device_usb_audio),
                             type = AudioDeviceType.USB_HEADSET,
                             isConnected = true,
                             isActive = false,

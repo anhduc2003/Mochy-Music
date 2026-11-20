@@ -52,6 +52,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.mochyy.mochymusic.ui.player.studio.playHoldRamp
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
@@ -280,15 +281,20 @@ private fun PlayerSheet(
     val (showPlayerBottomCard) = rememberPreference(ShowPlayerBottomCardKey, defaultValue = true)
 
     // the player studio: the selector the player shrinks into, and the flagship's in-place editor
-    // a look module with a player of its own puts that style first in the selector, for as long as it's on
+    // every player the looks that are on bring comes first in the selector, each in its own column with its sub-styles under it
     val onTv = com.mochyy.mochymusic.ui.utils.isTvLayout()
-    val hasModuleStyle = !onTv && com.mochyy.mochymusic.modules.skin.ActiveSkin.current?.player != null
-    // the selector's columns, as indexes into PlayerStyle.entries: the flagship with its older layouts under it
-    val selectorColumns = remember(hasModuleStyle, onTv) {
-        val columns = if (hasModuleStyle) listOf(listOf(PlayerStyle.MODULE)) + PlayerStyle.selectorColumns else PlayerStyle.selectorColumns
+    val moduleStyles = if (onTv) emptyList() else com.mochyy.mochymusic.modules.skin.ActiveSkin.styles
+    val hasModuleStyle = moduleStyles.isNotEmpty()
+    // mochy's own styles keep their places and the module ones follow, one card each
+    val ownStyles = remember { PlayerStyle.entries.filter { it != PlayerStyle.MODULE } }
+    val firstModuleStyle = ownStyles.size
+    // the selector's columns, as indexes into playerStyles: the flagship with its older layouts under it
+    val selectorColumns = remember(moduleStyles, onTv) {
+        val own = PlayerStyle.selectorColumns.map { column -> column.map { it.ordinal } }
         // a tv only offers the looks made for it
-        val shown = if (onTv) columns.map { column -> column.filter { it.availableOnTv } }.filter { it.isNotEmpty() } else columns
-        shown.map { column -> column.map { it.ordinal } }
+        val shown = if (onTv) PlayerStyle.selectorColumns.map { column -> column.filter { it.availableOnTv }.map { it.ordinal } }.filter { it.isNotEmpty() } else own
+        val modules = moduleStyles.withIndex().groupBy({ it.value.group }, { firstModuleStyle + it.index }).values.toList()
+        modules + shown
     }
     val studio = com.mochyy.mochymusic.ui.player.studio.rememberPlayerStudioState(selectorColumns)
     val studioAnchors = remember { com.mochyy.mochymusic.ui.player.studio.StudioAnchors() }
@@ -418,15 +424,39 @@ private fun PlayerSheet(
     LaunchedEffect(studioEngaged) {
         if (studioEngaged) transition.close()
     }
-    // the module style is last among the entries, so leaving it out keeps every other style's index
-    val playerStyles = remember(hasModuleStyle) { PlayerStyle.entries.filter { it != PlayerStyle.MODULE || hasModuleStyle } }
+    // the module style is last among the entries, so leaving it out keeps every other style's index; each module style is one more card after them
+    val playerStyles = remember(ownStyles, moduleStyles.size) { ownStyles + List(moduleStyles.size) { PlayerStyle.MODULE } }
     val currentPlayerStyleForStudio by androidx.compose.runtime.rememberUpdatedState(playerStyle)
+    val currentModuleStyles by androidx.compose.runtime.rememberUpdatedState(moduleStyles)
+    // where a style's card is: a module style's is the one picked among them
+    val styleIndex: (PlayerStyle) -> Int = { style ->
+        if (style == PlayerStyle.MODULE) {
+            firstModuleStyle + currentModuleStyles.indexOf(com.mochyy.mochymusic.modules.skin.ActiveSkin.style).coerceAtLeast(0)
+        } else {
+            ownStyles.indexOf(style).coerceAtLeast(0)
+        }
+    }
     val openStudio: () -> Unit = remember(studio) {
         {
             showActionMenu = false
             showExpandMenu = false
-            studio.open(playerStyles.indexOf(currentPlayerStyleForStudio).coerceAtLeast(0))
+            studio.open(styleIndex(currentPlayerStyleForStudio))
         }
+    }
+    // a module player without an editor page of its own edits through its customise sheet, over the player
+    var moduleCustomiseOpen by remember { mutableStateOf(false) }
+    // the flagship's editor on a module player: its parts as tiles, a panel for the open one
+    val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
+    val moduleRegistry = remember(appContext) {
+        dagger.hilt.android.EntryPointAccessors.fromApplication(appContext, com.mochyy.mochymusic.di.ModulesEntryPoint::class.java).moduleRegistry()
+    }
+    val moduleEditor = remember(studio, moduleRegistry) {
+        com.mochyy.mochymusic.ui.player.styles.ModuleEditorState(
+            progress = { studio.edit.value },
+            active = { studio.editing && currentPlayerStyleForStudio == PlayerStyle.MODULE },
+            rangeOf = { module, key -> moduleRegistry.entries.value.firstOrNull { it.id == module }?.ranges?.get(key) },
+            commit = moduleRegistry::setField,
+        )
     }
     // a hold opens it with a buzz rising from soft to strong, the selector arriving on the peak
     val studioContext = androidx.compose.ui.platform.LocalContext.current
@@ -688,7 +718,6 @@ private fun PlayerSheet(
             (lyricsProgress > 0.001f && lyricsProgress < 0.999f) || transition.preparing == PlayerPage.LYRICS
         }
     }
-    val lyricsButtonMounted by remember { derivedStateOf { lyricsProgress < 0.999f } }
     // Also built just before a page closes, while the deck is still hidden (preparingClose), and
     // kept from then on: with no page open the controls are showing or on their way back
     val deckMounted by remember {
@@ -1083,6 +1112,7 @@ private fun PlayerSheet(
                     androidx.compose.runtime.CompositionLocalProvider(
                         com.mochyy.mochymusic.ui.player.styles.LocalStyleInteractive provides styleInteractive,
                         com.mochyy.mochymusic.ui.player.styles.LocalStyleCovered provides styleCoveredNow,
+                        com.mochyy.mochymusic.ui.player.styles.LocalModuleEditor provides moduleEditor,
                     ) {
                         com.mochyy.mochymusic.ui.player.styles.AlternatePlayerStyle(
                             style = playerStyle,
@@ -1244,6 +1274,8 @@ private fun PlayerSheet(
             // behind Home. It mounts again with the first frame of the next open. (Keeping it
             // composed but paused measured worse: waking a page whose position had jumped cost
             // more in one frame than building it fresh.)
+            // each page's flags read in a scope of their own: a flip rebuilt the whole player, mid-open
+            com.mochyy.mochymusic.ui.utils.OwnScope {
             if (lyricsPageMounted && sheetShowing) {
                 LyricsScreen(
                     onClose = { transition.close() },
@@ -1256,12 +1288,15 @@ private fun PlayerSheet(
                     enterProgressProvider = { transition.cardMorphProgress(PlayerPage.LYRICS) },
                     morph = morph,
                     onSwitchSource = { showLyricsSource = true },
+                    onCoverBackdrop = backgroundStyle.takesSoftLight,
                     modifier = Modifier
                         .fillMaxSize()
-                        .pageTransitionLayer(PlayerPage.LYRICS, transition, morph, pageLook) { lyricsPageProgress },
+                        .pageTransitionLayer(PlayerPage.LYRICS, transition, morph, pageLook, modulateAlpha = true) { lyricsPageProgress },
                 )
             }
+            }
 
+            com.mochyy.mochymusic.ui.utils.OwnScope {
             if (queuePageMounted && sheetShowing) {
                 QueueScreen(
                     onClose = { transition.close() },
@@ -1278,6 +1313,7 @@ private fun PlayerSheet(
                         .pageTransitionLayer(PlayerPage.QUEUE, transition, morph, pageLook) { queuePageProgress },
                 )
             }
+            }
 
             // the title flying between the player and the page header, drawn over the seam blur and the growing card so it never slides under them and pops back in
             MorphingSongInfo(
@@ -1290,8 +1326,12 @@ private fun PlayerSheet(
                 screenWidth = screenWidth,
                 // the Turntable's title is set differently, so its header title fades in over it
                 handOff = !isTurntable,
+                // the queue page's heart sits at the header's end; the title fades out before it
+                endRoom = { queuePageProgress },
             )
             // Above the title after a like, moving with it into the lyrics/queue header.
+            // the crossmix flag flips at song changes; read in here it recomposes the label, not the player
+            com.mochyy.mochymusic.ui.utils.OwnScope {
             LikedLabel(
                 likeCount = likeBurst.likeCount,
                 mixing = playerConnection.isCrossmixing.collectAsState().value,
@@ -1301,7 +1341,9 @@ private fun PlayerSheet(
                 lyricsProgressProvider = { lyricsProgress },
                 sheetProgressProvider = progressProvider,
             )
+            }
 
+            com.mochyy.mochymusic.ui.utils.OwnScope {
             if ((showDeck || (barLifted && showPlayerBottomCard)) && deckMounted) {
                 PlayerBottomCardStack(
                     glassState = morphingGlassState,
@@ -1331,7 +1373,9 @@ private fun PlayerSheet(
                         }
                 )
             }
+            }
 
+            com.mochyy.mochymusic.ui.utils.OwnScope {
             if ((showVolumeBar || barLifted) && deckMounted) {
                 val volumeBarModifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -1368,9 +1412,6 @@ private fun PlayerSheet(
                     )
                 }
             }
-
-            if (lyricsButtonMounted && !studioEngaged) {
-                // Removed as per request
             }
 
             // The transport row sits centred between the seek bar and the card. The seek bar keeps
@@ -1462,8 +1503,8 @@ private fun PlayerSheet(
                             // it. Its place on the sheet itself doesn't change.
                             onTitlePositioned = { if (state.isExpanded && !isTurntable) songInfoSourceRect = it },
                             onChevronPositioned = { if (!isTurntable) chevronButtonRect = it },
-                            isExpandMenuOpen = showExpandMenu,
-                            hideChevron = lyricsMounted,
+                            isExpandMenuOpen = { showExpandMenu },
+                            hideChevron = { lyricsMounted },
                             onToggleExpandMenu = { showExpandMenu = !showExpandMenu },
                             likeBurst = likeBurst,
                             sideAction = menuLayout.side,
@@ -1485,7 +1526,8 @@ private fun PlayerSheet(
                                     else -> 1f - lyricsProgress
                                 }
                             },
-                            badgeAlpha = { (1f - lyricsProgress / 0.3f).coerceIn(0f, 1f) },
+                            // tucked away over the first half of the open, and slid back out over the last half of the close
+                            badgeTuck = { smoothstepF(lyricsProgress / 0.5f) },
                             onSidePositioned = { if (state.isExpanded && lyricsProgress <= 0f) sideButtonRect = it },
                             sideLayer = {
                                 val lp = lyricsProgress
@@ -1517,6 +1559,8 @@ private fun PlayerSheet(
                     // normally sit in is faded out, so they stack above the progress bar instead.
                     // The queue page swaps like (moved to its header) for shuffle and autoplay.
                     // Height tracks the transitions so the controls don't jump when a page opens.
+                    // In a scope of its own: the flag flips as a page opens and closes.
+                    com.mochyy.mochymusic.ui.utils.OwnScope {
                     if (lyricsMounted) {
                         Column(
                             modifier = Modifier
@@ -1651,6 +1695,7 @@ private fun PlayerSheet(
                             }
                         }
                     }
+                    }
 
                     // Column, not Box: PlayerProgressSlider emits the track and the timestamp
                     // row as two siblings, so a Box would stack the timestamps on top of the
@@ -1680,6 +1725,8 @@ private fun PlayerSheet(
                             .studioAnchor(studioAnchors) { it.slider }
                             .studioMiddleLayer(studioParts) { it.slider }
                     ) {
+                        // sheetShowing flips in the open's first frame; read here it recomposes the bar, not the whole player
+                        com.mochyy.mochymusic.ui.utils.OwnScope {
                         PlayerProgressSlider(
                             active = sheetShowing,
                             onSeekBarPlaced = { if (!studio.editing) studioAnchors.capture(studioAnchors.seekBar, it) },
@@ -1687,6 +1734,7 @@ private fun PlayerSheet(
                             seekBarModifier = Modifier.studioPiece(studioPieces, com.mochyy.mochymusic.ui.player.studio.StudioPieces.SEEK_BAR),
                             endTimeModifier = Modifier.studioPiece(studioPieces, com.mochyy.mochymusic.ui.player.studio.StudioPieces.END_TIME),
                         )
+                        }
                     }
                 }
 
@@ -1702,12 +1750,15 @@ private fun PlayerSheet(
                     .studioTransportLayer(studioParts)
                     .studioPiece(studioPieces, StudioPieces.TRANSPORT)
                 if (isFlagship) {
+                    // the queue flag flips as its page opens; read here it recomposes the row alone
+                    com.mochyy.mochymusic.ui.utils.OwnScope {
                     FlagshipTransportRow(
                         layout = transportLayout,
                         queueOpen = showQueue,
                         onQueue = { if (showQueue) transition.close() else transition.open(PlayerPage.QUEUE) },
                         modifier = transportModifier,
                     )
+                    }
                 } else {
                     PlayerTransportRow(modifier = transportModifier, flagshipGlyph = isTurntable)
                 }
@@ -1717,9 +1768,9 @@ private fun PlayerSheet(
             // way to the flagship's (with the seek bar) while a page is up.
             if (isTurntable) {
                 TurntableControls(
-                    isExpandMenuOpen = showExpandMenu,
+                    isExpandMenuOpen = { showExpandMenu },
                     onToggleExpandMenu = { showExpandMenu = !showExpandMenu },
-                    hideChevron = lyricsMounted,
+                    hideChevron = { lyricsMounted },
                     onTitlePositioned = { if (state.isExpanded) songInfoSourceRect = it },
                     onChevronPositioned = { chevronButtonRect = it },
                     likeBurst = likeBurst,
@@ -1755,7 +1806,8 @@ private fun PlayerSheet(
         LikeBurstOverlay(state = likeBurst)
 
         ExpandMenuOverlay(
-            visible = showExpandMenu,
+            // a lambda, so a tap on the chevron recomposes the menu and not the whole player
+            visible = { showExpandMenu },
             onDismiss = { showExpandMenu = false },
             // the Turntable's pills have no shuffle or repeat, so its menu adds them on top of the
             // four set in the editor (unless one of those is already there)
@@ -1795,8 +1847,10 @@ private fun PlayerSheet(
         // and wins over - the sheet's own back handler: back shrinks the page into its card
         // first, then collapses the player. Not while collapsed: the page is remembered then,
         // and back belongs to the app.
-        PageBackHandler(state, pageOpen = showQueue || showLyrics) { transition.close() }
+        PageBackHandler(state, pageOpen = { showQueue || showLyrics }) { transition.close() }
 
+        // the sheets' flags read in a scope of their own, so opening one doesn't recompose the whole player under it
+        com.mochyy.mochymusic.ui.utils.OwnScope {
         if (showSleepTimer) {
             com.mochyy.mochymusic.ui.player.menu.SleepTimerSheet(
                 onDismiss = { showSleepTimer = false }
@@ -1858,6 +1912,7 @@ private fun PlayerSheet(
         if (showLyricsSource) {
             com.mochyy.mochymusic.ui.player.menu.LyricsProviderSheet(onDismiss = { showLyricsSource = false })
         }
+        }
 
         // the player studio, over the player: the selector, the editor's header and editors, its sheets
         PlayerSelectorOverlay(
@@ -1865,12 +1920,32 @@ private fun PlayerSheet(
             styles = playerStyles,
             onSet = { index, velocity ->
                 val style = playerStyles[index]
-                val restyled = style != playerStyle
-                if (restyled) onPlayerStyleChange(style)
+                // a module style is also a pick among them, which changes the player even when the style itself stays module
+                val moduleStyle = moduleStyles.getOrNull(index - firstModuleStyle)
+                val repicked = moduleStyle != null && moduleStyle != com.mochyy.mochymusic.modules.skin.ActiveSkin.style
+                moduleStyle?.let { com.mochyy.mochymusic.modules.skin.ActiveSkin.pick(it.key) }
+                val restyled = style != playerStyle || repicked
+                if (style != playerStyle) onPlayerStyleChange(style)
                 studio.settleOn(index, restyled, velocity = velocity)
             },
             onEdit = { focused ->
-                if (playerStyles.getOrNull(focused) == PlayerStyle.POSTER) {
+                val moduleStyle = moduleStyles.getOrNull(focused - firstModuleStyle)
+                if (moduleStyle != null) {
+                    // the module's own editor page, or its customise sheet over the player
+                    val repicked = moduleStyle != com.mochyy.mochymusic.modules.skin.ActiveSkin.style
+                    com.mochyy.mochymusic.modules.skin.ActiveSkin.pick(moduleStyle.key)
+                    if (playerStyle != PlayerStyle.MODULE) onPlayerStyleChange(PlayerStyle.MODULE)
+                    val editor = moduleStyle.player.editor
+                    if (moduleStyle.player.edit.isNotEmpty()) {
+                        // its parts, edited on the player itself the way the flagship's are
+                        studio.livePage = focused
+                        studio.go(StudioStage.EDIT)
+                    } else if (editor != null) {
+                        styleActions.onOpenRoute(com.mochyy.mochymusic.ui.screens.settings.modules.modulePageRoute(moduleStyle.skin.moduleId, editor))
+                    } else {
+                        studio.settleOn(focused, repicked || playerStyle != PlayerStyle.MODULE) { moduleCustomiseOpen = true }
+                    }
+                } else if (playerStyles.getOrNull(focused) == PlayerStyle.POSTER) {
                     // its one edit is its visualizer: back to the player, with the poster's sheet
                     val restyled = playerStyle != PlayerStyle.POSTER
                     if (restyled) onPlayerStyleChange(PlayerStyle.POSTER)
@@ -1903,7 +1978,7 @@ private fun PlayerSheet(
                     // the full editor, on whichever flagship is in view
                     val style = playerStyles.getOrNull(focused)?.takeIf { it.hasFullEditor } ?: PlayerStyle.FLAGSHIP
                     if (playerStyle != style) onPlayerStyleChange(style)
-                    studio.livePage = playerStyles.indexOf(style)
+                    studio.livePage = styleIndex(style)
                     studio.go(StudioStage.EDIT)
                 }
             },
@@ -1912,6 +1987,7 @@ private fun PlayerSheet(
         if (playerStyle == PlayerStyle.POSTER || playerStyle == PlayerStyle.IPOD || playerStyle.isBedside) {
             com.mochyy.mochymusic.ui.player.studio.StyleSheets(studio)
         }
+        if (moduleCustomiseOpen) com.mochyy.mochymusic.ui.player.menu.SkinCustomiseSheet(onDismiss = { moduleCustomiseOpen = false })
         if (playerStyle.flagshipFamily) {
             val (showBigDiscStyles) = rememberPreference(com.mochyy.mochymusic.constants.ShowBigDiscStylesKey, defaultValue = false)
             val coverStyles = remember(showBigDiscStyles, coverStyle) {
@@ -1935,6 +2011,7 @@ private fun PlayerSheet(
                 com.mochyy.mochymusic.constants.PlayerEndTimestamp.END_TIME,
             )
             val artworkPalette = com.mochyy.mochymusic.ui.theme.ArtworkPalette.from(com.mochyy.mochymusic.LocalArtworkColor.current)
+            if (playerStyle == PlayerStyle.MODULE) com.mochyy.mochymusic.ui.player.studio.ModuleEditOverlay(studio, moduleEditor, morphingGlassState)
             if (playerStyle.hasFullEditor) StudioEditOverlay(
                 parts = studioParts,
                 glassState = morphingGlassState,
@@ -2010,13 +2087,13 @@ private fun OnSheetHeadingDown(state: BottomSheetState, onHeadingDown: () -> Uni
 
 // the back press belongs to the open page while it is up, read here so the flip doesn't recompose the player
 @Composable
-private fun PageBackHandler(state: BottomSheetState, pageOpen: Boolean, onBack: () -> Unit) {
-    if (pageOpen && state.isExpandedOrExpanding) BackHandler(onBack = onBack)
+private fun PageBackHandler(state: BottomSheetState, pageOpen: () -> Boolean, onBack: () -> Unit) {
+    if (pageOpen() && state.isExpandedOrExpanding) BackHandler(onBack = onBack)
 }
 
 @Composable
 private fun ExpandMenuOverlay(
-    visible: Boolean,
+    visible: () -> Boolean,
     onDismiss: () -> Unit,
     /** the actions, top to bottom: the four set in the editor, and any the style adds */
     slots: List<com.mochyy.mochymusic.ui.player.studio.PlayerMenuAction>,
@@ -2037,9 +2114,10 @@ private fun ExpandMenuOverlay(
     val itemProgress = remember(menuItems.size) { List(menuItems.size) { androidx.compose.animation.core.Animatable(0f) } }
     val bgAlpha = remember { androidx.compose.animation.core.Animatable(0f) }
     var isRendered by remember { mutableStateOf(false) }
+    val isVisible = visible()
 
-    LaunchedEffect(visible) {
-        if (visible) {
+    LaunchedEffect(isVisible) {
+        if (isVisible) {
             isRendered = true
             launch {
                 bgAlpha.animateTo(
@@ -2117,31 +2195,11 @@ private fun ExpandMenuOverlay(
             PlayerHorizontalPadding
         }
 
-        val chevronRotation by animateFloatAsState(
-            targetValue = if (visible) 180f else 0f,
-            label = "overlayChevronRot",
-            animationSpec = androidx.compose.animation.core.spring(dampingRatio = 0.55f, stiffness = 380f)
-        )
-        val chevronScale by animateFloatAsState(
-            targetValue = if (visible) 0.86f else 1f,
-            label = "overlayChevronScale",
-            animationSpec = androidx.compose.animation.core.spring(dampingRatio = 0.55f, stiffness = 380f)
-        )
-        val overlayChevronBgColor by animateColorAsState(
-            targetValue = if (visible) Color.White.copy(alpha = 0.32f) else Color.White.copy(alpha = 0.15f),
-            label = "overlayChevronBgColor",
-            animationSpec = androidx.compose.animation.core.tween(durationMillis = 280, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-        )
-        val overlayChevronTint by animateColorAsState(
-            targetValue = if (visible) Color.White else Color.White.copy(alpha = 0.90f),
-            label = "overlayChevronTint",
-            animationSpec = androidx.compose.animation.core.tween(durationMillis = 280, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-        )
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = bgAlpha.value))
+                // read while drawing, so the dim fading in doesn't recompose the menu every frame
+                .drawBehind { drawRect(Color.Black, alpha = bgAlpha.value) }
                 .pointerInput(Unit) {
                     detectTapGestures(onTap = { onDismiss() })
                 }
@@ -2173,8 +2231,12 @@ private fun ExpandMenuOverlay(
                 horizontalAlignment = if (fromLeft) Alignment.Start else Alignment.End
             ) {
                 menuItems.forEachIndexed { index, item ->
-                    val p = itemProgress[index].value
-                    if (p > 0.005f) {
+                    val itemAnim = itemProgress[index]
+                    // each row in a scope of its own: its show flag flips once each way and only rebuilds that row
+                    com.mochyy.mochymusic.ui.utils.OwnScope {
+                    // the spring itself is read in the row's layer, never here
+                    val itemShown by remember(itemAnim) { derivedStateOf { itemAnim.value > 0.005f } }
+                    if (itemShown) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -2185,7 +2247,7 @@ private fun ExpandMenuOverlay(
                                 // the sides. Give it room to fade out, and let it fade to clear.
                                 .blurBleedRoom(MenuItemBlurRoom)
                                 .graphicsLayer {
-                                    val progress = p.coerceIn(0f, 1.25f)
+                                    val progress = itemAnim.value.coerceIn(0f, 1.25f)
                                     alpha = progress.coerceIn(0f, 1f)
                                     translationY = (1f - progress) * 55f
                                     val scale = (0.7f + 0.3f * progress).coerceAtLeast(0.01f)
@@ -2245,6 +2307,7 @@ private fun ExpandMenuOverlay(
                             if (fromLeft) label()
                         }
                     }
+                    }
                 }
             }
 
@@ -2263,21 +2326,51 @@ private fun ExpandMenuOverlay(
                         }
                     )
             ) {
-                PressScaleActionButton(
-                    icon = R.drawable.expand_less,
-                    tint = overlayChevronTint,
-                    containerColor = overlayChevronBgColor,
+                OverlayChevron(
+                    open = isVisible,
                     onClick = onDismiss,
-                    hasShadow = false,
                     // over the Turntable's chevron exactly, its own size
                     size = if (fromLeft) chevronSizeDp else 34.dp,
-                    modifier = Modifier.graphicsLayer {
-                        rotationZ = chevronRotation
-                        scaleX = chevronScale
-                        scaleY = chevronScale
-                    }
                 )
             }
         }
     }
+}
+
+// the menu's own chevron over the dim, apart so its colour fade recomposes only this button
+@Composable
+private fun OverlayChevron(open: Boolean, onClick: () -> Unit, size: androidx.compose.ui.unit.Dp) {
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (open) 180f else 0f,
+        label = "overlayChevronRot",
+        animationSpec = androidx.compose.animation.core.spring(dampingRatio = 0.55f, stiffness = 380f)
+    )
+    val chevronScale by animateFloatAsState(
+        targetValue = if (open) 0.86f else 1f,
+        label = "overlayChevronScale",
+        animationSpec = androidx.compose.animation.core.spring(dampingRatio = 0.55f, stiffness = 380f)
+    )
+    val overlayChevronBgColor by animateColorAsState(
+        targetValue = if (open) Color.White.copy(alpha = 0.32f) else Color.White.copy(alpha = 0.15f),
+        label = "overlayChevronBgColor",
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 280, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+    )
+    val overlayChevronTint by animateColorAsState(
+        targetValue = if (open) Color.White else Color.White.copy(alpha = 0.90f),
+        label = "overlayChevronTint",
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 280, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+    )
+    PressScaleActionButton(
+        icon = R.drawable.expand_less,
+        tint = overlayChevronTint,
+        containerColor = overlayChevronBgColor,
+        onClick = onClick,
+        hasShadow = false,
+        size = size,
+        modifier = Modifier.graphicsLayer {
+            rotationZ = chevronRotation
+            scaleX = chevronScale
+            scaleY = chevronScale
+        }
+    )
 }

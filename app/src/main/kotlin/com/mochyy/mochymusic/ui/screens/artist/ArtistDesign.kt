@@ -75,6 +75,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -387,15 +388,17 @@ internal fun ArtistName(
 }
 
 /** "12.3M subscribers · 21.4M monthly audience" */
-internal fun artistStats(subscribers: String?, monthly: String?): String =
-    listOfNotNull(
+@Composable
+internal fun artistStats(subscribers: String?, monthly: String?): String {
+    return listOfNotNull(
         subscribers?.trim()?.takeIf { it.isNotEmpty() }?.let { text ->
-            if (text.any { it.isLetter() && it !in "KMBkmb" }) text else "$text subscribers"
+            if (text.any { it.isLetter() && it !in "KMBkmb" }) text else stringResource(R.string.platform_artist_subscribers, text)
         },
         monthly?.trim()?.takeIf { it.isNotEmpty() }?.let { text ->
-            if (text.count { it.isLetter() } > 2) text else "$text monthly listeners"
+            if (text.count { it.isLetter() } > 2) text else stringResource(R.string.platform_artist_monthly_listeners, text)
         },
     ).joinToString(" · ")
+}
 
 /**
  * Play and the heart. signed in to YouTube, a Subscribe pill joins them and Play gives up its
@@ -416,7 +419,7 @@ internal fun ArtistActions(
         if (showSubscribe) {
             CircleAction(
                 icon = if (isPlaying) R.drawable.ic_untitled_pause else R.drawable.ic_untitled_play,
-                contentDescription = if (isPlaying) "Tạm dừng" else "Phát",
+                contentDescription = stringResource(if (isPlaying) R.string.pause else R.string.play),
                 onClick = onPlay,
             )
         } else {

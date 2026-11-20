@@ -31,6 +31,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,6 +76,8 @@ fun UpdatePromptSheet(
     }
 
     var needsPermission by remember { mutableStateOf(false) }
+    val installPermissionMessage = stringResource(R.string.supplemental_install_permission)
+    val downloadFailedMessage = stringResource(R.string.download_failed)
 
     val startInstall: (java.io.File) -> Unit = { file ->
         if (installApk(context, file)) {
@@ -82,7 +85,7 @@ fun UpdatePromptSheet(
         } else {
             needsPermission = true
             readyToInstall = true
-            error = "Hãy cho phép mochy “Cài đặt ứng dụng không rõ nguồn gốc”, rồi nhấn “Cài đặt tại đây” lần nữa."
+            error = installPermissionMessage
         }
     }
 

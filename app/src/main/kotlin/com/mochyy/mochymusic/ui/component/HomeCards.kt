@@ -475,12 +475,11 @@ fun HomeTrackRow(
                 .weight(1f)
                 .padding(horizontal = 13.dp),
         ) {
-            Text(
+            TitleWithMarks(
                 text = title,
+                songId = songId,
                 style = HomeCardTitleStyle.copy(fontSize = 15.sp),
                 color = if (isActive) Color.White else Color.White.copy(alpha = 0.92f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
             if (!subtitle.isNullOrEmpty()) {
                 Text(
@@ -492,7 +491,6 @@ fun HomeTrackRow(
                 )
             }
         }
-        OnDeviceMarks(songId, modifier = Modifier.padding(end = 2.dp))
         if (onMoreClick != null) Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier

@@ -1,4 +1,4 @@
-// what a look module brings beyond plain settings: a player of its own, a font, a glass for the bottom bar, pages, rows in the player's menu, and where its files live (docs/wiki, module pages)
+// what a look module brings beyond plain settings: players of its own, a font, a glass and a nav bar, pages, rows in the player's menu, and where its files live (docs/wiki, module pages)
 
 package com.mochyy.mochymusic.modules.skin
 
@@ -15,16 +15,26 @@ import java.io.File
 class ModuleSkin(
     val moduleId: String,
     val moduleName: String,
-    val player: SkinPlayer?,
+    /** every player the look brings, each its own style in the picker with its sub-styles under it */
+    val players: List<SkinPlayer>,
     val font: SkinFont?,
     val pages: List<SkinPage>,
     private val files: File?,
     private val base: String?,
     val actions: List<SkinAction> = emptyList(),
     val glass: SkinGlass? = null,
+    val bar: SkinBar? = null,
+    /** the look's own mini player: its blocks in a row beside mochy's cover, over the pill */
+    val mini: SkinPlayer? = null,
 ) {
-    // a style, a font or a glass changes how mochy looks, so only one such module is on at a time; pages and menu rows alone don't
-    val restyles: Boolean get() = player != null || font != null || glass != null
+    /** the first player, the one the look switches to when it's turned on */
+    val player: SkinPlayer? get() = players.firstOrNull()
+
+    // a player, a font, a glass, a nav bar or a mini player changes how mochy looks; pages and menu rows alone don't
+    val restyles: Boolean get() = players.isNotEmpty() || font != null || glass != null || bar != null || mini != null
+
+    /** the pages that take one of mochy's own pages over */
+    val takeovers: List<SkinPage> get() = pages.filter { it.replaces.isNotEmpty() }
 
     /** a picture or font a skin names: a link as it is, a path from the module's zip, or a path next to a link module's manifest */
     fun resolve(path: String?): Any? = resolveModulePath(path, files, base)
@@ -32,30 +42,29 @@ class ModuleSkin(
     /** a font or shader file, which only a zip can carry */
     fun fontFile(path: String?): File? = (resolve(path) as? File)
 
-    /** every shader file the player draws with, so they compile off the main thread with the glass */
+    /** every shader file the players, their sub-styles, their lyrics and the nav bar draw with, so they compile off the main thread with the glass */
     val playerShaders: Set<String> by lazy {
         val found = mutableSetOf<String>()
         fun background(b: SkinBackground) {
             if (b is SkinBackground.Shader) found += b.program.file
         }
-        fun blocks(list: List<SkinBlock>) {
-            list.forEach { block ->
+        fun player(p: SkinPlayer) {
+            background(p.background)
+            p.layers.forEach { background(it.background) }
+            p.all.forEach { block ->
                 when (block) {
                     is SkinBlock.Shader -> found += block.program.file
-                    is SkinBlock.Styled -> blocks(listOf(block.inner))
-                    is SkinBlock.Row -> blocks(block.blocks)
-                    is SkinBlock.Column -> blocks(block.blocks)
-                    is SkinBlock.Stack -> blocks(block.blocks)
-                    is SkinBlock.Box -> blocks(block.blocks)
+                    is SkinBlock.Lyrics -> block.custom?.let { style -> listOfNotNull(style.fill, style.effect).forEach { found += it.file } }
                     else -> Unit
                 }
             }
         }
-        player?.let { p ->
-            background(p.background)
-            p.layers.forEach { background(it.background) }
-            blocks(p.header + p.blocks)
+        players.forEach { p ->
+            player(p)
+            p.variants.forEach { player(it.player) }
         }
+        mini?.let(::player)
+        bar?.shader?.let { found += it.file }
         found
     }
 }
@@ -142,6 +151,16 @@ data class SkinPlayer(
     val header: List<SkinBlock> = emptyList(),
     /** the blocks scroll when they're taller than the screen, and grow spaces stop growing */
     val scroll: Boolean = false,
+    /** how it's known among the look's players, so the one picked stays picked across updates */
+    val id: String = "main",
+    /** sub-styles: the same player with some parts or settings changed, stacked under it in the picker */
+    val variants: List<SkinVariant> = emptyList(),
+    /** one of the module's pages that edits this player, opened by edit in the picker */
+    val editor: String? = null,
+    /** how big its blocks are drawn: fitted from the screen it was made for, times its own scale */
+    val size: SkinSize = SkinSize.Plain,
+    /** the parts the player editor offers, each over the blocks marked with its id */
+    val edit: List<SkinEditPart> = emptyList(),
 ) {
     /** whether anything in it moves with the music or a loop, so the shared clock only runs when something reads it */
     val moves: Boolean get() = layers.any { it.motion != null } || background is SkinBackground.Shader || blocks.any(SkinBlock::moves) || header.any(SkinBlock::moves)
@@ -162,20 +181,46 @@ data class SkinPlayer(
     /** an animation that keeps going while the song is paused, so the clock can't rest just because nothing plays */
     val alwaysMoves: Boolean by lazy { all.filterIsInstance<SkinBlock.Styled>().any { s -> s.timelines.any { it.always && it.clock == SkinClock.Time } } }
 
-    /** a box asks for frosted glass, so the backdrop has to be captured for it */
-    val frosted: Boolean by lazy { all.any { it is SkinBlock.Box && it.glass != null } }
+    /** a box or the bottom bar asks for frosted glass, so the backdrop has to be captured for it */
+    val frosted: Boolean by lazy { all.any { (it is SkinBlock.Box && it.glass != null) || (it is SkinBlock.BottomBar && it.glass != null) } }
+
+    /** where each editable part sits: the part's id to the blocks marked with it */
+    val partIds: Set<String> by lazy { all.mapNotNull { (it as? SkinBlock.Styled)?.part }.toSet() }
 
     /** some words name the stream or the phone ({codec}, {kbps}, {device}...), so mochy only gathers them for players that show them */
     val audio: Boolean by lazy { all.any { it is SkinBlock.Label && SkinAudioField.containsMatchIn(it.value) } }
 
-    /** lyrics show somewhere, so the player fetches and parses them */
-    val lyrics: Boolean by lazy { SkinFlag.Lyrics in flags || all.any { it is SkinBlock.Lyrics } }
+    /** lyrics show somewhere or something moves with them, so the player fetches and parses them */
+    val lyrics: Boolean by lazy {
+        SkinFlag.Lyrics in flags || SkinFlag.Singing in flags || SkinEvent.Line in events || all.any { block ->
+            block is SkinBlock.Lyrics || (block is SkinBlock.Label && SkinLyricField.containsMatchIn(block.value)) ||
+                (block is SkinBlock.BottomBar && block.kind == BottomBarKind.Cards) ||
+                (block is SkinBlock.Styled && block.timelines.any { it.clock == SkinClock.Line || it.clock == SkinClock.Word })
+        }
+    }
+
+    /** some words name the time, the queue or what plays next, so mochy follows those for this player */
+    val playerFields: Boolean by lazy { all.any { it is SkinBlock.Label && SkinPlayerField.containsMatchIn(it.value) } }
 }
+
+/** one part of the player editor: its [title], a setting whose options are offered side by side ([choose]), more [settings] under them, and a slider a [hold] drags */
+@Immutable
+data class SkinEditPart(val id: String, val title: String, val choose: String?, val settings: List<String>, val hold: String?)
+
+/** a sub-style: [player] is the whole player with the variant's own parts laid over it, [values] settings it holds while it's picked */
+@Immutable
+data class SkinVariant(val id: String, val name: String, val player: SkinPlayer, val values: Map<String, String>)
 
 val DefaultMenuButton = SkinMenuButton(MenuSide.End, color = null, fill = null)
 
 /** the stream and phone placeholders a text block fills in; android's regex engine needs the closing brace escaped */
 val SkinAudioField = Regex("""\{(codec|khz|kbps|bits|size|quality|device|volume|cpu)\}""", RegexOption.IGNORE_CASE)
+
+/** the lyrics placeholders: the line being sung, the ones around it, its translation and the word */
+val SkinLyricField = Regex("""\{(line|nextline|prevline|translation|word)\}""", RegexOption.IGNORE_CASE)
+
+/** the clock and queue placeholders: how far in, how long, what's next and where in the queue */
+val SkinPlayerField = Regex("""\{(elapsed|remaining|length|percent|next|nextartist|queue|queuesize|queueposition)\}""", RegexOption.IGNORE_CASE)
 
 @Immutable
 data class SkinCustomise(val title: String?, val keys: List<String>)
@@ -226,7 +271,14 @@ enum class EnterKind { Fade, Rise, Drop, Zoom, SlideStart, SlideEnd, Keyframes }
 
 /** "key", "!key", "key=value" or "key!=value": a block that only shows while one of the module's settings says so */
 @Immutable
-data class SkinCondition(val key: String, val value: String?, val negate: Boolean)
+data class SkinCondition(val key: String, val value: String?, val negate: Boolean) {
+    /** whether it holds for a module's settings as they are now; away from the player there's no song for an @ condition, so those read as off */
+    fun holdsFor(values: Map<String, String>): Boolean {
+        val now = if (key.startsWith("@")) null else values[key]?.trim()
+        val matches = if (value == null) !now.isNullOrEmpty() && !now.equals("false", ignoreCase = true) && now != "0" else now.equals(value, ignoreCase = true)
+        return matches != negate
+    }
+}
 
 enum class CoverShape { Square, Rounded, Circle }
 
@@ -234,11 +286,14 @@ enum class ProgressStyle { Line, Thick, Pill }
 
 enum class VisualizerStyle { Bars, Mirror, Wave, Dots, Ring }
 
-enum class ButtonKind { PlayPause, Previous, Next, Like, Shuffle, Repeat, Lyrics, Menu, Customise, Close }
+enum class ButtonKind { PlayPause, Previous, Next, Like, Shuffle, Repeat, Lyrics, Menu, Customise, Close, Editor }
 
 enum class ShapeKind { Rect, Circle, Pill, Line }
 
 enum class TimeKind { Elapsed, Remaining, Length }
+
+/** the player's bottom bar as a block: two cards (the sung line and what's next), two pills, or mochy's own volume bar */
+enum class BottomBarKind { Cards, Pills, Volume }
 
 enum class StackAlign { Center, Top, Bottom, Start, End }
 
@@ -266,6 +321,8 @@ sealed interface SkinBlock {
         val active: SkinColor? = null,
         val prefix: String = "",
         val align: SkinAlign? = null,
+        /** the module's own way of showing them, from "style": "custom" */
+        val custom: SkinLyricStyle? = null,
     ) : SkinBlock
     data class Space(val size: Dp, val grow: Boolean) : SkinBlock
     data class Row(val blocks: List<SkinBlock>, val gap: Dp) : SkinBlock
@@ -281,6 +338,16 @@ sealed interface SkinBlock {
     data class Time(val kind: TimeKind, val text: SkinText) : SkinBlock
     /** the module's own agsl drawn in a box, [fallback] colour where shaders can't run */
     data class Shader(val program: SkinShaderSource, val width: Dp?, val height: Dp, val corner: Dp, val fallback: SkinColor?) : SkinBlock
+    /** the bar under the controls that opens the lyrics and the queue, on frosted [glass] or the module's colours */
+    data class BottomBar(
+        val kind: BottomBarKind,
+        val height: Dp,
+        val corner: Dp,
+        val fill: List<SkinColor>,
+        val glass: Float?,
+        val color: SkinColor?,
+        val gap: Dp,
+    ) : SkinBlock
     /** a panel holding blocks in a column (or a row): a fill, a gradient or frosted glass of [glass] dp behind them, a border, round corners */
     data class Box(
         val blocks: List<SkinBlock>,
@@ -326,12 +393,16 @@ sealed interface SkinBlock {
         val states: List<SkinState> = emptyList(),
         val transition: SkinTransition? = null,
         val triggers: List<SkinTrigger> = emptyList(),
+        /** the player editor's part this block belongs to */
+        val part: String? = null,
     ) : SkinBlock
 
     val moves: Boolean
         get() = when (this) {
             is Styled -> motions.isNotEmpty() || timelines.isNotEmpty() || inner.moves
             is Visualizer, is Shader -> true
+            // lyrics painted or bent by the module's shader hear the music and the clock like a shader block
+            is Lyrics -> custom != null && (custom.fill != null || custom.effect != null)
             is Row -> blocks.any { it.moves }
             is Column -> blocks.any { it.moves }
             is Stack -> blocks.any { it.moves }
@@ -362,6 +433,13 @@ data class SkinPage(
     val subtitle: String? = null,
     val icon: String? = null,
     val background: PageBackground? = null,
+    /** mochy's pages this one opens in place of (album, local_playlist, home...), while [condition] holds */
+    val replaces: List<String> = emptyList(),
+    val condition: SkinCondition? = null,
+    /** how big its blocks are drawn */
+    val size: SkinSize = SkinSize.Plain,
+    /** the title bar at the top; a page that draws its own header can leave it out */
+    val header: Boolean = true,
 ) {
     /** a card asks for frosted glass, so the page's background is captured for it */
     val frosted: Boolean get() = blocks.any { it is PageBlock.Card && it.glass != null }
@@ -396,7 +474,20 @@ sealed interface PageBlock {
     data class Card(val blocks: List<PageBlock>, val colors: List<SkinColor>, val glass: Float?, val corner: Dp, val padding: Dp) : PageBlock
     /** the module's own agsl in a box that answers touch, [fallback] colour where shaders can't run */
     data class Shader(val program: SkinShaderSource, val height: Dp, val corner: Dp, val fallback: SkinColor?) : PageBlock
+    /** the picture of what the page took over: the playlist's, the album's, the artist's */
+    data class Cover(val height: Dp, val corner: Dp, val circle: Boolean) : PageBlock
+    /** the songs of what the page took over, each one played from there with the rest after it */
+    data class Songs(val limit: Int, val numbers: Boolean, val covers: Boolean, val corner: Dp) : PageBlock
+    /** a button that does something here: play or shuffle what the page took over, mochy's own page, or the player's editor bits */
+    data class Control(val text: String, val kind: PageControl, val filled: Boolean) : PageBlock
+    /** the module's player as it looks right now, small, for an editor page */
+    data class Player(val height: Dp, val corner: Dp) : PageBlock
+    /** the module's players and their sub-styles as chips, the picked one lit */
+    data object Styles : PageBlock
 }
+
+/** what a page's control button does */
+enum class PageControl { Play, Shuffle, Original, UsePlayer }
 
 // ---- the player's menu ------------------------------------------------------------------------
 

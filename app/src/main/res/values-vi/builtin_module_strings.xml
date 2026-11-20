@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="builtin_module_apple_description">Phát gói đăng ký Apple Music của bạn trong Mochy, ở AAC 256, với mọi hiệu ứng Audio Lab</string>
+    <string name="builtin_module_monochrome_description">FLAC không mất dữ liệu cho mọi bài hát Monochrome có, không cần tài khoản, với mọi hiệu ứng Audio Lab</string>
+    <string name="builtin_module_jiosaavn_description">Danh mục của JioSaavn ở AAC tới 320 kbps, không cần tài khoản. Mạnh nhất ở nhạc Ấn Độ</string>
+    <string name="builtin_module_stream">Luồng phát</string>
+    <string name="builtin_module_apple_aac_description">Luồng stereo tiêu chuẩn của Apple Music</string>
+    <string name="builtin_module_apple_he_description">Chỉ bằng một phần tư dữ liệu, cho mạng chậm hoặc có giới hạn</string>
+    <string name="builtin_module_saavn_320_description">Chất lượng tốt nhất của JioSaavn, 160 cho những bài không có</string>
+    <string name="builtin_module_saavn_160_description">Một nửa dữ liệu, vẫn trong trẻo</string>
+    <string name="builtin_module_saavn_96_description">Cho mạng chậm hoặc có giới hạn</string>
+    <string name="builtin_module_region">Khu vực</string>
+    <string name="builtin_module_account_region">Theo tài khoản của bạn</string>
+    <string name="builtin_module_account_region_description">Tìm trong danh mục của quốc gia gắn với tài khoản Apple của bạn</string>
+    <string name="builtin_module_region_description">Tìm trong danh mục %1$s. Những bài mà quốc gia của tài khoản bạn không có bản quyền vẫn có thể bị từ chối</string>
+</resources>

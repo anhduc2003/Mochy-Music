@@ -166,7 +166,7 @@ internal fun TvNowPlayingPill(
     }
 }
 
-// the four places, down the right edge like the concept
+// the places down the right edge; playlists live in the library
 internal enum class TvTab(val route: String, val icon: Any, val label: Int) {
     Home(TvRoutes.Home, R.drawable.nav_mochy_outline, R.string.home),
     Search(TvRoutes.Search, R.raw.search, R.string.search),
@@ -225,7 +225,8 @@ internal fun tabOf(route: String?): TvTab? = when {
     route == null -> null
     route.startsWith(TvRoutes.Home) || route.startsWith(TvRoutes.Recap) -> TvTab.Home
     route.startsWith(TvRoutes.Search) || route.startsWith(TvRoutes.Browse) -> TvTab.Search
-    route.startsWith(TvRoutes.Library) || route.startsWith(TvRoutes.Songs) || route.startsWith("local_playlist") -> TvTab.Library
+    route.startsWith(TvRoutes.Library) || route.startsWith(TvRoutes.Songs) || route.startsWith(TvRoutes.Grid) ||
+        route.startsWith("local_playlist") || route.startsWith("online_playlist") -> TvTab.Library
     route.startsWith(TvRoutes.Mochy) || route.startsWith(TvRoutes.Phone) -> TvTab.Mochy
     else -> null
 }

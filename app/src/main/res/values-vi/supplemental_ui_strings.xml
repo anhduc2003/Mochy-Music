@@ -1,0 +1,56 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="supplemental_support_enjoying">Bạn thấy Mochy Music thế nào?</string>
+    <string name="supplemental_support_title">Ủng hộ Mochy phát triển nhé!</string>
+    <string name="supplemental_support_body">cảm ơn bạn đã dùng thử! à mà, Mochy Music sẽ luôn miễn phí, mãi mãi là của bạn! &amp;lt;3\n\nSẽ rất hữu ích cho bọn mình nếu bạn ủng hộ nhà phát triển, dù chỉ một chút thôi!! &amp;lt;3\nthả một ngôi sao cho repo của Mochy là đã đủ rồi. và cảm ơn bạn lần nữa!</string>
+    <string name="supplemental_support_donate">Ủng hộ bọn mình!</string>
+    <string name="supplemental_support_star">Thả sao cho repo!</string>
+    <string name="supplemental_support_dismiss">đuổi mấy kẻ ăn xin này đi, Không!</string>
+    <string name="supplemental_coming_soon">Sắp ra mắt</string>
+    <string name="supplemental_coming_soon_detail">%1$s vẫn đang được hoàn thiện.</string>
+    <string name="supplemental_adding">Đang thêm…</string>
+    <string name="supplemental_search_all_songs">Tìm mọi bài hát</string>
+    <string name="supplemental_playlist_recommended">Gợi ý cho danh sách phát này</string>
+    <string name="supplemental_in_library">Có trong thư viện</string>
+    <string name="supplemental_online_search_failed">Không tìm được trên mạng. Hãy kiểm tra kết nối rồi thử lại.</string>
+    <string name="supplemental_search_nothing">Không tìm thấy gì cho “%1$s”.</string>
+    <string name="supplemental_playlist_suggestions_empty">Hãy thêm vài bài trước, bọn mình sẽ gợi ý thêm những bài phù hợp.</string>
+    <string name="supplemental_playlist_suggestions_failed">Hiện chưa có gợi ý. Hãy kiểm tra kết nối, hoặc tìm một bài ở trên.</string>
+    <string name="supplemental_library_search_empty">Thư viện của bạn đang trống. Hãy tìm ở trên để thấy bất kỳ bài nào.</string>
+    <string name="supplemental_add_songs_failed">Không thêm được những bài đó. Hãy thử lại.</string>
+    <string name="supplemental_update_personal">Có bản cập nhật, %1$s!</string>
+    <string name="supplemental_update_changes">Thay đổi trong %1$s</string>
+    <string name="supplemental_update_install_target">Sắp cài đặt -</string>
+    <string name="supplemental_update_downloading">Đang tải xuống… %1$d%%</string>
+    <string name="supplemental_update_no_apk">Bản phát hành này không có APK</string>
+    <string name="supplemental_install_here">Cài tại đây</string>
+    <string name="supplemental_update_open_web">Mở trên web</string>
+    <string name="supplemental_update_snooze">thôi không, nhắc lại sau 24 giờ</string>
+    <string name="supplemental_install_permission">Hãy cho phép mochy “Cài đặt ứng dụng không rõ nguồn gốc”, rồi nhấn “Cài tại đây” lần nữa.</string>
+    <string name="supplemental_featured_playlist">Danh sách phát nổi bật</string>
+    <string name="supplemental_featured_songs">Bài hát nổi bật</string>
+    <string name="supplemental_artist_new_releases">Mới từ họ</string>
+    <string name="supplemental_nothing_here">Chưa có gì để hiển thị ở đây</string>
+    <string name="supplemental_start_of_line">BẮT ĐẦU DANH SÁCH</string>
+    <plurals name="supplemental_add_song_count">
+        <item quantity="one">Thêm %1$d bài hát</item>
+        <item quantity="other">Thêm %1$d bài hát</item>
+    </plurals>
+    <string name="supplemental_artist_top_songs">Top %1$s bài hát</string>
+    <string name="supplemental_artist_category">%1$s %2$s</string>
+    <string name="supplemental_kind_songs">bài hát</string>
+    <string name="supplemental_kind_albums">album</string>
+    <string name="supplemental_kind_videos">video</string>
+    <string name="supplemental_kind_playlists">danh sách phát</string>
+    <string name="supplemental_kind_artists">nghệ sĩ</string>
+    <string name="supplemental_count_songs">%1$s bài hát</string>
+    <string name="supplemental_count_albums">%1$s album</string>
+    <string name="supplemental_count_videos">%1$s video</string>
+    <string name="supplemental_count_playlists">%1$s danh sách phát</string>
+    <string name="supplemental_count_artists">%1$s nghệ sĩ</string>
+    <string name="supplemental_items_retry">Không tải được trang này. Chạm để thử lại</string>
+    <plurals name="supplemental_song_count">
+        <item quantity="one">%1$d bài hát</item>
+        <item quantity="other">%1$d bài hát</item>
+    </plurals>
+</resources>

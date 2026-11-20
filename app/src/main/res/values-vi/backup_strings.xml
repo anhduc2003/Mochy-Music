@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- integrations: the backup row and its page -->
+    <string name="integration_backup_name">Sao lưu</string>
+    <string name="integration_backup_desc">Giữ thư viện và thống kê của bạn an toàn trên đám mây của chính bạn</string>
+    <string name="backup_page_subtitle">Danh sách phát, bài đã thích, thống kê nghe nhạc, tổng kết, hồ sơ và cài đặt của bạn, được giữ trên đám mây của chính bạn. Bài hát không được đưa vào nên bản sao lưu rất gọn.</string>
+
+    <!-- where backups go -->
+    <string name="backup_group_where">Sao lưu lên</string>
+    <string name="backup_dropbox_desc">Đăng nhập bằng tài khoản Dropbox của bạn</string>
+    <string name="backup_onedrive_desc">Đăng nhập bằng tài khoản Microsoft của bạn</string>
+    <string name="backup_webdav_desc">Nextcloud, pCloud, Koofr, NAS và nhiều hơn nữa</string>
+    <string name="backup_not_set_up">Chưa được thiết lập trong bản dựng này</string>
+    <string name="backup_signed_in_as">Đã đăng nhập với %1$s</string>
+    <string name="backup_webdav_connected">Đang sao lưu lên %1$s</string>
+    <string name="backup_waiting_browser">Hoàn tất đăng nhập trong trình duyệt của bạn</string>
+    <string name="backup_finishing_sign_in">Đang đăng nhập…</string>
+    <string name="backup_no_browser">Điện thoại này không có trình duyệt để đăng nhập.</string>
+    <string name="backup_dropbox_notice">Sao lưu Dropbox vẫn đang trong giai đoạn thử nghiệm. Chỉ 500 người đầu tiên có thể kết nối, và Dropbox có thể ngừng nhận đăng nhập mới sớm hơn cho tới khi họ phê duyệt Mochy. Nếu Dropbox không cho bạn vào, WebDAV thì không giới hạn.</string>
+    <string name="backup_disconnect">Ngắt kết nối</string>
+    <string name="backup_disconnect_desc">Ngừng sao lưu lên %1$s. Những bản sao lưu đã có vẫn được giữ lại.</string>
+    <string name="backup_connected_toast">Đã kết nối. Bản sao lưu của bạn sẽ đi tới %1$s.</string>
+
+    <!-- backing up and restoring -->
+    <string name="backup_group_backups">Bản sao lưu</string>
+    <string name="backup_now">Sao lưu ngay</string>
+    <string name="backup_last">Bản sao lưu cuối %1$s · %2$s</string>
+    <string name="backup_never">Chưa có bản sao lưu nào</string>
+    <string name="backup_connect_first">Hãy kết nối một dịch vụ đám mây ở trên trước</string>
+    <string name="backup_packing">Đang đóng gói… %1$d%%</string>
+    <string name="backup_uploading">Đang tải lên… %1$d%%</string>
+    <string name="backup_downloading">Đang tải xuống… %1$d%%</string>
+    <string name="backup_unpacking">Đang giải nén… %1$d%%</string>
+    <string name="backup_restored">Đã khôi phục. Mochy đang khởi động lại…</string>
+    <string name="backup_done_toast">Đã sao lưu lên %1$s</string>
+    <string name="backup_last_failed">Bản sao lưu tự động lần trước không thành công. %1$s</string>
+    <string name="backup_restore_title">Khôi phục bản sao lưu</string>
+    <string name="backup_restore_desc">Mang thư viện, thống kê và cài đặt của bạn trở lại từ đám mây</string>
+
+    <!-- the schedule -->
+    <string name="backup_auto_title">Tự động sao lưu</string>
+    <string name="backup_auto_desc">Chạy nền mỗi khi có kết nối, và bỏ qua lượt nào không có gì thay đổi</string>
+    <string name="backup_every">Tần suất</string>
+    <string name="backup_keep">Giữ trên đám mây</string>
+    <string name="backup_keep_note">Sau mỗi lần sao lưu, những bản cũ nhất của điện thoại này sẽ bị xoá để chỉ còn lại chừng này bản. Bản sao lưu của các điện thoại khác không bị ảnh hưởng.</string>
+    <plurals name="backup_every_minutes">
+        <item quantity="one">Mỗi phút</item>
+        <item quantity="other">Mỗi %d phút</item>
+    </plurals>
+    <plurals name="backup_every_hours">
+        <item quantity="one">Mỗi giờ</item>
+        <item quantity="other">Mỗi %d giờ</item>
+    </plurals>
+    <plurals name="backup_every_days">
+        <item quantity="one">Mỗi ngày</item>
+        <item quantity="other">Mỗi %d ngày</item>
+    </plurals>
+    <plurals name="backup_every_weeks">
+        <item quantity="one">Mỗi tuần</item>
+        <item quantity="other">Mỗi %d tuần</item>
+    </plurals>
+    <plurals name="backup_keep_count">
+        <item quantity="one">%d bản sao lưu</item>
+        <item quantity="other">%d bản sao lưu</item>
+    </plurals>
+
+    <!-- the restore sheet -->
+    <string name="backup_restore_body">Chọn một bản. Thư viện, thống kê và cài đặt của bạn sẽ được thay bằng bản trong đó, sau đó Mochy khởi động lại. Các bài đã tải xuống vẫn giữ nguyên.</string>
+    <string name="backup_restore_loading">Đang tìm trong đám mây của bạn…</string>
+    <string name="backup_restore_empty">Chưa có bản sao lưu nào ở đó.</string>
+    <string name="backup_restore_item">%1$s · %2$s</string>
+    <string name="backup_restore_this">Khôi phục và khởi động lại</string>
+    <string name="backup_try_again">Thử lại</string>
+
+    <!-- the webdav sheet -->
+    <string name="webdav_title">Kết nối máy chủ WebDAV</string>
+    <string name="webdav_body">Bản sao lưu được đưa vào thư mục Mochy Backups tại địa chỉ này. Mật khẩu của bạn chỉ nằm trên điện thoại này và không bao giờ được đưa vào bản sao lưu.</string>
+    <string name="webdav_address">Địa chỉ máy chủ</string>
+    <string name="webdav_address_hint">https://cloud.example.com/remote.php/dav/files/you/</string>
+    <string name="webdav_username_hint">Tên đăng nhập của bạn</string>
+    <string name="webdav_password_hint">Mật khẩu của bạn, hoặc mật khẩu ứng dụng</string>
+    <string name="webdav_connect">Kết nối</string>
+    <string name="webdav_connecting">Đang kiểm tra…</string>
+
+    <!-- what went wrong -->
+    <string name="cloud_problem_offline">Không kết nối được tới đám mây. Hãy kiểm tra kết nối rồi thử lại.</string>
+    <string name="cloud_problem_signed_out">Mochy không còn đăng nhập ở đó nữa. Hãy đăng nhập lại để tiếp tục sao lưu.</string>
+    <string name="cloud_problem_wrong_login">Máy chủ từ chối tên đăng nhập hoặc mật khẩu đó.</string>
+    <string name="cloud_problem_bad_address">Địa chỉ đó có vẻ không phải địa chỉ máy chủ.</string>
+    <string name="cloud_problem_not_found">Không tìm thấy thư mục đó trên máy chủ. Hãy kiểm tra lại địa chỉ.</string>
+    <string name="cloud_problem_not_webdav">Địa chỉ đó không phản hồi như một máy chủ WebDAV. Hãy kiểm tra rồi thử lại.</string>
+    <string name="cloud_problem_full">Đám mây của bạn đã đầy. Hãy giải phóng bớt dung lượng rồi thử lại.</string>
+    <string name="cloud_problem_no_room">Không đóng gói được bản sao lưu. Hãy chắc rằng điện thoại còn dung lượng trống rồi thử lại.</string>
+    <string name="cloud_problem_busy">Đám mây đang trục trặc tạm thời. Hãy thử lại sau một lúc.</string>
+    <string name="cloud_problem_denied">Bạn đã chọn từ chối ở trang đăng nhập, nên chưa có gì được kết nối.</string>
+    <string name="cloud_problem_expired">Liên kết đăng nhập đó đã hết hạn. Hãy thử đăng nhập lại.</string>
+</resources>

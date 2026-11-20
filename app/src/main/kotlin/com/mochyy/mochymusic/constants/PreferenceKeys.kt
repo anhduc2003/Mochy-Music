@@ -401,6 +401,11 @@ val ScrobbleDelayPercentKey = floatPreferencesKey("scrobbleDelayPercent")
 val ScrobbleMinSongDurationKey = intPreferencesKey("scrobbleMinSongDuration")
 val ScrobbleDelaySecondsKey = intPreferencesKey("scrobbleDelaySeconds")
 
+// cloud backup: only the schedule lives here, the account itself sits in no_backup so it never travels in a zip
+val CloudBackupAutoKey = booleanPreferencesKey("cloudBackupAuto")
+val CloudBackupEveryMinutesKey = intPreferencesKey("cloudBackupEveryMinutes")
+val CloudBackupKeepKey = intPreferencesKey("cloudBackupKeep")
+
 val ChipSortTypeKey = stringPreferencesKey("chipSortType")
 val SongSortTypeKey = stringPreferencesKey("songSortType")
 val SongSortDescendingKey = booleanPreferencesKey("songSortDescending")
@@ -890,6 +895,9 @@ val DiscRealisticModeKey = booleanPreferencesKey("discRealisticMode")
 
 val DiscNameKey = stringPreferencesKey("discName")
 
+/** how far the squared and edge to edge covers fill their box: 1 crops to fill it, 0 shows the whole picture */
+val PlayerCoverZoomKey = floatPreferencesKey("playerCoverZoom")
+
 enum class PlayerTextContent {
     MUSIC_NAME,
     ALBUM_NAME,
@@ -940,6 +948,8 @@ val LyricsClickKey = booleanPreferencesKey("lyricsClick")
 val LyricsWaveAnimationKey = booleanPreferencesKey("lyricsWaveAnimation")
 
 val LyricsHighBloomKey = booleanPreferencesKey("lyricsHighBloom")
+// resting lyric lines soft-lit onto the cover background instead of plain grey, on until turned off
+val LyricsSoftLightKey = booleanPreferencesKey("lyricsSoftLight")
 val LyricsScrollKey = booleanPreferencesKey("lyricsScrollKey")
 val LyricsRomanizeJapaneseKey = booleanPreferencesKey("lyricsRomanizeJapanese")
 val LyricsRomanizeKoreanKey = booleanPreferencesKey("lyricsRomanizeKorean")
@@ -1028,6 +1038,8 @@ val SwipeThumbnailKey = booleanPreferencesKey("swipeThumbnail")
 val RotatingThumbnailKey = booleanPreferencesKey("rotatingThumbnail")
 val CanvasThumbnailAnimationKey = booleanPreferencesKey("canvasThumbnailAnimation")
 val CanvasWifiOnlyKey = booleanPreferencesKey("canvasWifiOnly")
+// animated covers play the sharpest version there is (apple's go up to 4k); off, or with data saver on, they play a lighter one
+val CanvasBestQualityKey = booleanPreferencesKey("canvasBestQuality")
 // which canvas sources get asked first; spotify only joins once it's turned on and signed in on its own page
 val CanvasOrderKey = stringPreferencesKey("canvasOrder")
 val SpotifyCanvasKey = booleanPreferencesKey("spotifyCanvas")
@@ -1407,3 +1419,5 @@ val DonateOpenPromptAtKey = longPreferencesKey("donateOpenPromptAt")
 // one-off lyrics cache clears (App.kt). raise LyricsCacheWipeGeneration to clear it again in a later release
 val LyricsCacheWipeKey = intPreferencesKey("lyricsCacheWipe")
 const val LyricsCacheWipeGeneration = 1
+val DiscordCanvasFpsKey = intPreferencesKey("discordPresenceCanvasFps")
+val DiscordCanvasSizeKey = intPreferencesKey("discordPresenceCanvasSize")

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stage_title_first">3D</string>
+    <string name="stage_title_second">Sims</string>
+
+    <string name="stage_card_title">3D Sims</string>
+    <string name="stage_card_sub">Tách bài hát ra và đặt từng phần quanh bạn trong một căn phòng do bạn tạo nên.</string>
+    <string name="stage_open">Mở căn phòng</string>
+    <string name="stage_toggle_sub">Giọng hát, bass và phần còn lại của bản mix, mỗi thứ nằm đúng nơi bạn đặt. Nghe hay nhất bằng tai nghe.</string>
+    <string name="stage_room_hint">Kéo một điểm để di chuyển, hai ngón tay để nâng lên, kéo căn phòng để xoay</string>
+    <string name="stage_reset_view">Đặt lại góc nhìn</string>
+
+    <string name="stage_source_vocal">Giọng hát</string>
+    <string name="stage_source_center">Giữa</string>
+    <string name="stage_source_left">Trái</string>
+    <string name="stage_source_right">Phải</string>
+    <string name="stage_source_ambience">Không gian</string>
+    <string name="stage_source_sub">Sub</string>
+    <string name="stage_source_numbered">%1$s %2$d</string>
+    <string name="stage_you">Bạn</string>
+    <string name="stage_add">Thêm âm thanh</string>
+    <string name="stage_add_title">Thêm vào phòng</string>
+    <string name="stage_add_count">%1$d trong %2$d có trong phòng</string>
+    <string name="stage_add_full">Cả %1$d đều đã trong phòng</string>
+    <string name="stage_remove">Xoá</string>
+    <string name="stage_mute">Tắt tiếng</string>
+    <string name="stage_solo">Nghe riêng</string>
+
+    <string name="stage_axis_side">Trái sang phải</string>
+    <string name="stage_axis_height">Độ cao</string>
+    <string name="stage_axis_depth">Sau ra trước</string>
+    <string name="stage_level">Mức</string>
+    <string name="stage_width">Độ rộng</string>
+    <string name="stage_facing">Hướng</string>
+    <string name="stage_middle">Chính giữa</string>
+    <string name="stage_meters_left">%1$s m về bên trái</string>
+    <string name="stage_meters_right">%1$s m về bên phải</string>
+    <string name="stage_meters_up">%1$s m lên trên</string>
+    <string name="stage_meters_front">%1$s m về phía trước</string>
+    <string name="stage_meters_back">%1$s m về phía sau</string>
+    <string name="stage_facing_ahead">Thẳng phía trước</string>
+    <string name="stage_facing_left">%1$d° sang trái</string>
+    <string name="stage_facing_right">%1$d° sang phải</string>
+
+    <string name="stage_presets">Phòng</string>
+    <string name="stage_preset_studio">Phòng thu</string>
+    <string name="stage_preset_living">Phòng khách</string>
+    <string name="stage_preset_front_row">Hàng ghế đầu</string>
+    <string name="stage_preset_on_stage">Trên sân khấu</string>
+    <string name="stage_preset_around">Vây quanh</string>
+    <string name="stage_preset_hall">Hội trường</string>
+
+    <string name="stage_room">Phòng</string>
+    <string name="stage_room_size">Kích thước</string>
+    <string name="stage_room_size_value">%1$s × %2$s m</string>
+    <string name="stage_walls_soft">Mềm</string>
+    <string name="stage_walls_wood">Gỗ</string>
+    <string name="stage_walls_concrete">Bê tông</string>
+    <string name="stage_room_amount">Âm phòng</string>
+    <string name="stage_output_level">Mức đầu ra</string>
+
+    <string name="stage_output">Đang phát trên</string>
+    <string name="stage_output_phone">Loa điện thoại</string>
+    <string name="stage_output_wired">Tai nghe có dây</string>
+    <string name="stage_output_usb">Âm thanh USB</string>
+    <string name="stage_output_bluetooth">Bluetooth</string>
+    <string name="stage_output_hdmi">TV hoặc HDMI</string>
+    <string name="stage_kind_headphones">Tai nghe</string>
+    <string name="stage_kind_speaker">Loa</string>
+    <string name="stage_output_guessed">Mochy đoán điều này từ thiết bị. Sai ư? Hãy chọn lại.</string>
+    <string name="stage_output_set">Bạn đã chọn điều này cho thiết bị này.</string>
+    <string name="stage_output_reset">Để Mochy tự đoán</string>
+    <string name="stage_on_speakers">Trên loa</string>
+    <string name="stage_speakers_off">Tắt</string>
+    <string name="stage_speakers_stereo">Stereo thường</string>
+    <string name="stage_speakers_3d">Giữ 3D</string>
+    <string name="stage_speakers_note">Âm thanh 3D được tạo cho hai tai. Trên loa, stereo thường giữ bố cục của bạn thành trái và phải, và căn phòng vẫn còn.</string>
+
+    <string name="stage_surround_note">Bài Surround và Atmos dùng chính các kênh của chúng làm âm thanh, bắt đầu từ bài tiếp theo.</string>
+    <string name="stage_credit">Số đo tai lấy từ bộ KEMAR của MIT Media Lab, do Bill Gardner và Keith Martin thực hiện.</string>
+    <string name="stage_spatial_note">3D Sims đang bật nên nó sẽ đặt vị trí âm thanh thay vào đó.</string>
+</resources>

@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="platform_generated_empty">Không có gì khớp với “%1$s”</string>
+    <string name="platform_duration_hours_minutes">%1$d giờ %2$d phút</string>
+    <string name="platform_duration_minutes">%1$d phút</string>
+    <string name="platform_stats_pair">%1$s · %2$s</string>
+    <string name="platform_artist_subscribers">%1$s người đăng ký</string>
+    <string name="platform_artist_monthly_listeners">%1$s người nghe hàng tháng</string>
+    <string name="platform_artist_see_all">Xem tất cả</string>
+    <string name="platform_stats_ruler_description">Đang hiển thị %1$s. Kéo để chọn mục khác.</string>
+    <string name="platform_volume_level">Mức âm lượng</string>
+    <string name="platform_audio_available">Sẵn sàng</string>
+    <string name="platform_device_connected">Đã kết nối</string>
+    <string name="platform_external_speaker">Loa ngoài</string>
+    <string name="platform_audio_load_failed">Không tải được thiết bị: %1$s</string>
+    <string name="platform_cast_play_first">Hãy phát một bài trước khi truyền</string>
+    <string name="platform_cast_stop">Dừng truyền</string>
+    <string name="platform_cast_active">Đang truyền</string>
+    <string name="platform_cast_target">Truyền tới</string>
+    <string name="platform_cast_none">Không tìm thấy thiết bị Cast nào</string>
+    <string name="platform_cast_same_wifi">Hãy chắc rằng thiết bị của bạn ở cùng mạng Wi-Fi</string>
+</resources>

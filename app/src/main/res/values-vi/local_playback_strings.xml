@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Songs imported from the phone -->
+    <string name="local_already_on_phone">Bài hát này đã có trên điện thoại của bạn</string>
+
+    <!-- Why a song imported from the phone couldn't play -->
+    <string name="local_error_file_gone">Tệp của bài hát này không còn trên điện thoại của bạn. Có thể nó đã bị di chuyển hoặc xoá.</string>
+    <string name="local_error_access_lost">Mochy không mở được tệp này nữa. Hãy thêm lại thư mục của nó từ Thư viện để lấy lại.</string>
+    <string name="local_error_permission">Mochy cần quyền đọc nhạc của bạn để phát bài hát này</string>
+    <string name="local_error_format">Mochy chưa phát được loại tệp này</string>
+    <string name="local_error_damaged">Tệp này có vẻ bị hỏng nên không phát được</string>
+
+    <!-- Local import -->
+    <plurals name="local_import_skipped_formats">
+        <item quantity="one">Đã bỏ qua %1$d tệp Mochy chưa phát được (WMA, AIFF, APE, WavPack hoặc DSD)</item>
+        <item quantity="other">Đã bỏ qua %1$d tệp Mochy chưa phát được (WMA, AIFF, APE, WavPack hoặc DSD)</item>
+    </plurals>
+    <string name="local_import_folder_cap">Thư mục đó có hơn %1$d bài hát nên chỉ %1$d bài đầu tiên được thêm vào. Hãy thêm từng thư mục con một cho phần còn lại.</string>
+    <string name="local_import_pick_folder_hint">Với chừng này bài hát, hãy thêm cả thư mục. Android chỉ giữ quyền truy cập khoảng 500 tệp lẻ, sau đó những tệp cũ nhất sẽ ngừng phát.</string>
+    <plurals name="local_missing_files">
+        <item quantity="one">%1$d bài hát đã mất tệp khỏi điện thoại của bạn</item>
+        <item quantity="other">%1$d bài hát đã mất tệp khỏi điện thoại của bạn</item>
+    </plurals>
+    <string name="local_missing_remove">Xoá</string>
+</resources>

@@ -33,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -41,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.LocalDatabase
 import com.mochyy.mochymusic.constants.HideExplicitKey
 import com.mochyy.mochymusic.constants.HideVideoSongsKey
@@ -85,10 +87,9 @@ fun PopupSheetState.showAddMusicSheet(playlistId: String, startInLibrary: Boolea
             val count = picks.songs.size
             SheetPillButton(
                 text = when {
-                    picks.saving -> "Đang thêm…"
-                    count == 0 -> "Xong"
-                    count == 1 -> "Thêm 1 bài hát"
-                    else -> "Thêm $count bài hát"
+                    picks.saving -> stringResource(R.string.supplemental_adding)
+                    count == 0 -> stringResource(R.string.done)
+                    else -> androidx.compose.ui.res.pluralStringResource(R.plurals.supplemental_add_song_count, count, count)
                 },
                 enabled = !picks.saving,
                 onClick = {

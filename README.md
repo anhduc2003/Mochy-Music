@@ -204,6 +204,18 @@ Mochy là một dự án độc lập, không chính thức, được tạo ra c
 
 ---
 
+<!-- mochy-credit:start · f208ad37 -->
+## Forking Mochy
+
+Forks are welcome, that's what open source is for! Just two asks:
+
+- **Keep the credit.** If you rename it, please keep credits of this app, the other project that helped mochy possible.
+- **Keep it free.** Mochy is not monetized and never will be. Please don't put features behind a paywall. A donation page is fine.
+
+<!-- mochy-credit:end -->
+
+---
+
 ## Những dự án tuyệt vời này đã giúp Mochy rất nhiều! Hãy ghé xem chúng nữa nhé :3
 
 - **ViviMusic** của [vivizzz007Z](https://github.com/vivizzz007Z) ([Repo](https://github.com/vivizzz007/vivi-music)) — Nền tảng ứng dụng ban đầu. Đây là dự án được fork từ đó.

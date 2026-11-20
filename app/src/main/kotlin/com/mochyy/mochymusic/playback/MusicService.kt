@@ -18,6 +18,7 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.audiofx.AudioEffect
 import android.media.audiofx.LoudnessEnhancer
+import android.media.audiofx.PresetReverb
 import android.net.ConnectivityManager
 import android.os.Binder
 import android.os.Build
@@ -89,6 +90,7 @@ import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.car.CarLyrics
 import com.mochyy.mochymusic.car.CarLyricsPlayer
 import com.mochyy.mochymusic.car.CarLyricsSource
+import com.mochyy.mochymusic.widget.WidgetLyricTracker
 import com.mochyy.mochymusic.constants.AudioNormalizationKey
 import com.mochyy.mochymusic.constants.AudioOffload
 import com.mochyy.mochymusic.constants.AudioQualityKey
@@ -183,6 +185,7 @@ import com.mochyy.mochymusic.eq.EqualizerService
 import com.mochyy.mochymusic.eq.audio.CustomEqualizerAudioProcessor
 import com.mochyy.mochymusic.eq.audio.LoudnessAudioProcessor
 import com.mochyy.mochymusic.eq.audio.ReverbAudioProcessor
+import com.mochyy.mochymusic.eq.audio.EightDAudioProcessor
 import com.mochyy.mochymusic.eq.audio.SpatialAudioProcessor
 import com.mochyy.mochymusic.extensions.SilentHandler
 import com.mochyy.mochymusic.extensions.collect
@@ -705,6 +708,8 @@ class MusicService :
 
     private var isAudioEffectSessionOpened = false
     private var loudnessEnhancer: LoudnessEnhancer? = null
+    private var eightDReverb: PresetReverb? = null
+    private var eightDReverbSessionId = C.AUDIO_SESSION_ID_UNSET
     private lateinit var hapticAudioProcessor: HapticAudioProcessor
 
     /** When a play counts for Last.fm and Libre.fm; the scrobbler skips services that aren't signed in. */
@@ -821,7 +826,11 @@ class MusicService :
         audioPass.start()
         player = createExoPlayer()
         player.addListener(this@MusicService)
+        scope.launch {
+            audioLab.eightD.collect(::updateEightDReverb)
+        }
         observeOutputSettings()
+        dropLocalSongCopies()
         sleepTimer = SleepTimer(scope, player)
         player.addListener(sleepTimer)
 
@@ -1051,7 +1060,10 @@ class MusicService :
             audioLab.spatial,
             audioLab.playback,
             audioLab.volume,
-        ) { (eq, reverb, loudness), spatial, playback, volume -> LabSound(eq, reverb, loudness, spatial, playback, volume) }
+            audioLab.stage,
+        ) { (eq, reverb, loudness), spatial, playback, volume, stage ->
+            LabSound(eq, reverb, loudness, spatial, playback, volume, stage.enabled)
+        }
         combine(dataStore.data, labSound, playerVolume) { prefs, lab, volume -> passBlockersOf(prefs, lab, volume) }
             .distinctUntilChanged()
             .collect(scope) { _passBlockers.value = it }
@@ -1354,9 +1366,12 @@ class MusicService :
         // this player's song's ReplayGain, read from its file's tags when its tracks change
         val replayGain = com.mochyy.mochymusic.eq.audio.ReplayGainTags()
         val fxProcessors = arrayOf<androidx.media3.common.audio.AudioProcessor>(
+            // first, so a surround song reaches the room with its own channels
+            com.mochyy.mochymusic.eq.audio.StageAudioProcessor(audioFx),
             SpatialAudioProcessor(audioFx),
             ReverbAudioProcessor(audioFx),
             LoudnessAudioProcessor(audioFx),
+            EightDAudioProcessor(audioFx),
         )
 
         val silenceProcessor = SilenceDetectorAudioProcessor { handleLongSilenceDetected() }
@@ -1456,6 +1471,7 @@ class MusicService :
                 } else if (mediaId != null && format != null && tracks.isTypeSupported(C.TRACK_TYPE_AUDIO, true)) {
                     announceDecoderNotice(mediaId)
                 }
+                if (player === this@MusicService.player) updateEightDReverb(audioLab.eightD.value)
             }
         })
         playerReplayGain[player] = replayGain
@@ -1501,6 +1517,15 @@ class MusicService :
         combine(wantsFloat, audioLab.shapesSound, audioLab.playback) { wants, shapesSound, playback ->
             wants && !shapesSound && playback.speed == 1f && playback.pitch == 1f
         }.distinctUntilChanged().collect(scope) { audioOutputs.floatAllowed = it }
+
+        // 3d sims plays differently on headphones and on a speaker, so it follows wherever the music goes
+        audioOutputs.devices.collect(scope) {
+            audioLab.setStageOutput(com.mochyy.mochymusic.eq.stage.StageOutput.of(this, audioOutputs.activeDevice()))
+        }
+        // the room renders at 48 khz at most: at 192 khz it would cost sixteen times the work for nothing anyone hears
+        audioLab.stage.map { it.enabled }.distinctUntilChanged().collect(scope) { on ->
+            audioOutputs.effectRateCap = if (on) 48_000 else null
+        }
     }
 
     private fun setupAudioFocusRequest() {
@@ -1856,8 +1881,16 @@ class MusicService :
 
     private var lastPlaybackError: PlaybackException? = null
 
+    // set when a song on the phone failed for a reason worth saying plainly (the file's gone, its access was lost), for the next failure toast
+    private var localFileProblem: LocalFileProblem? = null
+
     /** The top toast for a stream that couldn't be played, with a plain reason. */
     private fun announceStreamFailure() {
+        localFileProblem?.let { problem ->
+            localFileProblem = null
+            com.mochyy.mochymusic.ui.component.TopToaster.error(getString(problem.message))
+            return
+        }
         val e = lastPlaybackError
         // no decoder for it here, and nowhere else had it: that's the whole reason
         val notice = player.currentMediaItem?.mediaId?.let { decoderNotices.remove(it) }
@@ -1950,10 +1983,14 @@ class MusicService :
         )
     }
 
+    // each song only needs its duration and related tracks recovered once per session, not on every chunk read
+    private val recoveredSongs = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
     private suspend fun recoverSong(
         mediaId: String,
         playbackData: YTPlayerUtils.PlaybackData? = null
     ) {
+        if (!recoveredSongs.add(mediaId)) return
         val song = database.song(mediaId).first()
         val mediaMetadata = withContext(Dispatchers.Main) {
             player.findNextMediaItemById(mediaId)?.metadata
@@ -2046,12 +2083,13 @@ class MusicService :
         return status
     }
 
-    // a queue's songs, with the ones the listener hides already taken out
+    // a queue's songs, with the ones the listener hides already taken out unless that would leave the queue empty
     private suspend fun readQueue(queue: Queue): Queue.Status =
         withContext(Dispatchers.IO) {
-            queue.getInitialStatus()
+            val raw = queue.getInitialStatus()
                 .filterExplicit(dataStore.get(HideExplicitKey, false))
-                .filterVideoSongs(dataStore.get(HideVideoSongsKey, false))
+            val filtered = raw.filterVideoSongs(dataStore.get(HideVideoSongsKey, false))
+            if (filtered.items.isEmpty() && raw.items.isNotEmpty()) raw else filtered
         }
 
     // [blend] means the old song is still playing: a queue with a first song has it crossing over already, one without crosses once it's read; [read] is the queue already read while the old song played
@@ -2400,19 +2438,19 @@ class MusicService :
 
         val queue = currentQueue
         if (dataStore.get(AutoLoadMoreKey, true) && queue.hasNextPage()) {
-            val page = runCatching { withContext(Dispatchers.IO) { queue.nextPage() } }
+            val rawPage = runCatching { withContext(Dispatchers.IO) { queue.nextPage() } }
                 .onFailure { Timber.tag(TAG).w(it, "Failed to load next queue page") }
                 .getOrDefault(emptyList())
                 .filterExplicit(hideExplicit)
-                .filterVideoSongs(hideVideos)
+            val page = rawPage.filterVideoSongs(hideVideos).ifEmpty { rawPage }
             if (page.isNotEmpty()) return page to false
         }
 
         if (!isInfiniteQueueEnabled() || player.repeatMode != REPEAT_MODE_OFF) return null
 
-        val infiniteItems = loadInfiniteQueueItems()
+        val rawInfinite = loadInfiniteQueueItems()
             .filterExplicit(hideExplicit)
-            .filterVideoSongs(hideVideos)
+        val infiniteItems = rawInfinite.filterVideoSongs(hideVideos).ifEmpty { rawInfinite }
         return infiniteItems.takeIf { it.isNotEmpty() }?.let { it to true }
     }
 
@@ -2876,7 +2914,9 @@ class MusicService :
                 // another master, and evens out by its own ReplayGain in the sink instead
                 val fromModule = currentMediaId != null &&
                     resolvedSourceIds[currentMediaId].let { it != null && it != com.mochyy.mochymusic.modules.SourceModules.YouTubeId }
-                if (normalizeAudio && currentMediaId != null && !fromModule) {
+                // android's loudness enhancer only handles stereo; on multichannel dolby tracks it distorts the surround channels
+                val multichannel = withContext(Dispatchers.Main) { (player.audioFormat?.channelCount ?: 2) > 2 }
+                if (normalizeAudio && currentMediaId != null && !fromModule && !multichannel) {
                     val format = withContext(Dispatchers.IO) {
                         database.format(currentMediaId).first()
                     }
@@ -2933,10 +2973,52 @@ class MusicService :
         }
     }
 
+    private fun updateEightDReverb(settings: com.mochyy.mochymusic.eq.EightDSettings) {
+        val level = settings.reverbLevel.coerceIn(0f, 1f)
+        val sessionId = player.audioSessionId
+        if (!settings.enabled || level <= 0f || player.playbackState == Player.STATE_IDLE ||
+            player.playbackState == Player.STATE_ENDED || sessionId <= 0 || sessionId == C.AUDIO_SESSION_ID_UNSET
+        ) {
+            releaseEightDReverb()
+            return
+        }
+
+        try {
+            if (eightDReverb != null && eightDReverbSessionId != sessionId) releaseEightDReverb()
+            val effect = eightDReverb ?: PresetReverb(0, sessionId).also {
+                eightDReverb = it
+                eightDReverbSessionId = sessionId
+            }
+            effect.preset = when {
+                level < 0.4f -> PresetReverb.PRESET_SMALLROOM
+                level < 0.75f -> PresetReverb.PRESET_MEDIUMROOM
+                else -> PresetReverb.PRESET_LARGEHALL
+            }.toShort()
+            effect.enabled = true
+        } catch (e: Exception) {
+            reportException(e)
+            Timber.tag(TAG).e(e, "Failed to configure 8D room reverb")
+            releaseEightDReverb()
+        }
+    }
+
+    private fun releaseEightDReverb() {
+        try {
+            eightDReverb?.release()
+        } catch (e: Exception) {
+            reportException(e)
+            Timber.tag(TAG).e(e, "Failed to release 8D room reverb")
+        } finally {
+            eightDReverb = null
+            eightDReverbSessionId = C.AUDIO_SESSION_ID_UNSET
+        }
+    }
+
     private fun openAudioEffectSession() {
         if (isAudioEffectSessionOpened) return
         isAudioEffectSessionOpened = true
         setupLoudnessEnhancer()
+        updateEightDReverb(audioLab.eightD.value)
         sendBroadcast(
             Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
                 putExtra(AudioEffect.EXTRA_AUDIO_SESSION, player.audioSessionId)
@@ -2958,6 +3040,19 @@ class MusicService :
         )
     }
 
+    // system equalizers (dolby, the phone's own sound settings) follow one audio session: after a crossfade or mix the song plays from another player, so the new one is announced and the one let go is closed
+    private fun announceEffectSession(sessionId: Int, open: Boolean) {
+        if (!isAudioEffectSessionOpened || sessionId <= 0) return
+        val action = if (open) AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION else AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION
+        sendBroadcast(
+            Intent(action).apply {
+                putExtra(AudioEffect.EXTRA_AUDIO_SESSION, sessionId)
+                putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
+                if (open) putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
+            },
+        )
+    }
+
     private var previousMediaItemIndex = C.INDEX_UNSET
 
     override fun onMediaItemTransition(
@@ -2967,11 +3062,13 @@ class MusicService :
         clearStreamFailure()
         if (!promotingCrossmix) crossmixDirector.onItemChanged()
 
-        if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT) {
-            // round again: a mute or a low volume left by a mix or a fade went round with it and the loop played silent until a seek
+        if (!promotingCrossmix && !isCrossfading) {
+            // a mute or a low volume left by an aborted mix or fade must not carry into the next song until a seek
             playerCrossmixProcessors[player]?.clear()
-            transport.cancel()
-            player.volume = targetVolume()
+            if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT || reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                transport.cancel()
+                player.volume = targetVolume()
+            }
         }
         // the songs either side of the new one get their first seconds fetched, for a blended skip
         prefetchNeighbours()
@@ -2991,6 +3088,7 @@ class MusicService :
         mediaItem?.mediaId?.let { announceMusicVideoAudio(it) }
 
         setupLoudnessEnhancer()
+        updateEightDReverb(audioLab.eightD.value)
 
         scrobbleTimer.onSongStop()
         playReporter.onSongStop()
@@ -3025,6 +3123,8 @@ class MusicService :
     override fun onPlaybackStateChanged(
         @Player.State playbackState: Int,
     ) {
+        updateEightDReverb(audioLab.eightD.value)
+
         // IDLE is where a failed stream sits; anything else means it's loading or playing again
         if (playbackState != Player.STATE_IDLE) clearStreamFailure()
 
@@ -3129,7 +3229,7 @@ class MusicService :
             publishPresence()
         }
 
-        if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
+        if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_PLAYBACK_STATE_CHANGED)) {
             scrobbleTimer.onPlayingChanged(player.isPlaying, player.currentMetadata, player.duration)
             playReporter.onPlayingChanged(player.isPlaying, player.currentMetadata, player.duration)
             // a pause is often the last thing before the app is closed, and the timed saves only
@@ -3380,6 +3480,13 @@ class MusicService :
             failStream()
             return
         }
+        // a file on the phone that's gone, lost its access or isn't a kind the player reads: clearing the cache and retrying never changed that, so it says why and moves on
+        LocalFileProblem.of(this, player.currentMediaItem, error)?.let { problem ->
+            Timber.tag(TAG).w(error, "Couldn't play ${player.currentMediaItem?.mediaId} from the phone: $problem")
+            localFileProblem = problem
+            failStream()
+            return
+        }
         val mediaId = player.currentMediaItem?.mediaId
         Timber.tag(TAG).w(error, "Player error occurred for $mediaId: errorCode=${error.errorCode}, message=${error.message}, causes=${generateSequence<Throwable>(error) { it.cause }.joinToString(" <- ") { it.javaClass.simpleName + ":" + it.message }}")
         reportException(error)
@@ -3477,6 +3584,14 @@ class MusicService :
     private fun isContainerParseError(error: PlaybackException) =
         error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
             error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED
+
+    // imported files used to be copied into the song cache as they played; they're read straight from the phone now, so the old copies only take up room
+    private fun dropLocalSongCopies() {
+        scope.launch(Dispatchers.IO) {
+            playerCache.keys.filter { it.startsWith("LOCAL_") }
+                .forEach { key -> runCatching { playerCache.removeResource(key) } }
+        }
+    }
 
     /** Every source module's cached copy of [mediaId], which lives under its own key. */
     private fun dropModuleCache(mediaId: String) {
@@ -3771,6 +3886,23 @@ class MusicService :
         }
     }
 
+    // artists the library has no picture for come from youtube once, so the artist artwork is not the song cover again
+    private val artistPhotos = java.util.concurrent.ConcurrentHashMap<String, String>()
+    private val artistPhotoAsked = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
+    private fun artistPhotoFor(artists: List<com.mochyy.mochymusic.db.entities.ArtistEntity>?): String? {
+        val artist = artists?.firstOrNull { it.isYouTubeArtist } ?: return null
+        artistPhotos[artist.id]?.let { return it }
+        if (artistPhotoAsked.add(artist.id)) {
+            scope.launch {
+                val url = withContext(Dispatchers.IO) { YouTube.artist(artist.id).getOrNull()?.artist?.thumbnail } ?: return@launch
+                artistPhotos[artist.id] = url
+                publishPresence()
+            }
+        }
+        return null
+    }
+
     /** Tells the Discord status what's playing; it ignores this when Discord isn't signed in or is off. */
     private fun publishPresence() {
         val metadata = player.currentMetadata
@@ -3789,7 +3921,7 @@ class MusicService :
                 artist = metadata.artists.joinToString { it.name },
                 album = metadata.album?.title ?: song?.song?.albumName,
                 artworkUrl = metadata.thumbnailUrl,
-                artistArtworkUrl = song?.artists?.firstNotNullOfOrNull { it.thumbnailUrl },
+                artistArtworkUrl = song?.artists?.firstNotNullOfOrNull { it.thumbnailUrl } ?: artistPhotoFor(song?.artists),
                 durationMs = player.duration.takeIf { it > 0 } ?: (metadata.duration * 1000L),
                 positionMs = player.currentPosition,
                 readAtMs = System.currentTimeMillis(),
@@ -3901,7 +4033,9 @@ class MusicService :
     fun shareDataSourceFactory(): DataSource.Factory = createDataSourceFactory()
 
     private fun createDataSourceFactory(): DataSource.Factory {
-        return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
+        // songs already on the phone are read straight from their file; only what comes over the network goes through the caches
+        val upstream = LocalBypassDataSource.Factory(DefaultDataSource.Factory(this), createCacheDataSource())
+        return ResolvingDataSource.Factory(upstream) { dataSpec ->
             // a stream a source module or backend resolved to a real URL (an HLS playlist, given
             // as a data: URI when the module rewrote it, and its segments) carries no media id:
             // it's fetched as it is
@@ -3956,8 +4090,10 @@ class MusicService :
 
                 songUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let { cached ->
                     scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
+                    // keep each open capped to a chunk so seeks and background decoders never pull the whole file at once
                     return@Factory dataSpec
                         .withUri(cached.first.toUri())
+                        .subrange(dataSpec.uriPositionOffset, CHUNK_LENGTH)
                         .withRequestHeaders(dataSpec.httpRequestHeaders + songStreamHeaders[mediaId].orEmpty())
                 }
             } else {
@@ -4212,7 +4348,7 @@ class MusicService :
                 .setAudioProcessorChain(
                     DefaultAudioSink.DefaultAudioProcessorChain(
 
-                        // Audio Lab first (equalizer, then spatial, reverb, loudness), so Crossmix
+                        // Audio Lab first (equalizer, then 3d sims, spatial, reverb, loudness), so Crossmix
                         // blends the two songs as they're heard
                         arrayOf(
                             eqProcessor,
@@ -4445,6 +4581,7 @@ class MusicService :
         callWatcher.stop()
         abandonAudioFocus()
         releaseLoudnessEnhancer()
+        releaseEightDReverb()
         crossmixDirector.release()
         fadingLoudnessEnhancer?.runCatching { release() }
         fadingLoudnessEnhancer = null
@@ -4503,6 +4640,15 @@ class MusicService :
             MusicWidgetReceiver.ACTION_UPDATE_WIDGET -> {
                 updateWidgetUI(player.isPlaying)
             }
+            MusicWidgetReceiver.ACTION_REPEAT -> {
+                // off -> all -> one -> off, the same order as the repeat button in the player
+                player.repeatMode = when (player.repeatMode) {
+                    REPEAT_MODE_OFF -> REPEAT_MODE_ALL
+                    REPEAT_MODE_ALL -> REPEAT_MODE_ONE
+                    else -> REPEAT_MODE_OFF
+                }
+                updateWidgetUI(player.isPlaying)
+            }
         }
 
         return super.onStartCommand(intent, flags, startId)
@@ -4510,7 +4656,16 @@ class MusicService :
 
     private val powerManager by lazy { getSystemService(android.os.PowerManager::class.java) }
 
+    // which lyric line the now playing widgets show; the scope is asked for each time because the service replaces it
+    private val widgetLyrics by lazy {
+        WidgetLyricTracker(this, CarLyricsSource(database, lyricsHelper), { scope }) { updateWidgetUI(player.isPlaying) }
+    }
+
     private fun updateWidgetUI(isPlaying: Boolean, progressOnly: Boolean = false) {
+        // without a lyric widget placed nobody sees the lines, and following them would fetch lyrics for every song
+        val lyricsShown = widgetManager.hasLyricWidgets
+        // looked up on the main thread the tracker expects, before the launch so the position is the moment of the tick
+        val lyricCue = if (lyricsShown) widgetLyrics.cue(currentMediaMetadata.value, player.currentPosition) else NoLyricCue
         scope.launch {
             try {
                 val songData = currentSong.value
@@ -4518,6 +4673,7 @@ class MusicService :
                 val songTitle = song?.title ?: getString(R.string.no_song_playing)
                 val artistName = songData?.artists?.joinToString(", ") { it.name } ?: getString(R.string.tap_to_open)
                 val isLiked = songData?.song?.liked == true
+                val (currentLyric, nextLyric) = lyricCue
 
                 widgetManager.updateWidgets(
                     title = songTitle,
@@ -4527,8 +4683,13 @@ class MusicService :
                     isLiked = isLiked,
                     duration = if (player.duration != C.TIME_UNSET) player.duration else 0,
                     currentPosition = player.currentPosition,
+                    currentLyric = currentLyric,
+                    nextLyric = nextLyric,
                     progressOnly = progressOnly,
+                    repeatMode = player.repeatMode,
                 )
+                // a lyric widget was just placed, so draw once more now that its lines get looked up
+                if (!lyricsShown && widgetManager.hasLyricWidgets) updateWidgetUI(isPlaying)
             } catch (e: Exception) {
 
             }
@@ -4542,12 +4703,13 @@ class MusicService :
         widgetUpdateJob = scope.launch {
             while (isActive) {
                 // nobody sees a widget with the screen off, and redrawing it every second there was all cost
+                var wait = WidgetProgressIntervalMs
                 if (player.isPlaying && powerManager?.isInteractive != false) {
                     updateWidgetUI(true, progressOnly = true)
+                    // wake early for the next lyric line so it changes on time, not up to a second late
+                    if (widgetManager.hasLyricWidgets) wait = widgetLyrics.wakeInMs.coerceAtMost(WidgetProgressIntervalMs)
                 }
-                // the widget's progress bar moves in whole seconds anyway; more often only cost
-                // frames in the app
-                delay(WidgetProgressIntervalMs)
+                delay(wait)
             }
         }
     }
@@ -4866,6 +5028,7 @@ class MusicService :
         player = nextPlayer
         _playerFlow.value = player
         secondaryPlayer = null
+        announceEffectSession(nextPlayer.audioSessionId, open = true)
 
         fadingPlayer?.removeListener(this)
         fadingPlayer?.removeListener(sleepTimer)
@@ -4902,6 +5065,9 @@ class MusicService :
         nextPlayer.addListener(sleepTimer)
 
         sleepTimer.player = player
+        // nextPlayer seeked to the new song before this listener attached, so tell the service and scrobbler now
+        currentMediaMetadata.value = player.currentMetadata
+        onMediaItemTransition(player.currentMediaItem, Player.MEDIA_ITEM_TRANSITION_REASON_SEEK)
 
         try {
             (mediaSession as MediaSession).player = sessionPlayer(player)
@@ -5007,6 +5173,7 @@ class MusicService :
     }
 
     private fun cleanupCrossfade() {
+        fadingPlayer?.let { runCatching { announceEffectSession(it.audioSessionId, open = false) } }
         fadingPlayer?.stop()
         fadingPlayer?.clearMediaItems()
         fadingPlayer?.release()
@@ -5364,6 +5531,7 @@ class MusicService :
             // set when it was made, seconds ago: a mute, an unmute or a slider move since then
             // never reached it, and the song carried on at the old volume (0, if it was muted)
             incoming.volume = targetVolume()
+            announceEffectSession(incoming.audioSessionId, open = true)
 
             outgoing.removeListener(this@MusicService)
             outgoing.removeListener(sleepTimer)
@@ -5409,6 +5577,7 @@ class MusicService :
         }
 
         override fun release(outgoing: ExoPlayer) {
+            runCatching { announceEffectSession(outgoing.audioSessionId, open = false) }
             runCatching {
                 outgoing.stop()
                 outgoing.clearMediaItems()
@@ -5553,6 +5722,9 @@ class MusicService :
 
 /** How often a placed home screen widget's progress is redrawn while playing. */
 private const val WidgetProgressIntervalMs = 1_000L
+
+// what the lyric lines carry while no lyric widget is placed
+private val NoLyricCue = WidgetLyricTracker.Cue("", "")
 
 // a timed save skips a place in the song that moved less than this; coming back a second or two early doesn't matter
 private const val PositionSaveStepMs = 2_000L

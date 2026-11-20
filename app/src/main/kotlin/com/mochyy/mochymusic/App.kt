@@ -170,6 +170,9 @@ class App : Application(), SingletonImageLoader.Factory {
             com.mochyy.mochymusic.ui.launch.LaunchGate.awaitIntro()
             runCatching { com.mochyy.mochymusic.importer.LocalArtwork.repair(this@App, musicDatabase) }
                 .onFailure { Timber.w(it, "Repairing local covers failed") }
+            // once: the cover every song of an album saved for itself becomes one shared file, and huge ones shrink
+            runCatching { com.mochyy.mochymusic.importer.LocalArtwork.compact(this@App) }
+                .onFailure { Timber.w(it, "Sharing out local covers failed") }
         }
 
         applicationScope.launch(Dispatchers.Default) {
@@ -325,11 +328,15 @@ class App : Application(), SingletonImageLoader.Factory {
         }
     }
 
-    // the screen went to the background: covers decoded for it were the most the app held while music played on, so most of them go; the latest stay for coming back
+    // covers are the most the app holds: half go when the phone runs short, most when the screen goes to the background, all once the system starts reclaiming background apps
+    @Suppress("DEPRECATION")
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        if (level == android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
-            SingletonImageLoader.get(this).memoryCache?.let { cache -> cache.trimToSize(cache.size / 4) }
+        val cache = SingletonImageLoader.get(this).memoryCache ?: return
+        when {
+            level >= android.content.ComponentCallbacks2.TRIM_MEMORY_BACKGROUND -> cache.clear()
+            level >= android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN -> cache.trimToSize(cache.size / 4)
+            level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW -> cache.trimToSize(cache.size / 2)
         }
     }
 

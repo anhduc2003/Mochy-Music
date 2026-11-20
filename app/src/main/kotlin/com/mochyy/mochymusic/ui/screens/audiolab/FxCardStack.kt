@@ -37,10 +37,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.eq.LoudnessSettings
+import com.mochyy.mochymusic.eq.EightDSettings
 import com.mochyy.mochymusic.eq.PlaybackSettings
 import com.mochyy.mochymusic.eq.ReverbSettings
 import com.mochyy.mochymusic.eq.SpatialSettings
 import com.mochyy.mochymusic.eq.VolumeSettings
+import com.mochyy.mochymusic.eq.stage.StageSettings
 import com.mochyy.mochymusic.ui.component.damageBoundary
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -53,13 +55,17 @@ internal fun activeEffects(
     reverb: ReverbSettings,
     loudness: LoudnessSettings,
     spatial: SpatialSettings,
+    eightD: EightDSettings,
     playback: PlaybackSettings,
     volume: VolumeSettings,
+    stage: StageSettings,
 ): List<ActiveEffect> = buildList {
-    if (reverb.enabled) add(ActiveEffect("reverb", "Âm vang"))
-    if (loudness.enabled) add(ActiveEffect("loudness", "Âm lượng"))
-    if (spatial.enabled) add(ActiveEffect("spatial", "Không gian"))
-    if (spatial.surround) add(ActiveEffect("surround", "Âm thanh vòm"))
+    if (stage.enabled) add(ActiveEffect("stage", "3D Sims"))
+    if (reverb.enabled) add(ActiveEffect("reverb", "Reverb"))
+    if (loudness.enabled) add(ActiveEffect("loudness", "Loudness"))
+    if (spatial.enabled) add(ActiveEffect("spatial", "Spatial"))
+    if (eightD.enabled) add(ActiveEffect("eight_d", "8D Audio"))
+    if (spatial.surround) add(ActiveEffect("surround", "Surround"))
     if (spatial.mono) add(ActiveEffect("mono", "Mono"))
     if (!playback.isNormal) add(ActiveEffect("playback", "Phát lại"))
     if (volume.enabled) add(ActiveEffect("volume", "Âm lượng"))
@@ -74,6 +80,7 @@ internal fun effectLabelRes(key: String): Int = when (key) {
     "surround" -> R.string.lab_effect_surround
     "mono" -> R.string.lab_effect_mono
     "playback" -> R.string.lab_effect_playback
+    "stage" -> R.string.lab_effect_stage
     else -> R.string.lab_effect_volume
 }
 

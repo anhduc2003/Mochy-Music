@@ -6,7 +6,6 @@ import android.os.Build
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -43,6 +42,8 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
@@ -156,7 +157,7 @@ internal fun restingLineStyle(base: androidx.compose.ui.text.TextStyle, active: 
     base.copy(
         fontSize = LyricsFontSize,
         lineHeight = LyricsLineHeight,
-        fontWeight = if (active) FontWeight.Bold else FontWeight.SemiBold,
+        fontWeight = if (active) LyricsSungWeight else LyricsRestingWeight,
     ).withLetterMotionFeatures(letterMotion)
 
 /**
@@ -188,6 +189,19 @@ internal fun lyricsLineInsets(alignment: LyricsAlignment): LyricsLineInsets {
 }
 
 private const val ActiveUnsungAlpha = 0.58f
+
+// with tinted lyrics the words still to come are only a faint white in the plain copy; the soft-lit copy under them gives them the background's colour
+private const val TintedUnsungAlpha = 0.22f
+
+// how far the soft copy lifts those faint words, back up to solid white
+private const val SweepSoftBoost = 1f / TintedUnsungAlpha
+
+// how strongly the sung line's words still to come are soft-lit, brighter than the lines waiting below it
+private const val ActiveSoftFill = 1f
+
+// resting lines are set bold and the sung one extra bold, heavy like apple music's lyrics
+internal val LyricsRestingWeight = FontWeight.Bold
+internal val LyricsSungWeight = FontWeight.ExtraBold
 
 @Composable
 fun LyricsGlowLine(
@@ -239,41 +253,48 @@ fun LyricsGlowLine(
 
     /** told where the words start across the row (px from its left edge), for the line the card grows into */
     onTextStart: ((Float) -> Unit)? = null,
+
+    // set when the page sits right on a cover background: the resting look is white soft-lit onto it
+    blend: LyricsBackdropBlend? = null,
 ) {
     val wordMotion = motionStyle.risesWords
     val targetAlpha = restingAlphaOf(state)
     val targetScale = restingScaleOf(state)
 
+    // every ease below starts only when its target changes, so the page's lines mount without six coroutines each
     val animSpec = tween<Float>(durationMillis = 600)
-    val alpha by animateFloatAsState(targetAlpha, animSpec, label = "lyricsLineAlpha")
-    val scale by animateFloatAsState(targetScale, animSpec, label = "lyricsLineScale")
+    val alpha by com.mochyy.mochymusic.ui.utils.animateFloatOnChange(targetAlpha, animSpec)
+    val scale by com.mochyy.mochymusic.ui.utils.animateFloatOnChange(targetScale, animSpec)
+    // how sung the line is: the wave's strength, and the plain copy's share while it soft-lights
+    val waveAmplitude by com.mochyy.mochymusic.ui.utils.animateFloatOnChange(
+        target = if (state == LyricsLineState.ACTIVE) 1f else 0f,
+        spec = animSpec,
+    )
 
     // Only lines without word timing move as a whole; word-synced ones rise word by word.
     val wholeLineRise = wordMotion && entry.words.isNullOrEmpty()
-    val drop by animateFloatAsState(
-        targetValue = if (state == LyricsLineState.ACTIVE || !wholeLineRise) 0f else 1f,
-        animationSpec = androidx.compose.animation.core.spring(
+    val drop by com.mochyy.mochymusic.ui.utils.animateFloatOnChange(
+        target = if (state == LyricsLineState.ACTIVE || !wholeLineRise) 0f else 1f,
+        spec = androidx.compose.animation.core.spring(
             dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
             stiffness = androidx.compose.animation.core.Spring.StiffnessVeryLow,
         ),
-        label = "lyricsLineDrop",
     )
 
-    val blurRadius by animateFloatAsState(
-        targetValue = BlurStageRadii[blurStage.coerceIn(0, BlurStageRadii.lastIndex)],
-        animationSpec = tween(durationMillis = 350),
-        label = "lyricsLineBlur",
+    val blurRadius by com.mochyy.mochymusic.ui.utils.animateFloatOnChange(
+        target = BlurStageRadii[blurStage.coerceIn(0, BlurStageRadii.lastIndex)],
+        spec = tween(durationMillis = 350),
     )
 
     val baseColor = LocalContentColor.current
     // eased with the alpha and scale, and read only while drawing so the fade doesn't recompose the line every frame
-    val lineColor = androidx.compose.animation.animateColorAsState(
-        targetValue = if (state == LyricsLineState.ACTIVE) Color.White else baseColor,
-        animationSpec = tween(durationMillis = 600),
-        label = "lyricsLineColor",
+    val lineColor = com.mochyy.mochymusic.ui.utils.animateColorOnChange(
+        target = if (state == LyricsLineState.ACTIVE) Color.White else baseColor,
+        spec = tween(durationMillis = 600),
     )
     val textColor = remember(lineColor) { ColorProducer { lineColor.value } }
-    val unsungColor = remember(baseColor) { ColorProducer { Color.White.copy(alpha = ActiveUnsungAlpha) } }
+    val unsungAlpha = if (blend != null) TintedUnsungAlpha else ActiveUnsungAlpha
+    val unsungColor = remember(lineColor, unsungAlpha) { ColorProducer { lineColor.value.copy(alpha = unsungAlpha) } }
     val readingColor = remember(lineColor) { ColorProducer { lineColor.value.copy(alpha = 0.4f) } }
     val subLineColor = remember(lineColor) { ColorProducer { lineColor.value.copy(alpha = 0.6f) } }
     val translationColor = remember(lineColor) { ColorProducer { lineColor.value.copy(alpha = 0.5f) } }
@@ -300,6 +321,8 @@ fun LyricsGlowLine(
     }
     val leadText = parts.lead
     val words = parts.leadWords
+    // a word-timed line sweeps while it's sung, the only kind whose words still to come stay dim
+    val sweepsWords = !words.isNullOrEmpty() && leadText.isNotEmpty()
     val hasRuby = !ruby.isNullOrEmpty()
     val leadStyle = MaterialTheme.typography.headlineSmall.copy(
         fontSize = LyricsFontSize,
@@ -308,7 +331,7 @@ fun LyricsGlowLine(
         textAlign = textAlign,
     ).withLetterMotionFeatures(wordMotion)
     // kept above the sweep/plain switch, so the line already has its bold breaks the moment it goes plain again
-    val steadyWrap = rememberSteadyWrap(leadText, leadStyle.copy(fontWeight = FontWeight.Bold))
+    val steadyWrap = rememberSteadyWrap(leadText, leadStyle.copy(fontWeight = LyricsSungWeight))
 
     // the row's own frame, so a centred or right-aligned line can say where its words start inside it
     val rowCoords = remember { arrayOfNulls<androidx.compose.ui.layout.LayoutCoordinates>(1) }
@@ -330,7 +353,7 @@ fun LyricsGlowLine(
                 bottom = insets.top,
             )
             .graphicsLayer {
-                this.alpha = alpha
+                if (blend == null) this.alpha = alpha
                 scaleX = scale
                 scaleY = scale
                 translationY = drop * LyricsWaitingDrop.toPx()
@@ -346,8 +369,34 @@ fun LyricsGlowLine(
                     pivotFractionY = 0.5f,
                 )
 
-                renderEffect = if (suppressEffects) null else blurEffectForRadius(blurRadius)
+                if (blend == null) renderEffect = if (suppressEffects) null else blurEffectForRadius(blurRadius)
             }
+            .then(
+                if (blend != null) {
+                    Modifier.softLightLine(
+                        blend = blend,
+                        // upcoming lines get the full fill, past and far ones keep their dimmer share of it; a sweeping line keeps its own soft copy under the plain one
+                        softAlpha = {
+                            val resting = SoftLightFill * alpha / UpcomingAlpha * (1f - waveAmplitude)
+                            val sung = if (sweepsWords) ActiveSoftFill * waveAmplitude else 0f
+                            (resting + sung).coerceIn(0f, 1f)
+                        },
+                        litAlpha = { waveAmplitude },
+                        // while the sweep is up its unsung words are faint, so the soft copy draws them back up to solid white; it eases off as the line lets go, or its translation snapped dim when the sweep ended
+                        softBoost = {
+                            when {
+                                !sweepsWords -> 1f
+                                state == LyricsLineState.ACTIVE -> SweepSoftBoost
+                                else -> 1f + (SweepSoftBoost - 1f) * waveAmplitude
+                            }
+                        },
+                        blur = { if (suppressEffects) null else blurEffectForRadius(blurRadius) },
+                        moving = { scale; drop },
+                    )
+                } else {
+                    Modifier
+                }
+            )
     ) {
     // The tap target and its highlight hug the text (rounded, as wide as the words) instead of
     // flashing a full-width bar from screen edge to screen edge.
@@ -378,12 +427,6 @@ fun LyricsGlowLine(
             .then(steadyWrap.modifier),
     ) {
 
-        val waveAmplitude by animateFloatAsState(
-            targetValue = if (state == LyricsLineState.ACTIVE) 1f else 0f,
-            animationSpec = animSpec,
-            label = "lyricsWaveAmplitude",
-        )
-
         if (translationAbove) {
             TranslationSubText(translation, translationLoading, translationColor, textAlign, above = true)
         }
@@ -402,6 +445,7 @@ fun LyricsGlowLine(
                 // The rise is drawn, not shaded, so it runs with the shader setting off too.
                 riseAmplitudeProvider = { waveAmplitude },
                 motionStyle = motionStyle,
+                fontWeight = LyricsSungWeight,
                 baseColor = unsungColor,
 
                 highlightColor = Color.White,
@@ -424,7 +468,7 @@ fun LyricsGlowLine(
                 // same characters as the lead text, with a line break wherever the bold line wraps
                 text = steadyWrap.text,
                 style = leadStyle.copy(
-                    fontWeight = if (state == LyricsLineState.ACTIVE) FontWeight.Bold else FontWeight.SemiBold,
+                    fontWeight = if (state == LyricsLineState.ACTIVE) LyricsSungWeight else LyricsRestingWeight,
                 ),
                 color = textColor,
                 // No maxLines cap. A capped line ellipsised into "..." and simply lost the rest of
@@ -512,8 +556,12 @@ private fun FadingSubText(text: String?, color: ColorProducer, textAlign: TextAl
     // Keep the last text while folding away, or the exit would animate an empty line.
     val shown = remember { arrayOfNulls<String>(1) }
     if (!text.isNullOrBlank()) shown[0] = text
+    // starts where it is, like the visible flag did; a line with no text and nothing fading builds no transition, most lines on most songs
+    val visibleState = remember { androidx.compose.animation.core.MutableTransitionState(!text.isNullOrBlank()) }
+    visibleState.targetState = !text.isNullOrBlank()
+    if (!visibleState.targetState && !visibleState.currentState && visibleState.isIdle) return
     androidx.compose.animation.AnimatedVisibility(
-        visible = !text.isNullOrBlank(),
+        visibleState = visibleState,
         enter = androidx.compose.animation.fadeIn(tween(SubTextFadeMs)) +
             androidx.compose.animation.expandVertically(tween(SubTextFadeMs)),
         exit = androidx.compose.animation.fadeOut(tween(SubTextFadeMs)) +
@@ -1045,6 +1093,8 @@ internal fun KaraokeSweepText(
     /** Stop frame callbacks for a paused overlay, but refresh once after seeks. */
     animationRunning: Boolean = true,
     animationSeekTick: Int = 0,
+    // both copies share it, or the lit words wouldn't sit over the dim ones; the bottom card keeps bold to match its plain line
+    fontWeight: FontWeight = FontWeight.Bold,
 ) {
     val wordMotion = motionStyle.risesWords
     val head = rememberKaraokeHead(text, words, positionProvider, wordMotion, animationRunning, animationSeekTick)
@@ -1059,6 +1109,8 @@ internal fun KaraokeSweepText(
     val layoutHolder = remember(text) { arrayOfNulls<TextLayoutResult>(1) }
 
     val sung = remember(text) { Path() }
+    // the sweep moves before composition each frame, so the lit copy joins on the very frame it starts; lines still to come skip its layout and layer, which made the lyrics page stall as it opened
+    val reached by remember(head) { derivedStateOf { head.offset.floatValue > 0f } }
 
     val effect: Modifier
     val motion: Modifier
@@ -1109,7 +1161,7 @@ internal fun KaraokeSweepText(
             // "..." and dropped the rest of the words outright.
             BasicText(
                 text = text,
-                style = style.copy(fontWeight = FontWeight.Bold, textAlign = textAlign),
+                style = style.copy(fontWeight = fontWeight, textAlign = textAlign),
                 color = baseColor,
                 overflow = TextOverflow.Clip,
                 softWrap = !singleLine,
@@ -1120,91 +1172,93 @@ internal fun KaraokeSweepText(
                 },
             )
 
-            Text(
-                text = text,
-                style = style,
-                color = highlightColor,
-                fontWeight = FontWeight.Bold,
-                textAlign = textAlign,
-                overflow = TextOverflow.Clip,
-                softWrap = !singleLine,
-                maxLines = if (singleLine) 1 else Int.MAX_VALUE,
-                modifier = Modifier
-                    // Room around the text, as for the effect layer: an offscreen layer keeps only
-                    // what's inside it, and glyph ink that reaches past the line's ends (a "y"
-                    // tail, an "f" hook) was lit on the dim copy but cut on the lit one.
-                    .layerBleed(MotionBleed)
-                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-                    .padding(MotionBleed)
-                    .drawWithContent {
-                        val layout = layoutHolder[0] ?: return@drawWithContent
-                        val h = head.offset.floatValue
-                        if (h <= 0f) return@drawWithContent
-                        val len = text.length
-                        if (len == 0) return@drawWithContent
-                        val reach = MotionBleed.toPx()
-                        val lastLine = layout.lineCount - 1
-                        // The sung area reaches into the room around the text on the outside edges
-                        // only - between lines it stops exactly at the boundary, so it never lights
-                        // the top of the line below.
-                        fun topOf(line: Int) = layout.getLineTop(line) - if (line == 0) reach else 0f
-                        fun bottomOf(line: Int) =
-                            layout.getLineBottom(line) + if (line == lastLine) reach else 0f
+            if (reached) {
+                Text(
+                    text = text,
+                    style = style,
+                    color = highlightColor,
+                    fontWeight = fontWeight,
+                    textAlign = textAlign,
+                    overflow = TextOverflow.Clip,
+                    softWrap = !singleLine,
+                    maxLines = if (singleLine) 1 else Int.MAX_VALUE,
+                    modifier = Modifier
+                        // Room around the text, as for the effect layer: an offscreen layer keeps only
+                        // what's inside it, and glyph ink that reaches past the line's ends (a "y"
+                        // tail, an "f" hook) was lit on the dim copy but cut on the lit one.
+                        .layerBleed(MotionBleed)
+                        .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                        .padding(MotionBleed)
+                        .drawWithContent {
+                            val layout = layoutHolder[0] ?: return@drawWithContent
+                            val h = head.offset.floatValue
+                            if (h <= 0f) return@drawWithContent
+                            val len = text.length
+                            if (len == 0) return@drawWithContent
+                            val reach = MotionBleed.toPx()
+                            val lastLine = layout.lineCount - 1
+                            // The sung area reaches into the room around the text on the outside edges
+                            // only - between lines it stops exactly at the boundary, so it never lights
+                            // the top of the line below.
+                            fun topOf(line: Int) = layout.getLineTop(line) - if (line == 0) reach else 0f
+                            fun bottomOf(line: Int) =
+                                layout.getLineBottom(line) + if (line == lastLine) reach else 0f
 
-                        val headOffset = h.toInt().coerceIn(0, len)
-                        val headLine = layout.shownLineFor(headOffset.coerceAtMost(len - 1))
-                        val rtl = layout.isRtlLine(headLine)
-                        // the way the sweep travels on screen: right to left for arabic, hebrew...
-                        val flow = if (rtl) -1f else 1f
+                            val headOffset = h.toInt().coerceIn(0, len)
+                            val headLine = layout.shownLineFor(headOffset.coerceAtMost(len - 1))
+                            val rtl = layout.isRtlLine(headLine)
+                            // the way the sweep travels on screen: right to left for arabic, hebrew...
+                            val flow = if (rtl) -1f else 1f
 
-                        val headX = layout.sweepHeadX(h, headOffset, headLine, len, rtl)
-                        probe?.headX = headX
-                        val lineTop = topOf(headLine)
-                        val lineBottom = bottomOf(headLine)
+                            val headX = layout.sweepHeadX(h, headOffset, headLine, len, rtl)
+                            probe?.headX = headX
+                            val lineTop = topOf(headLine)
+                            val lineBottom = bottomOf(headLine)
 
-                        val softFrom = layout.getHorizontalPosition(
-                            (headOffset - EdgeSoftChars).coerceAtLeast(layout.getLineStart(headLine)),
-                            true,
-                        )
-                        // one character back, but no more than a latin letter: across a whole kanji the sung one and the one before it both sat half lit
-                        val softMax = fontPx(layout) * LatinLetterEm
-                        val fromX = if ((headX - softFrom) * flow > 0f) {
-                            headX - flow * minOf((headX - softFrom) * flow, softMax)
-                        } else {
-                            headX - EdgeSoftPx * flow
-                        }
-                        val toX = headX + EdgeLeadPx * flow
-
-                        sung.rewind()
-                        for (line in 0..headLine) {
-                            var left = layout.getLineLeft(line) - reach
-                            var right = layout.getLineRight(line) + reach
-                            // the head's own line is lit from where it starts up to the head
-                            if (line == headLine && headOffset < len) {
-                                if (rtl) left = maxOf(toX, left) else right = minOf(toX, right)
-                            }
-                            if (right > left) {
-                                sung.addRect(Rect(left, topOf(line), right, bottomOf(line)))
-                            }
-                        }
-
-                        clipPath(sung) { this@drawWithContent.drawContent() }
-
-                        if (headOffset < len) {
-                            drawRect(
-                                brush = Brush.horizontalGradient(
-                                    0f to Color.Black,
-                                    1f to Color.Transparent,
-                                    startX = fromX,
-                                    endX = toX,
-                                ),
-                                topLeft = Offset(minOf(fromX, toX), lineTop),
-                                size = Size(kotlin.math.abs(toX - fromX), lineBottom - lineTop),
-                                blendMode = BlendMode.DstIn,
+                            val softFrom = layout.getHorizontalPosition(
+                                (headOffset - EdgeSoftChars).coerceAtLeast(layout.getLineStart(headLine)),
+                                true,
                             )
-                        }
-                    },
-            )
+                            // one character back, but no more than a latin letter: across a whole kanji the sung one and the one before it both sat half lit
+                            val softMax = fontPx(layout) * LatinLetterEm
+                            val fromX = if ((headX - softFrom) * flow > 0f) {
+                                headX - flow * minOf((headX - softFrom) * flow, softMax)
+                            } else {
+                                headX - EdgeSoftPx * flow
+                            }
+                            val toX = headX + EdgeLeadPx * flow
+
+                            sung.rewind()
+                            for (line in 0..headLine) {
+                                var left = layout.getLineLeft(line) - reach
+                                var right = layout.getLineRight(line) + reach
+                                // the head's own line is lit from where it starts up to the head
+                                if (line == headLine && headOffset < len) {
+                                    if (rtl) left = maxOf(toX, left) else right = minOf(toX, right)
+                                }
+                                if (right > left) {
+                                    sung.addRect(Rect(left, topOf(line), right, bottomOf(line)))
+                                }
+                            }
+
+                            clipPath(sung) { this@drawWithContent.drawContent() }
+
+                            if (headOffset < len) {
+                                drawRect(
+                                    brush = Brush.horizontalGradient(
+                                        0f to Color.Black,
+                                        1f to Color.Transparent,
+                                        startX = fromX,
+                                        endX = toX,
+                                    ),
+                                    topLeft = Offset(minOf(fromX, toX), lineTop),
+                                    size = Size(kotlin.math.abs(toX - fromX), lineBottom - lineTop),
+                                    blendMode = BlendMode.DstIn,
+                                )
+                            }
+                        },
+                )
+            }
         }
 
         if (!subLine.isNullOrBlank()) {
@@ -2366,6 +2420,7 @@ internal fun rememberWordMotionModifier(
     motionScale: Float = 1f,
 ): Modifier {
     val cache = remember(head) { MotionLayoutCache() }
+    val textLayer = rememberGraphicsLayer()
     return Modifier.drawWithContent {
         // Subscribes this draw to the per-letter springs.
         @Suppress("UNUSED_VARIABLE") val tick = head.motionTick.intValue
@@ -2436,6 +2491,11 @@ internal fun rememberWordMotionModifier(
             return@drawWithContent
         }
 
+        // record the line's dim and lit text once, then draw slices of that layer for each moving letter
+        textLayer.record {
+            this@drawWithContent.drawContent()
+        }
+
         var k = 0
         while (k < n) {
             // Neighbouring slots that move together are one slot (tiled slots meet edge to edge).
@@ -2446,7 +2506,7 @@ internal fun rememberWordMotionModifier(
                 ) e++
                 withTransform({ translate(0f, m.dy[k]) }) {
                     clipRect(m.clipLeft[k], m.clipTop[k], m.clipRight[e], m.clipBottom[k]) {
-                        this@drawWithContent.drawContent()
+                        drawLayer(textLayer)
                     }
                 }
                 k = e + 1
@@ -2461,7 +2521,7 @@ internal fun rememberWordMotionModifier(
                 }
             }) {
                 clipRect(m.clipLeft[k], m.clipTop[k], m.clipRight[k], m.clipBottom[k]) {
-                    this@drawWithContent.drawContent()
+                    drawLayer(textLayer)
                 }
             }
             k++

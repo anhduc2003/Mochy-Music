@@ -66,6 +66,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -253,6 +254,15 @@ fun <A> featuredArtistsOf(
         .sortedByDescending { it.value.size }
         .take(limit)
         .map { (artistId, names) -> FeaturedArtistUi(id = artistId, name = names.first()) }
+
+// the featured artists counted off the main thread, liked songs and the cache run to thousands and made the page hitch as it opened
+@Composable
+fun <A> rememberFeaturedArtists(key: Any?, artists: () -> List<A>, id: (A) -> String?, name: (A) -> String): List<FeaturedArtistUi> {
+    val featured by produceState(emptyList<FeaturedArtistUi>(), key) {
+        value = withContext(Dispatchers.Default) { featuredArtistsOf(artists(), id, name) }
+    }
+    return featured
+}
 
 // passes the scaffold's cover composable down to PlaylistHeader when classic or minimal style draws a framed cover
 internal val LocalPlaylistFramedCover = staticCompositionLocalOf<(@Composable (Modifier) -> Unit)?> { null }
@@ -973,6 +983,8 @@ fun PlaylistHeader(
     below: (@Composable () -> Unit)? = null,
     // opens the list's own song search, from a round button beside shuffle
     onSearchClick: (() -> Unit)? = null,
+    // sits at the far end of the button row, like the library pages' grid and list switch
+    actionsEnd: (@Composable () -> Unit)? = null,
 ) {
     val playlistStyle by rememberEnumPreference(PlaylistStyleKey, defaultValue = PlaylistStyle.FLOW)
     val framedCover = LocalPlaylistFramedCover.current
@@ -1033,7 +1045,7 @@ fun PlaylistHeader(
                 )
             }
             Spacer(Modifier.height(16.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 PlayPill(isPlaying = isPlaying, onClick = onPlayClick)
                 Spacer(Modifier.width(9.dp))
                 CircleAction(
@@ -1057,6 +1069,10 @@ fun PlaylistHeader(
                         contentDescription = stringResource(if (isSaved) R.string.pc_in_library else R.string.add_to_library),
                         onClick = onSaveClick,
                     )
+                }
+                if (actionsEnd != null) {
+                    Spacer(Modifier.weight(1f))
+                    actionsEnd()
                 }
             }
             if (sortControl != null) {
@@ -1415,7 +1431,8 @@ fun PlaylistTrackRow(
     liked: Boolean? = null,
     onLikeClick: (() -> Unit)? = null,
 ) {
-    val band by animateFloatAsState(if (selected) 1f else 0f, tween(180), label = "selectedBand")
+    // starts only when picking begins, so the rows of a long playlist mount without a coroutine each
+    val band by com.mochyy.mochymusic.ui.utils.animateFloatOnChange(if (selected) 1f else 0f, tween(180))
     // Keep album rows as compact as the other tracks while giving the heart a 48dp tap target.
     val verticalPadding = if (trailing == null && liked != null && onLikeClick != null) 5.dp else 9.dp
     Row(
@@ -1451,12 +1468,11 @@ fun PlaylistTrackRow(
                 .weight(1f)
                 .padding(horizontal = 11.dp)
         ) {
-            Text(
+            com.mochyy.mochymusic.ui.component.TitleWithMarks(
                 text = title,
+                songId = songId,
                 style = TrackTitleStyle,
                 color = Color.White.copy(alpha = if (isActive) 1f else 0.94f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = subtitle,
@@ -1466,7 +1482,6 @@ fun PlaylistTrackRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        com.mochyy.mochymusic.ui.component.OnDeviceMarks(songId, modifier = Modifier.padding(end = 2.dp))
         if (trailing == null && liked != null && onLikeClick != null) {
             Box(
                 contentAlignment = Alignment.Center,

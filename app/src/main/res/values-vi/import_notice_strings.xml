@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="import_notice_channel">Nhập nhạc</string>
+    <string name="import_notice_finished">Đã nhập xong</string>
+    <string name="import_notice_matched">Đã khớp %1$d trong %2$d bài hát</string>
+    <string name="import_notice_resync_failed">Không thể đồng bộ lại “%1$s”. %2$s</string>
+    <plurals name="import_notice_added_missing">
+        <item quantity="one">Đã thêm %1$d bài hát mới vào “%2$s”. %3$d bài nữa không tìm thấy trên YouTube Music</item>
+        <item quantity="other">Đã thêm %1$d bài hát mới vào “%2$s”. %3$d bài nữa không tìm thấy trên YouTube Music</item>
+    </plurals>
+    <plurals name="import_notice_added">
+        <item quantity="one">Đã thêm %1$d bài hát mới vào “%2$s”</item>
+        <item quantity="other">Đã thêm %1$d bài hát mới vào “%2$s”</item>
+    </plurals>
+    <plurals name="import_notice_missing">
+        <item quantity="one">Không tìm thấy %1$d bài hát mới trên YouTube Music</item>
+        <item quantity="other">Không tìm thấy %1$d bài hát mới trên YouTube Music</item>
+    </plurals>
+    <string name="import_notice_up_to_date">“%1$s” đã được cập nhật</string>
+    <string name="import_notice_many_added">Bài hát mới đã thêm: %1$d; danh sách phát đã cập nhật: %2$d</string>
+    <plurals name="import_notice_many_current">
+        <item quantity="one">%1$d danh sách phát đã nhập của bạn đã được cập nhật</item>
+        <item quantity="other">%1$d danh sách phát đã nhập của bạn đã được cập nhật</item>
+    </plurals>
+    <string name="import_notice_many_failed">Không thể đồng bộ lại %1$s</string>
+    <string name="import_notice_preview_failed">Không xem trước được tệp CSV</string>
+    <string name="media_info_copied">Đã sao chép %1$s</string>
+    <string name="update_notice_available">Mochy %1$s đã ra mắt</string>
+    <string name="update_notice_details">Chạm để xem có gì mới.</string>
+</resources>
