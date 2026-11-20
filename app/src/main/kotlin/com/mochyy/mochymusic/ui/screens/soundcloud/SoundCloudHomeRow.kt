@@ -25,9 +25,8 @@ import com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
 import com.mochyy.mochymusic.viewmodels.SoundCloudViewModel
 
 /**
- * Home's SoundCloud row: what SoundCloud is playing this week, so the catalog is visible without
- * going into the module's own settings page first. It shows nothing until the catalog answers, so
- * a Home without the module installed is unchanged.
+ * Home's SoundCloud row uses the same Vietnamese discovery feed as the SoundCloud screen.
+ * If the module is disabled or no matching tracks are available, the row renders nothing.
  */
 @Composable
 fun SoundCloudHomeRow(

@@ -31,14 +31,6 @@ class SoundCloudModuleTest {
     }
 
     @Test
-    fun `charts omit unsupported region parameter and cap page size`() {
-        val query = module.chartsQuery(10_000)
-        assertNull(query["region"])
-        assertEquals("200", query["limit"])
-        assertEquals("trending", query["kind"])
-    }
-
-    @Test
     fun `transient retry delay is bounded and respects retry after`() {
         assertEquals(400L, module.apiRetryDelayMs(0))
         assertEquals(4_000L, module.apiRetryDelayMs(1, "30"))
@@ -78,12 +70,6 @@ class SoundCloudModuleTest {
     }
 
     @Test
-    fun `Vietnam discovery is keyword search not fake country chart`() {
-        assertEquals("nhạc Việt", SoundCloudModule.ChartRegion.VN.discoveryQuery)
-        assertNull(module.chartsQuery(20)["region"])
-    }
-
-    @Test
     fun `public comments preserve author timestamp and skip malformed entries`() {
         val parsed = module.commentsIn("""{"collection":[{"id":1,"body":"Hay quá","timestamp":4500,"user":{"username":"Listener"}},{"id":2,"body":""},{"body":"missing id"}]}""")
         assertEquals(1, parsed.size)
@@ -118,21 +104,6 @@ class SoundCloudModuleTest {
     @Test
     fun `a playlist with no title is not listed`() {
         assertNull(module.playlistOf(Json.parseToJsonElement("""{"id":7}""").jsonObject))
-    }
-
-    @Test
-    fun `reads the tracks out of a charts answer`() {
-        val tracks = module.chartTracks(chartsAnswer)
-
-        assertEquals(1, tracks.size)
-        assertEquals("2211456898", tracks.first().catalog.id)
-        assertEquals("Midnight Drive", tracks.first().catalog.title)
-        assertEquals("Neon Kite", tracks.first().catalog.artist)
-    }
-
-    @Test
-    fun `a charts answer without a collection lists nothing`() {
-        assertTrue(module.chartTracks("{}").isEmpty())
     }
 
     @Test

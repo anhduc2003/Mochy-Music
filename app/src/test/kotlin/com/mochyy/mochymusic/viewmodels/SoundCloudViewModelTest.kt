@@ -97,7 +97,7 @@ class SoundCloudViewModelTest {
                 "/search/playlists" -> HttpResponse(200, """{"collection":[{"id":17,"title":"My playlist"}]}""".encodeToByteArray())
                 "/playlists/17" -> HttpResponse(200, """{"tracks":[{"id":7,"title":"Playlist track"}]}""".encodeToByteArray())
                 "/tracks/7/related" -> if (++relatedCalls == 1) HttpResponse(400, byteArrayOf()) else
-                    HttpResponse(200, """{"collection":[{"id":8,"title":"Related track"}]}""".encodeToByteArray())
+                    HttpResponse(200, """{"collection":[{"id":8,"title":"Related track","user":{"country_code":"VN"}}]}""".encodeToByteArray())
                 else -> null
             }
         }
@@ -209,7 +209,10 @@ class SoundCloudViewModelTest {
             val uri = URI(request.url)
             route(uri)?.let { return it }
             return when (uri.path) {
-                "/charts" -> ok("""{"collection":[{"track":{"id":7,"title":"Chart request ${chartCalls.incrementAndGet()}"}}]}""")
+                "/search/tracks" -> {
+                    assertTrue(uri.query.contains("q=nhạc+Việt"))
+                    ok("""{"collection":[{"id":7,"title":"Chart request ${chartCalls.incrementAndGet()}","user":{"country_code":"VN"}},{"id":99,"title":"Foreign track","user":{"country_code":"US"}}]}""")
+                }
                 "/tracks/7/comments" -> when (commentCalls.incrementAndGet()) {
                     1 -> ok("""{"collection":[{"id":1,"body":"First comment"}]}""")
                     2 -> {

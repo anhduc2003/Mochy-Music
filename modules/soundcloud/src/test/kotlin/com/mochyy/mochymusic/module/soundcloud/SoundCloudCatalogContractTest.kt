@@ -21,18 +21,11 @@ class SoundCloudCatalogContractTest {
         assertTrue(module.accountState() is com.mochyy.mochymusic.module.AccountState.SignedIn)
         assertTrue(host.requests.isEmpty())
     }
-    @Test fun `global charts never send region that SoundCloud rejects with 400`() {
-        val host = Host()
-        val module = SoundCloudModule().also { it.attach(host) }
-        assertEquals("7", module.charts().single().id)
-        assertTrue(host.requests.single().startsWith("/charts?"))
-        assertFalse(host.requests.single().contains("region="))
-    }
 
     @Test fun `Vietnam discovery queries Vietnamese music rather than ignored country parameter`() {
         val host = Host()
         val module = SoundCloudModule().also { it.attach(host) }
-        assertEquals("7", module.charts(region = SoundCloudModule.ChartRegion.VN).single().id)
+        assertEquals("7", module.vietnameseDiscovery().single().id)
         val request = URLDecoder.decode(host.requests.single(), "UTF-8")
         assertTrue(request.startsWith("/search/tracks?"))
         assertTrue(request.contains("q=nhạc Việt"))
@@ -68,7 +61,7 @@ class SoundCloudCatalogContractTest {
         override fun http(request: HttpRequest): HttpResponse {
             val uri = URI(request.url)
             requests += uri.rawPath + "?" + uri.rawQuery
-            val track = """{"id":7,"title":"Song","likes_count":9,"comment_count":1}"""
+            val track = """{"id":7,"title":"Nhạc Việt","likes_count":9,"comment_count":1}"""
             val body = when (uri.path) {
                 "/charts" -> """{"collection":[{"track":$track}]}"""
                 "/search/tracks" -> """{"collection":[$track]}"""

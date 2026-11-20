@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.lazy.items
@@ -76,6 +74,7 @@ fun SoundCloudScreen(
     // the page's capsule is the catalog's search box, so what is typed there is what is searched
     var query by remember { mutableStateOf(TextFieldValue(state.query)) }
     val uriHandler = LocalUriHandler.current
+    var accountLinkError by remember { mutableStateOf(false) }
 
     val uploads = state.uploads
     val totalSeconds = remember(uploads) { (uploads.sumOf { it.durationMs ?: 0L } / 1000L).toInt() }
@@ -127,13 +126,13 @@ fun SoundCloudScreen(
             }
         },
         onBackLongClick = { navController.backToMain() },
+        onMoreClick = { runCatching { uriHandler.openUri(SoundCloudSignInUrl) }.onFailure { accountLinkError = true } },
         creator = when {
             state.open != null -> state.open?.artist
             state.relatedTo != null -> "Tương tự ${state.relatedTo?.title.orEmpty()}"
-            state.tab == SoundCloudViewModel.Tab.Recommendations -> "Gợi ý từ SoundCloud"
+            state.tab == SoundCloudViewModel.Tab.Recommendations -> "Gợi ý nhạc Việt"
             state.query.isNotBlank() -> "Kết quả tìm kiếm"
-            state.region == SoundCloudModule.ChartRegion.VN -> "Khám phá nhạc Việt theo từ khóa"
-            else -> "Thịnh hành toàn cầu"
+            else -> "Khám phá nhạc Việt"
         },
     ) {
         state.error?.let { error ->
@@ -166,7 +165,7 @@ fun SoundCloudScreen(
                                 label = {
                                     Text(
                                         when (tab) {
-                                            SoundCloudViewModel.Tab.Tracks -> "Bài hát"
+                                            SoundCloudViewModel.Tab.Tracks -> "Nhạc Việt"
                                             SoundCloudViewModel.Tab.Playlists -> "Playlist"
                                             SoundCloudViewModel.Tab.Recommendations -> "Gợi ý"
                                         },
@@ -175,21 +174,13 @@ fun SoundCloudScreen(
                             )
                         }
                     }
-                    if (state.query.isBlank() && (state.tab == SoundCloudViewModel.Tab.Tracks ||
-                            (state.tab == SoundCloudViewModel.Tab.Recommendations && state.recommendationSeed.isNullOrBlank()))) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        ) {
-                            SoundCloudModule.ChartRegion.entries.forEach { region ->
-                                FilterChip(
-                                    selected = state.region == region,
-                                    onClick = { viewModel.onRegionChange(region) },
-                                    label = { Text(region.label) },
-                                )
-                            }
-                        }
-                    }
+                    TextButton(onClick = {
+                        accountLinkError = false
+                        runCatching { uriHandler.openUri(SoundCloudSignInUrl) }
+                            .onFailure { accountLinkError = true }
+                    }) { Text("Đăng nhập trên SoundCloud") }
+                    Text("Mở trang SoundCloud. Mochy chưa đồng bộ tài khoản.")
+                    if (accountLinkError) Text("Không mở được trang đăng nhập. Hãy thử lại.")
                 }
             }
         }
@@ -305,3 +296,4 @@ fun SoundCloudScreen(
 
 /** the media id prefix the app gives a SoundCloud upload, kept next to the screen that builds them */
 private const val SC = SoundCloudModule.MediaIdPrefix
+private const val SoundCloudSignInUrl = "https://soundcloud.com/signin"

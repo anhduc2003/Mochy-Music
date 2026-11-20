@@ -66,9 +66,9 @@ class SoundCloudLiveTest {
         // a playlist answers with only its first few uploads whole; the rest come back by id
         assertTrue("only ${inside.size} of ${big.trackCount} tracks were read", inside.size > 5)
 
-        val charts = module.charts()
-        println("charts() -> ${charts.size} uploads, first: ${charts.firstOrNull()?.title} · ${charts.firstOrNull()?.artist}")
-        assertTrue("charts returned nothing", charts.isNotEmpty())
+        val charts = module.vietnameseDiscovery()
+        println("vietnameseDiscovery() -> ${charts.size} uploads, first: ${charts.firstOrNull()?.title} · ${charts.firstOrNull()?.artist}")
+        assertTrue("Vietnamese discovery returned nothing", charts.isNotEmpty())
 
         val related = module.related(charts.first().id)
         println("related(${charts.first()?.id}) -> ${related.size} uploads, first: ${related.firstOrNull()?.title}")
@@ -76,7 +76,7 @@ class SoundCloudLiveTest {
 
         val stream = module.streamFor(charts.first().id)
         println("streamFor(${charts.first()?.id}) -> ${stream?.qualityLabel} ${stream?.format} ${stream?.codec} url=${stream?.url?.take(70)}")
-        assertNotNull("no stream for a trending upload", stream)
+        assertNotNull("no stream for a discovered Vietnamese upload", stream)
         assertTrue("stream url is not absolute", stream!!.url.startsWith("http"))
 
     }

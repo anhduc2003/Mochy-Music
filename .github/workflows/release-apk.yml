@@ -124,12 +124,12 @@ jobs:
           name="${RELEASE_NAME:-Mochy Music $VERSION_NAME}"
 
           cat > notes.md <<EOF
-          ### SoundCloud fixes
-          - The module switch hides and restores SoundCloud browsing; re-enabling reloads data.
-          - Removed invalid chart-region parameters responsible for HTTP 400. Vietnamese music discovery is keyword search, not an official country chart.
-          - Public like counts and paginated comments are available from track menus, with retry and duplicate protection.
-          - Back navigation restores playlists/search results. Media fallback, HLS detection and quality/data-saver settings are corrected.
-          - Native account login and write actions still need registered OAuth configuration. No Android device playback validation was performed.
+          ### SoundCloud · Việt Nam
+          - Home recommendations and the SoundCloud discovery feed use Vietnamese discovery and Vietnamese metadata signals; there is no global-chart fallback or global-region filter.
+          - Explicit non-Vietnam country metadata is excluded. This is metadata-based curation, not a guarantee of the uploader's physical location or track licensing.
+          - Public like counts and paginated comments are available. Sign-in opens SoundCloud's official site; native account syncing and write actions require registered OAuth configuration.
+          - Native account syncing and write actions require registered OAuth configuration. No on-device playback validation is included in this build.
+          - **Signing:** $SIGNING_NOTE
 
           ### Build
           - \`versionCode $VERSION_CODE\`, \`versionName $VERSION_NAME\`

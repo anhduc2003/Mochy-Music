@@ -45,7 +45,6 @@ class SoundCloudViewModel internal constructor(
         val commentsMoreError: String? = null,
         val query: String = "",
         val tab: Tab = Tab.Tracks,
-        val region: SoundCloudModule.ChartRegion = SoundCloudModule.ChartRegion.Global,
         val recommendationSeed: String? = null,
         val loading: Boolean = false,
         val error: String? = null,
@@ -143,15 +142,6 @@ class SoundCloudViewModel internal constructor(
         browseRoot(current.copy(tab = tab, recommendationSeed = seed))
     }
 
-    fun onRegionChange(region: SoundCloudModule.ChartRegion) {
-        if (!canBrowse()) return
-        val current = _state.value
-        // The discovery control is not available in search, playlists, or seeded recommendations.
-        if (current.region == region || current.open != null || current.relatedTo != null || current.query.isNotBlank() ||
-            current.tab == Tab.Playlists || (current.tab == Tab.Recommendations && current.recommendationSeed != null)) return
-        browseRoot(current.copy(region = region))
-    }
-
     fun search() = refresh()
 
     fun retry() = refresh()
@@ -238,12 +228,12 @@ class SoundCloudViewModel internal constructor(
                 val result = request { source ->
                     when {
                         playlist != null -> source.playlistTracks(playlist.id)
-                        related != null -> source.related(related.id)
+                        related != null -> source.vietnameseRelated(related.id)
                         target.tab == Tab.Recommendations -> source.recommendations(
-                            query.takeIf(String::isNotEmpty) ?: target.recommendationSeed, region = target.region,
+                            query.takeIf(String::isNotEmpty) ?: target.recommendationSeed,
                         )
                         query.isNotEmpty() -> source.search(query)
-                        else -> source.charts(region = target.region)
+                        else -> source.vietnameseDiscovery()
                     }
                 }
                 if (!isCurrentBrowse(token)) return@launch

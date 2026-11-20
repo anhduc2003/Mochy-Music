@@ -27,6 +27,7 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.longOrNull
 import java.net.URLEncoder
+import java.text.Normalizer
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -45,7 +46,7 @@ class SoundCloudModule : SourceModule {
         id = Id,
         name = "SoundCloud",
         version = "1.1",
-        description = "Danh mục công khai SoundCloud: tìm kiếm, nhạc Việt, gợi ý, phát nhạc, xem bình luận và số lượt thích. Đăng nhập và tương tác tài khoản mở trên SoundCloud.",
+        description = "Danh mục SoundCloud: tìm kiếm, gợi ý nhạc Việt theo metadata công khai, phát nhạc, xem bình luận và lượt thích. Đăng nhập tài khoản mở trên SoundCloud.",
     )
 
     private lateinit var host: ModuleHost
@@ -247,11 +248,6 @@ class SoundCloudModule : SourceModule {
         },
     )
 
-    enum class ChartRegion(val discoveryQuery: String?, val label: String) {
-        Global(null, "Toàn cầu"),
-        VN("nhạc Việt", "Nhạc Việt Nam"),
-    }
-
     private fun catalogApi(path: String, query: Map<String, String>): HttpResponse {
         val response = api(path, query) ?: throw SoundCloudApiException(null)
         if (!response.ok) throw SoundCloudApiException(response.code)
@@ -309,11 +305,13 @@ class SoundCloudModule : SourceModule {
         val transcodings = (upload["media"] as? JsonObject)?.let { it["transcodings"] as? JsonArray }
             ?.mapNotNull { (it as? JsonObject)?.let(::transcodingOf) }
             .orEmpty()
+        val user = upload["user"] as? JsonObject
+        val artist = user?.string("username").orEmpty()
         return ScTrack(
             catalog = CatalogTrack(
                 id = id.toString(),
                 title = title,
-                artist = (upload["user"] as? JsonObject)?.string("username").orEmpty(),
+                artist = artist,
                 durationMs = upload.long("full_duration")?.takeIf { it > 0 } ?: upload.long("duration"),
             ),
             transcodings = transcodings,
@@ -323,6 +321,7 @@ class SoundCloudModule : SourceModule {
             likesCount = upload.long("likes_count") ?: upload.long("favoritings_count"),
             commentCount = upload.long("comment_count"),
             permalinkUrl = upload.string("permalink_url"),
+            hasVietnameseEvidence = vietnameseEvidence(title, artist, upload, user),
         )
     }
 
@@ -407,11 +406,13 @@ class SoundCloudModule : SourceModule {
         val artworkUrl: String?,
     )
 
-    /** Searches the catalog. Blocking: call it off the main thread. */
-    fun search(text: String, limit: Int = SearchPage): List<Upload> {
+    /** Searches the full catalog. Blocking: call it off the main thread. */
+    fun search(text: String, limit: Int = SearchPage): List<Upload> = searchTracks(text, limit).map(::uploadOf)
+
+    private fun searchTracks(text: String, limit: Int): List<ScTrack> {
         if (text.isBlank()) return emptyList()
         val response = catalogApi(SearchPath, mapOf("q" to text.trim(), "limit" to limit.coerceIn(1, MaxCatalogLimit).toString()))
-        return requireObjectsIn(response.text, "collection").mapNotNull(::trackOf).map(::uploadOf)
+        return requireObjectsIn(response.text, "collection").mapNotNull(::trackOf)
     }
 
     /** Searches playlists and sets. Blocking, as [search]. */
@@ -446,44 +447,63 @@ class SoundCloudModule : SourceModule {
         return entries.mapNotNull { entry -> entry.long("id")?.toString()?.let(known::get) }
     }
 
-    /** uploads like this one, the way the web player's related tracks do. Blocking, as [search]. */
-    fun related(id: String, limit: Int = RelatedPage): List<Upload> {
+    /** Explicit related-track browse. Blocking, as [search]. */
+    fun related(id: String, limit: Int = RelatedPage): List<Upload> = relatedTracks(id, limit).map(::uploadOf)
+
+    private fun relatedTracks(id: String, limit: Int): List<ScTrack> {
         if (!TrackIdPattern.matches(id)) return emptyList()
         val response = catalogApi("/tracks/$id/related", mapOf("limit" to limit.coerceIn(1, MaxCatalogLimit).toString()))
-        return requireObjectsIn(response.text, "collection").mapNotNull(::trackOf).map(::uploadOf)
+        return requireObjectsIn(response.text, "collection").mapNotNull(::trackOf)
     }
 
-    internal fun chartsQuery(limit: Int): Map<String, String> = mapOf(
-        "kind" to ChartsKind,
-        "genre" to ChartsGenre,
-        "limit" to limit.coerceIn(1, MaxCatalogLimit).toString(),
-    )
+    /** Best-effort discovery based on public metadata, not a geographic or licensing filter. */
+    fun vietnameseDiscovery(limit: Int = RelatedPage): List<Upload> = vietnameseDiscovery(limit, excludedId = null)
 
-    /** api-v2 charts reject region URNs. Vietnam is keyword discovery, not a country chart. */
-    fun charts(limit: Int = ChartsPage, region: ChartRegion = ChartRegion.Global): List<Upload> {
-        region.discoveryQuery?.let { return search(it, limit) }
-        val response = catalogApi(ChartsPath, chartsQuery(limit))
-        return requireObjectsIn(response.text, "collection").mapNotNull { it["track"] as? JsonObject }.mapNotNull(::trackOf).map(::uploadOf)
-    }
+    private fun vietnameseDiscovery(limit: Int, excludedId: String?): List<Upload> =
+        searchTracks(VietnameseQuery, candidateLimit(limit)).vietnameseUploads(limit, excludedId)
 
-    /** Recommendations use SoundCloud's related-tracks endpoint for a seed, otherwise regional charts. */
-    fun recommendations(seed: String? = null, limit: Int = RelatedPage, region: ChartRegion = ChartRegion.Global): List<Upload> {
+    /** Related tracks with Vietnamese evidence; no unfiltered fallback. */
+    fun vietnameseRelated(id: String, limit: Int = RelatedPage): List<Upload> =
+        relatedTracks(id, candidateLimit(limit)).vietnameseUploads(limit, excludedId = id)
+
+    /** Prefer Vietnamese related tracks; if none are available, use only Vietnamese discovery. */
+    fun recommendations(seed: String? = null, limit: Int = RelatedPage): List<Upload> {
         val value = seed?.trim().orEmpty()
-        if (value.isNotBlank()) {
-            val id = value.takeIf { TrackIdPattern.matches(it) }
-                ?: search(value, SearchSeedLimit).firstOrNull()?.id
-            if (id != null) {
-                val similar = related(id, limit)
-                if (similar.isNotEmpty()) return similar
+        val id = value.takeIf { TrackIdPattern.matches(it) }
+            ?: value.takeIf(String::isNotBlank)?.let { searchTracks(it, SearchSeedLimit).firstOrNull()?.catalog?.id }
+        if (id != null) {
+            val similar = try {
+                vietnameseRelated(id, limit)
+            } catch (error: SoundCloudApiException) {
+                if (error.statusCode != 404) throw error
+                emptyList()
             }
+            if (similar.isNotEmpty()) return similar
         }
-        return charts(limit, region)
+        return vietnameseDiscovery(limit, excludedId = id)
     }
 
-    /** the uploads a charts answer lists: each entry wraps its track, the way the web player's own answer does */
-    internal fun chartTracks(text: String): List<ScTrack> {
-        val collection = objectsIn(text, "collection") ?: return emptyList()
-        return collection.mapNotNull { it["track"] as? JsonObject }.mapNotNull(::trackOf)
+    private fun candidateLimit(limit: Int): Int = (limit.coerceIn(1, MaxCatalogLimit) * 3).coerceAtMost(MaxCatalogLimit)
+
+    private fun List<ScTrack>.vietnameseUploads(limit: Int, excludedId: String?): List<Upload> = asSequence()
+        .filter { it.streamable && it.hasVietnameseEvidence && it.catalog.id != excludedId }
+        .distinctBy { it.catalog.id }
+        .take(limit.coerceIn(1, MaxCatalogLimit))
+        .map(::uploadOf)
+        .toList()
+
+    private fun vietnameseEvidence(title: String, artist: String, upload: JsonObject, user: JsonObject?): Boolean {
+        // An explicit non-Vietnam uploader/track country is stronger than title accents or tags.
+        val countries = listOfNotNull(upload.string("country_code"), user?.string("country_code"))
+            .map { it.trim().uppercase() }
+            .filter(String::isNotEmpty)
+        if (countries.any { it != "VN" }) return false
+        if (countries.isNotEmpty()) return true
+        if (upload.string("language")?.trim()?.let { VietnameseLanguage.matches(it) } == true) return true
+        return listOfNotNull(title, artist, upload.string("tag_list"), upload.string("genre")).any { value ->
+            val normalized = Normalizer.normalize(value, Normalizer.Form.NFC)
+            VietnameseCharacters.containsMatchIn(normalized) || VietnameseLabels.containsMatchIn(normalized)
+        }
     }
 
     private fun uploadOf(upload: ScTrack) = Upload(
@@ -611,6 +631,7 @@ class SoundCloudModule : SourceModule {
         val likesCount: Long? = null,
         val commentCount: Long? = null,
         val permalinkUrl: String? = null,
+        val hasVietnameseEvidence: Boolean = false,
     )
 
     internal class ScTranscoding(val preset: String, val url: String, val protocol: String?)
@@ -635,10 +656,10 @@ class SoundCloudModule : SourceModule {
         private const val PlaylistsPath = "/search/playlists"
         private const val TracksPath = "/tracks"
         private const val IdsPerAsk = 50
-        private const val ChartsPath = "/charts"
-        private const val ChartsKind = "trending"
-        private const val ChartsGenre = "soundcloud:genres:all-music"
-        private const val ChartsPage = 20
+        private const val VietnameseQuery = "nhạc Việt"
+        private val VietnameseLanguage = Regex("vi(?:[-_]vn)?", RegexOption.IGNORE_CASE)
+        private val VietnameseCharacters = Regex("[ăđơưĂĐƠƯ\u1EA0-\u1EF9]")
+        private val VietnameseLabels = Regex("""\b(?:v[- ]?pop|vinahouse|vietnamese|viet nam|vietnam|nhac viet|nhac tre)\b""", RegexOption.IGNORE_CASE)
         private const val RelatedPage = 20
         private const val HomePage = "https://soundcloud.com/"
         private const val MaxBundles = 12

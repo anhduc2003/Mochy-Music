@@ -1572,7 +1572,7 @@ fun HomeScreen(
                             sectionRendered = true
                             homeItem("soundcloud_title", revealSeen, "title") {
                                 HomeSectionTitle(
-                                    title = "SoundCloud",
+                                    title = "SoundCloud · Nhạc Việt",
                                     onClick = { navController.navigate("soundcloud") },
                                 )
                             }
@@ -1581,7 +1581,7 @@ fun HomeScreen(
                                     onPlay = { uploads, index ->
                                         playerConnection.playQueue(
                                             ListQueue(
-                                                title = "SoundCloud",
+                                                title = "SoundCloud · Nhạc Việt",
                                                 items = uploads.map { it.toMediaItem() },
                                                 startIndex = index,
                                             ),
