@@ -85,6 +85,7 @@
     <string name="tv_link_pair">Liên kết</string>
     <string name="tv_link_pairing">Đang liên kết…</string>
     <string name="tv_link_channel">Liên kết TV</string>
+    <string name="tv_mochy">Mochy</string>
     <string name="tv_mochy_version">Phiên bản %1$s</string>
     <string name="tv_mochy_link_phone">Liên kết điện thoại để mang thư viện của bạn sang</string>
     <string name="tv_mochy_phone_control">Điện thoại có thể điều khiển TV này</string>
@@ -137,6 +138,7 @@
     <string name="tv_pair_sheet_title">Liên kết %1$s</string>
     <string name="tv_pair_sheet_by_address">Liên kết bằng địa chỉ</string>
     <string name="tv_pair_sheet_address_detail">Nhập địa chỉ hiển thị bên dưới mã trên TV, rồi nhập mã</string>
+    <string name="tv_pair_address_hint">192.168.1.20</string>
     <string name="tv_controlled_from">Điều khiển từ %1$s</string>
     <string name="tv_lyrics_provider">Nguồn lời bài hát</string>
     <string name="tv_go_to_playlists">Tới danh sách phát</string>

@@ -27,8 +27,8 @@ extensions.configure<ApplicationExtension> {
         applicationId = "com.mochyy.mochymusic"
         minSdk = 24
         targetSdk = 37
-        versionCode = 79
-        versionName = "8.4.3 build#1280"
+        versionCode = 85
+        versionName = "8.4.9 build#1270"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -147,9 +147,19 @@ extensions.configure<ApplicationExtension> {
         System.getenv("KEY_PASSWORD") != null &&
         file("keystore/release.keystore").exists()
 
+    // Every build this repo ships is signed with the same key, so the next one installs **over**
+    // the copy on the phone and keeps its library. A key generated per build (which is what a fresh
+    // `keytool` in CI produces) is a different app as far as Android is concerned, and the only way
+    // to take the update was to uninstall first — losing everything.
+    //
+    // The file is never committed. Locally: scripts/persistent-signing-key.sh writes it. In CI:
+    // the MOCHY_KEYSTORE_B64 secret is decoded into it. Without either, a build falls back to the
+    // machine's own debug key, which still upgrades every other build from that same machine.
+    val persistentDebugKeystore = file("keystore/persistent-debug.keystore")
+
     signingConfigs {
         create("persistentDebug") {
-            storeFile = file("persistent-debug.keystore")
+            storeFile = persistentDebugKeystore
             storePassword = "android"
             keyAlias = "androiddebugkey"
             keyPassword = "android"
@@ -182,16 +192,20 @@ extensions.configure<ApplicationExtension> {
             )
             // Fall back to the debug keystore locally so a release-quality build is always
             // runnable on a dev machine. CI still signs with the real key when secrets exist.
-            signingConfig = if (hasReleaseSigning) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
+            signingConfig = when {
+                hasReleaseSigning -> signingConfigs.getByName("release")
+                persistentDebugKeystore.exists() -> signingConfigs.getByName("persistentDebug")
+                else -> signingConfigs.getByName("debug")
             }
         }
         debug {
             applicationIdSuffix = ".debug"
             isDebuggable = true
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (persistentDebugKeystore.exists()) {
+                signingConfigs.getByName("persistentDebug")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
 
         // Release-identical performance with the profiler still attachable.
@@ -207,7 +221,11 @@ extensions.configure<ApplicationExtension> {
             initWith(getByName("release"))
             applicationIdSuffix = ".profileable"
             isProfileable = true
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (persistentDebugKeystore.exists()) {
+                signingConfigs.getByName("persistentDebug")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             // The provider modules only publish debug/release variants; without this, resolving
             // a "profileable" variant of :providers:* fails.
             matchingFallbacks += listOf("release")
@@ -221,7 +239,11 @@ extensions.configure<ApplicationExtension> {
             isDebuggable = false
             isProfileable = true
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (persistentDebugKeystore.exists()) {
+                signingConfigs.getByName("persistentDebug")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             // the provider modules only publish debug and release variants
             matchingFallbacks += listOf("debug")
         }
@@ -460,6 +482,7 @@ dependencies {
     implementation(project(":modules:applemusic"))
     implementation(project(":modules:monochrome"))
     implementation(project(":modules:jiosaavn"))
+    implementation(project(":modules:soundcloud"))
     implementation(project(":modules:bridge"))
 
 
@@ -484,6 +507,7 @@ dependencies {
     implementation(libs.androidx.webkit)
 
     testImplementation(libs.junit)
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     androidTestImplementation(libs.junit)
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

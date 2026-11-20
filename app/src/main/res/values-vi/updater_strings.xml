@@ -88,4 +88,16 @@
     <string name="channel_release_title">Về lại\nrelease</string>
     <string name="channel_release_warning">Bạn sẽ nhận bản release tiếp theo dưới dạng cập nhật, và nightly sẽ không hiện nữa.</string>
     <string name="channel_yes">Có</string>
+    <!-- cài đè bản mới lên bản đang cài, giữ nguyên dữ liệu -->
+    <string name="update_install_done">Đã cài đè bản cập nhật</string>
+    <string name="update_install_failed">Không cài được bản cập nhật: %1$s</string>
+    <string name="update_install_aborted">Đã huỷ cài đặt</string>
+    <string name="update_install_blocked">Android đã chặn lần cài này. Hãy cho phép Mochy cài ứng dụng không rõ nguồn gốc rồi thử lại.</string>
+    <string name="update_install_incompatible">Bản này không thay thế được bản đang cài. Hãy tải lại bản cập nhật, hoặc dùng APK được build từ cùng nguồn.</string>
+    <string name="update_install_storage">Không đủ dung lượng trống để cài bản cập nhật</string>
+    <string name="update_apk_unreadable">Tệp vừa tải không phải APK dùng được. Hãy tải lại.</string>
+    <string name="update_apk_other_app">APK này là %1$s, không phải Mochy.</string>
+    <string name="update_apk_older">Bản này cũ hơn (version code %1$d) so với bản đang cài (%2$d) nên Android sẽ từ chối.</string>
+    <string name="update_apk_other_key">APK này được ký bằng khoá khác với bản đang cài, nên Android không thể cài đè lên Mochy. Chỉ bản build từ cùng nguồn mới cài đè được: hãy dùng bản đó, hoặc xuất bản sao lưu rồi gỡ ứng dụng trước.</string>
+    <string name="update_install_title">Chưa cài được bản cập nhật</string>
 </resources>

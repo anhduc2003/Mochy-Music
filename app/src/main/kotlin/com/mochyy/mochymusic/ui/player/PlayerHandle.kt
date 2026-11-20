@@ -295,7 +295,10 @@ private fun rememberOnLightBehind(sheet: BottomSheetState, targetBounds: FloatAr
 }
 
 private suspend fun copyWindow(window: Window, rect: android.graphics.Rect, bitmap: Bitmap, handler: Handler): Boolean =
-    suspendCancellableCoroutine { continuation ->
+    // PixelCopy arrived in Android 8. Below it there is no reading the window back, and the caller
+    // already treats `false` as "no sample this time" rather than as an error.
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) false
+    else suspendCancellableCoroutine { continuation ->
         try {
             PixelCopy.request(
                 window,

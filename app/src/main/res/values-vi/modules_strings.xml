@@ -133,7 +133,6 @@
     <string name="skin_customise_title">Tùy chỉnh</string>
     <string name="skin_customise_body">Các mục này thay đổi diện mạo của %1$s. Chúng là cùng các cài đặt như ở trang của module.</string>
     <string name="skin_customise_empty">Hãy bật module để thay đổi các mục này.</string>
-    <string name="modules_beta">THỬ NGHIỆM</string>
     <string name="skin_audio_lossy">Nén mất dữ liệu</string>
     <string name="skin_audio_lossless">Không nén mất dữ liệu</string>
     <string name="skin_output_speaker">Loa</string>

@@ -461,12 +461,29 @@ internal class StatusWindow(
         val nav = inset("navigation_bar_height", px(48f))
         // Legacy devices may place navigation on either side in landscape. Reserve both.
         val landscape = screen.x > screen.y
-        val cutout = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) root.rootWindowInsets?.displayCutout else null
+        // the cutout is Android 9's; reading its edges has to be inside the same check, not only the
+        // lookup of the cutout itself
+        val cutoutLeft: Int
+        val cutoutTop: Int
+        val cutoutRight: Int
+        val cutoutBottom: Int
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val cutout = root.rootWindowInsets?.displayCutout
+            cutoutLeft = cutout?.safeInsetLeft ?: 0
+            cutoutTop = cutout?.safeInsetTop ?: 0
+            cutoutRight = cutout?.safeInsetRight ?: 0
+            cutoutBottom = cutout?.safeInsetBottom ?: 0
+        } else {
+            cutoutLeft = 0
+            cutoutTop = 0
+            cutoutRight = 0
+            cutoutBottom = 0
+        }
         return Rect(
-            maxOf(if (landscape) nav else 0, cutout?.safeInsetLeft ?: 0),
-            maxOf(top, cutout?.safeInsetTop ?: 0),
-            screen.x - maxOf(if (landscape) nav else 0, cutout?.safeInsetRight ?: 0),
-            screen.y - maxOf(if (landscape) 0 else nav, cutout?.safeInsetBottom ?: 0),
+            maxOf(if (landscape) nav else 0, cutoutLeft),
+            maxOf(top, cutoutTop),
+            screen.x - maxOf(if (landscape) nav else 0, cutoutRight),
+            screen.y - maxOf(if (landscape) 0 else nav, cutoutBottom),
         )
     }
 

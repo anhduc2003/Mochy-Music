@@ -45,6 +45,13 @@ import kotlinx.coroutines.withContext
 
 // the line being sung in the status bar's own row: while it's turned on and allowed, a black capsule sits where the phone puts its island and
 // shows the line with the song's progress ring, so it reads as part of the system bar instead of a window floating over everything
+/**
+ * How long [FloatingLyrics] waits for the "draw over other apps" grant before giving up for this
+ * song. Long enough to walk into Settings and flip it; short enough never to become a timer that
+ * runs for the whole song because the user declined.
+ */
+private const val OverlayWaitMs = 30_000L
+
 class FloatingLyrics(
     private val context: Context,
     private val database: MusicDatabase,
@@ -100,10 +107,17 @@ class FloatingLyrics(
                         close()
                         return@collectLatest
                     }
-                    while (!Settings.canDrawOverlays(context)) {
-                        delay(1000)
+                    // Wait for the overlay grant, but only for a bounded while. Polling every second
+                    // for as long as a song played kept a timer alive forever for anyone who had no
+                    // intention of granting it; and once the user was in Settings the screen was gone,
+                    // so nothing changed. A fresh foreground or a new song starts this over.
+                    var waited = 0L
+                    while (!Settings.canDrawOverlays(context) && waited < OverlayWaitMs) {
+                        val step = if (waited < 5_000L) 500L else 2_000L
+                        delay(step)
+                        waited += step
                     }
-                    open()
+                    if (Settings.canDrawOverlays(context)) open()
                 }
         }
     }

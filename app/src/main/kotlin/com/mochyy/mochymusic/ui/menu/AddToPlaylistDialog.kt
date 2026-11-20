@@ -81,6 +81,7 @@ internal fun announceAddedToPlaylist(
     database: com.mochyy.mochymusic.db.MusicDatabase,
     playlist: Playlist,
     ids: List<String>,
+    fromPosition: Int,
     context: android.content.Context? = null,
 ) {
     if (ids.isEmpty()) return
@@ -103,7 +104,7 @@ internal fun announceAddedToPlaylist(
             thumbnail = first?.thumbnailUrl,
             iconRes = R.drawable.playlist_add,
             actionLabel = if (playlist.playlist.browseId == null) (context?.getString(R.string.undo) ?: "Undo") else null,
-            onAction = { database.query { removeAddedSongs(playlist.id, ids, playlist.songCount) } },
+            onAction = { database.query { removeAddedSongs(playlist.id, ids, fromPosition) } },
         )
     }
 }
@@ -117,13 +118,16 @@ internal suspend fun addToPlaylistKeepingSync(
 ) {
     if (ids.isEmpty()) return
     val browseId = playlist.playlist.browseId
-    if (browseId != null) {
+    // the position the songs landed on decides which rows Undo takes back: appending starts after
+    // the highest position in use, and a playlist that mirrors youtube puts them on top instead
+    val fromPosition = if (browseId != null) {
         com.mochyy.mochymusic.importer.PlaylistAddedHere.add(context, playlist.id, ids)
         database.addSongsToPlaylistTop(playlist, ids)
+        0
     } else {
         database.addSongToPlaylist(playlist, ids)
     }
-    announceAddedToPlaylist(database, playlist, ids, context)
+    announceAddedToPlaylist(database, playlist, ids, fromPosition, context)
     browseId?.let { ids.forEach { id -> YouTube.addToPlaylist(it, id) } }
 }
 

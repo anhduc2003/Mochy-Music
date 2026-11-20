@@ -1251,6 +1251,16 @@ interface DatabaseDao {
     @Query("UPDATE playlist_song_map SET position = position + :by WHERE playlistId = :playlistId")
     fun shiftPlaylistPositions(playlistId: String, by: Int)
 
+    /**
+     * The highest position in use, or -1 for a playlist with nothing left in it.
+     *
+     * Appending has to start from here rather than from the song count: removing a song leaves a gap
+     * in the numbering, so once anything was removed `songCount` points at a position another song
+     * still holds and the new songs land in the middle of the list instead of at the end.
+     */
+    @Query("SELECT COALESCE(MAX(position), -1) FROM playlist_song_map WHERE playlistId = :playlistId")
+    fun highestPlaylistPosition(playlistId: String): Int
+
     // songs added to a playlist that mirrors youtube go on top, where people look for what they just added
     @Transaction
     fun addSongsToPlaylistTop(playlist: Playlist, songIds: List<String>) {
@@ -1260,9 +1270,14 @@ interface DatabaseDao {
         }
     }
 
+    /**
+     * Appends [songIds] to the end of [playlist] and returns the position the first one landed on,
+     * which is what [removeAddedSongs] needs to take them back out again.
+     */
     @Transaction
-    fun addSongToPlaylist(playlist: Playlist, songIds: List<String>) {
-        var position = playlist.songCount
+    fun addSongToPlaylist(playlist: Playlist, songIds: List<String>): Int {
+        var position = highestPlaylistPosition(playlist.id) + 1
+        val first = position
         songIds.forEach { id ->
             insert(
                 PlaylistSongMap(
@@ -1272,6 +1287,7 @@ interface DatabaseDao {
                 )
             )
         }
+        return first
     }
 
     fun downloadedSongs(

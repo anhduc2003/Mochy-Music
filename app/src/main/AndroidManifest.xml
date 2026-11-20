@@ -1010,6 +1010,24 @@
                 android:resource="@xml/shortcuts" />
         </activity-alias>
 
+        <!-- a tap on the finished update, run from a real foreground lifetime: nothing is drawn,
+             and the only thing shown is the system's own install confirmation -->
+        <activity
+            android:name=".core.updater.UpdateInstallActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <!-- the system installer's answer to an update session, delivered while this app is being replaced -->
+        <receiver
+            android:name=".core.updater.UpdateInstallReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.mochyy.mochymusic.UPDATE_INSTALL_STATUS" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.FileProvider"

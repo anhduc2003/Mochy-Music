@@ -26,6 +26,7 @@ import com.mochyy.mochymusic.constants.KeepScreenOn
 import com.mochyy.mochymusic.db.MusicDatabase
 import com.mochyy.mochymusic.lyrics.LyricsTranslationHelper
 import com.mochyy.mochymusic.models.MediaMetadata
+import com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
 import com.mochyy.mochymusic.playback.ExoDownloadService
 import com.mochyy.mochymusic.playback.PlayerConnection
 import com.mochyy.mochymusic.ui.menu.AddToPlaylistDialog
@@ -43,6 +44,7 @@ class PlayerMenuExtras internal constructor(
     private val downloadState: Int?,
     private val openLyrics: () -> Unit,
     private val showAddToPlaylist: () -> Unit,
+    private val openComments: () -> Unit,
 ) {
     fun isActive(action: PlayerMenuAction): Boolean = when (action) {
         PlayerMenuAction.KEEP_AWAKE -> keepScreenOn
@@ -70,6 +72,10 @@ class PlayerMenuExtras internal constructor(
             }
             PlayerMenuAction.DOWNLOAD -> toggleDownload()
             PlayerMenuAction.ADD_TO_PLAYLIST -> if (song != null) showAddToPlaylist()
+            PlayerMenuAction.COMMENTS -> {
+                if (song?.id?.startsWith(SoundCloudModule.MediaIdPrefix) == true) openComments()
+                else toast(context.getString(R.string.ps_comments_only_soundcloud))
+            }
             else -> return false
         }
         return true
@@ -102,7 +108,11 @@ class PlayerMenuExtras internal constructor(
 
 /** Also shows the add-to-playlist sheet when its action asks for it. */
 @Composable
-fun rememberPlayerMenuExtras(playerConnection: PlayerConnection, openLyrics: () -> Unit): PlayerMenuExtras {
+fun rememberPlayerMenuExtras(
+    playerConnection: PlayerConnection,
+    openLyrics: () -> Unit,
+    openComments: () -> Unit,
+): PlayerMenuExtras {
     val context = LocalContext.current
     val database = LocalDatabase.current
     val downloadUtil = LocalDownloadUtil.current
@@ -137,5 +147,6 @@ fun rememberPlayerMenuExtras(playerConnection: PlayerConnection, openLyrics: () 
         downloadState = download?.state,
         openLyrics = openLyrics,
         showAddToPlaylist = { addingToPlaylist = true },
+        openComments = openComments,
     )
 }

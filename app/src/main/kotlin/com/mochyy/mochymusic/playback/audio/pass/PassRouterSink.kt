@@ -195,7 +195,12 @@ class PassRouterSink(
     override fun setOutputStreamOffsetUs(outputStreamOffsetUs: Long) = normal.setOutputStreamOffsetUs(outputStreamOffsetUs)
     override fun enableTunnelingV21() = normal.enableTunnelingV21()
     override fun disableTunneling() = normal.disableTunneling()
+    // offload arrived in Android 10 and media3 only asks for it on a phone that has it; the interface
+    // these implement carries the platform annotation, which is what lint is following here
+    @android.annotation.SuppressLint("NewApi")
     override fun setOffloadMode(offloadMode: Int) = normal.setOffloadMode(offloadMode)
+
+    @android.annotation.SuppressLint("NewApi")
     override fun setOffloadDelayPadding(delayInFrames: Int, paddingInFrames: Int) = normal.setOffloadDelayPadding(delayInFrames, paddingInFrames)
     override fun getFormatOffloadSupport(format: Format) = normal.getFormatOffloadSupport(format)
     override fun setVolume(volume: Float) {

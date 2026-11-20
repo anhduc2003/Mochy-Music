@@ -527,9 +527,17 @@ private fun ColumnScope.UpdateDetailContent(
         if (remote && release.apkUrl != null) runCatching { installFocus.requestFocus() }
     }
 
+    val installScope = androidx.compose.runtime.rememberCoroutineScope()
     val startInstall: (java.io.File) -> Unit = { file ->
-        if (!installApk(context, file)) {
-            error = context.getString(R.string.update_allow_unknown_apps)
+        installScope.launch {
+            when (val start = installApk(context, file)) {
+                is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.Started -> Unit
+                is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.NeedsPermission ->
+                    error = context.getString(R.string.update_allow_unknown_apps)
+                is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.Refused,
+                is com.mochyy.mochymusic.core.updater.UpdateInstaller.Start.Failed ->
+                    error = com.mochyy.mochymusic.core.updater.UpdateInstaller.messageFor(context, start)
+            }
         }
     }
 

@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.em
 import com.mochyy.mochymusic.ui.component.BlurEffectCache
 import com.mochyy.mochymusic.ui.theme.InterFontFamily
+import com.mochyy.mochymusic.ui.screens.soundcloud.toMediaItem
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -195,6 +196,7 @@ import kotlinx.coroutines.withContext
 import com.mochyy.mochymusic.ui.component.navigateToTab
 
 sealed class HomeSection(val id: String) {
+    data object SoundCloud : HomeSection("soundcloud")
     data object RecentlyPlayed : HomeSection("recently_played")
     data object MostPlayed : HomeSection("most_played")
     data object History : HomeSection("history")
@@ -618,6 +620,7 @@ fun HomeScreen(
     // handed to the cards as a lambda so only the active cover's indicator reads it
     val isPlayingNow: () -> Boolean = remember(isPlayingState) { { isPlayingState.value } }
 
+    val soundCloudEnabled by viewModel.soundCloudEnabled.collectAsState(viewModel.soundCloudInitiallyEnabled)
     val forgottenFavorites by viewModel.forgottenFavorites.collectAsState()
     val keepListening by viewModel.keepListening.collectAsState()
     val accountPlaylists by viewModel.accountPlaylists.collectAsState()
@@ -1200,6 +1203,8 @@ fun HomeScreen(
         derivedStateOf {
             val list = mutableListOf<HomeSection>()
 
+            if (soundCloudEnabled) list.add(HomeSection.SoundCloud)
+
             // the recommendation rows are dealt out between Home's own rows, the way Apple Music
             // and Spotify mix "because you like" shelves in with your history
             val categories = homeCategories.orEmpty()
@@ -1248,17 +1253,12 @@ fun HomeScreen(
         }
     }
 
-    LaunchedEffect(mostPlayedSongsForHome) {
-        quickPicksLazyGridState.scrollToItem(0)
-    }
-
-    LaunchedEffect(forgottenFavorites) {
-        forgottenFavoritesLazyGridState.scrollToItem(0)
-    }
-
-    LaunchedEffect(recentHistorySongs) {
-        historyLazyGridState.scrollToItem(0)
-    }
+    // each shelf starts at its first card when it arrives, and keeps the scroll position it had
+    // while it is being refreshed: these lists are written back into the same flow every time the
+    // library changes, so resetting on any change threw the row the user was reading back to the top
+    ResetWhenShelfArrives(mostPlayedSongsForHome?.size ?: 0, quickPicksLazyGridState)
+    ResetWhenShelfArrives(forgottenFavorites?.size ?: 0, forgottenFavoritesLazyGridState)
+    ResetWhenShelfArrives(recentHistorySongs?.size ?: 0, historyLazyGridState)
 
     val baseTypography = MaterialTheme.typography
     val homeTypography = remember(baseTypography) {
@@ -1610,6 +1610,28 @@ fun HomeScreen(
                                 homeItem("pinned_list", revealSeen, "cardRow") {
                                     HomeCardRow("pinned", items, revealSeen, key = { it.id }, content = ytItemCard)
                                 }
+                            }
+                        }
+                        HomeSection.SoundCloud -> {
+                            sectionRendered = true
+                            homeItem("soundcloud_title", revealSeen, "title") {
+                                HomeSectionTitle(
+                                    title = "SoundCloud · Nhạc Việt",
+                                    onClick = { navController.navigate("soundcloud") },
+                                )
+                            }
+                            homeItem("soundcloud_row", revealSeen, "cardRow") {
+                                com.mochyy.mochymusic.ui.screens.soundcloud.SoundCloudHomeRow(
+                                    onPlay = { uploads, index ->
+                                        playerConnection.playQueue(
+                                            ListQueue(
+                                                title = "SoundCloud · Nhạc Việt",
+                                                items = uploads.map { it.toMediaItem() },
+                                                startIndex = index,
+                                            ),
+                                        )
+                                    },
+                                )
                             }
                         }
                         HomeSection.SpeedDial -> {
@@ -2115,5 +2137,19 @@ fun HomeScreen(
 
         }
     }
+    }
+}
+
+/**
+ * Puts [state] back at the first card when a shelf goes from empty to filled, and leaves it alone
+ * otherwise. Every Home shelf is fed by a database flow, so a play count, a download or a fresh sync
+ * republishes the same list while the user is reading it; scrolling to the top on that is the jank
+ * this avoids.
+ */
+@Composable
+private fun ResetWhenShelfArrives(itemCount: Int, state: LazyGridState) {
+    val empty = itemCount == 0
+    LaunchedEffect(empty) {
+        if (!empty) state.scrollToItem(0)
     }
 }

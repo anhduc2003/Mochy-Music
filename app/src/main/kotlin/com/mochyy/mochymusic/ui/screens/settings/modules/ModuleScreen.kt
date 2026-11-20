@@ -55,6 +55,7 @@ import com.mochyy.mochymusic.module.ItemListModule
 import com.mochyy.mochymusic.module.ModuleFeature
 import com.mochyy.mochymusic.module.ServerListModule
 import com.mochyy.mochymusic.module.applemusic.AppleMusicModule
+import com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
 import com.mochyy.mochymusic.modules.ModuleEntry
 import com.mochyy.mochymusic.ui.component.LocalZoomOutOverlayState
 import com.mochyy.mochymusic.ui.component.coverTintBackground
@@ -115,7 +116,8 @@ fun ModuleScreen(navController: NavController, id: String, viewModel: ModulesVie
                     onUpdate = { scope.launch { context.updateModule(viewModel, entry) } },
                     onCheck = { viewModel.checkUpdate(id) },
                 )
-                AccountActions(
+                val canQueryModule = id != SoundCloudModule.Id || entry.enabled
+                if (canQueryModule) AccountActions(
                     entry = entry,
                     checking = viewModel.checking.collectAsState().value,
                     onSignIn = ::signIn,
@@ -131,7 +133,7 @@ fun ModuleScreen(navController: NavController, id: String, viewModel: ModulesVie
                 if (entry.module is ServerListModule) ModuleServers(id, viewModel)
                 (entry.module as? ItemListModule)?.let { ModuleItems(id, it, viewModel) }
                 ModulePages(entry, viewModel) { page -> navController.navigate(modulePageRoute(id, page)) }
-                if (entry.adds(ModuleFeature.AudioSource) || entry.adds(ModuleFeature.Lyrics) || entry.adds(ModuleFeature.Metadata)) {
+                if (canQueryModule && (entry.adds(ModuleFeature.AudioSource) || entry.adds(ModuleFeature.Lyrics) || entry.adds(ModuleFeature.Metadata))) {
                     ModuleTest(entry, viewModel)
                 }
                 if (entry.removable) {
@@ -140,6 +142,18 @@ fun ModuleScreen(navController: NavController, id: String, viewModel: ModulesVie
                         viewModel.remove(id)
                         navController.navigateUp()
                     }
+                }
+                if (id == SoundCloudModule.Id && entry.enabled) {
+                    Spacer(Modifier.height(14.dp))
+                    Text(
+                        text = "Mở SoundCloud",
+                        fontFamily = InterFontFamily, fontSize = 14.sp,
+                        color = Color.White.copy(alpha = 0.9f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { navController.navigate("soundcloud") }
+                            .padding(horizontal = 6.dp, vertical = 10.dp),
+                    )
                 }
                 if (id == AppleMusicModule.Id) {
                     Spacer(Modifier.height(14.dp))

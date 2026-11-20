@@ -390,6 +390,23 @@ fun NavGraphBuilder.navigationBuilder(
         ProfileScreen(navController = navController)
     }
 
+    composable("soundcloud") { entry ->
+        val viewModel: com.mochyy.mochymusic.viewmodels.SoundCloudViewModel = hiltViewModel(entry)
+        val state by viewModel.state.collectAsState()
+        if (state.enabled) {
+            com.mochyy.mochymusic.ui.screens.soundcloud.SoundCloudScreen(navController = navController, viewModel = viewModel)
+        } else {
+            Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.soundcloud_module_disabled))
+                    androidx.compose.material3.Button(onClick = {
+                        navController.navigate(com.mochyy.mochymusic.ui.screens.settings.modules.moduleRoute("soundcloud"))
+                    }) { Text(stringResource(R.string.settings)) }
+                }
+            }
+        }
+    }
+
     composable("stats") {
         com.mochyy.mochymusic.ui.screens.recap.StatsScreen(navController = navController)
     }

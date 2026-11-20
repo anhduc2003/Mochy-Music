@@ -29,18 +29,22 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Generate debug.keystore if not exists
+      - name: Restore the signing key every build is signed with
+        env:
+          MOCHY_KEYSTORE_B64: ${{ secrets.MOCHY_KEYSTORE_B64 }}
         run: |
-          mkdir -p ~/.android
-          if [ ! -f ~/.android/debug.keystore ]; then
-            keytool -genkey -v \
-              -keystore ~/.android/debug.keystore \
-              -storepass android \
-              -alias androiddebugkey \
-              -keypass android \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
+          # one key for every build, so a new APK installs over the one already on the phone and
+          # keeps its library; a key generated per run makes each build a different app to Android
+          if [ -n "${MOCHY_KEYSTORE_B64}" ]; then
+            mkdir -p app/keystore
+            printf '%s' "${MOCHY_KEYSTORE_B64}" | base64 -d > app/keystore/persistent-debug.keystore
+            echo "Signing with the repository's persistent key."
+          else
+            echo "::warning title=No persistent signing key::MOCHY_KEYSTORE_B64 is not set, so this APK cannot install over builds from other runs. See scripts/persistent-signing-key.sh."
+            mkdir -p ~/.android
+            [ -f ~/.android/debug.keystore ] || keytool -genkey -v \
+              -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey \
+              -keypass android -keyalg RSA -keysize 2048 -validity 10000 \
               -dname "CN=Android Debug,O=Android,C=US"
           fi
 

@@ -44,9 +44,13 @@ object AppModule {
     @Provides
     fun provideInternalDatabase(
         @ApplicationContext context: Context,
-    ): InternalDatabase = Room
+    ): InternalDatabase {
         // on a tv each profile has its own library; everywhere else this is the one database
-        .databaseBuilder(context, InternalDatabase::class.java, com.mochyy.mochymusic.link.tv.TvProfiles.databaseName(context))
+        val name = com.mochyy.mochymusic.link.tv.TvProfiles.databaseName(context)
+        // a library room cannot migrate is dropped whole, so it is rebuilt or copied aside first
+        com.mochyy.mochymusic.db.PreUpgradeBackup.prepareForOpen(context, name)
+        return Room
+        .databaseBuilder(context, InternalDatabase::class.java, name)
         // The one list in MusicDatabase.kt. This copy used to be its own, stopped at 35 -> 36, and
         // every later version reached the phone as "no migration path" -> all tables dropped.
         .addMigrations(*com.mochyy.mochymusic.db.AllMigrations)
@@ -68,6 +72,7 @@ object AppModule {
             }
         })
         .build()
+    }
 
     @Singleton
     @Provides

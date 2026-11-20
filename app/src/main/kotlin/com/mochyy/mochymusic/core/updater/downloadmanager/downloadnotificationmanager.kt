@@ -159,25 +159,7 @@ object DownloadNotificationManager {
 
     @RequiresApi(Build.VERSION_CODES.BAKLAVA)
     private fun showDownloadCompleteModern(version: String, filePath: String) {
-        val installIntent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(
-                androidx.core.content.FileProvider.getUriForFile(
-                    appContext,
-                    "${appContext.packageName}.FileProvider",
-                    java.io.File(filePath)
-                ),
-                "application/vnd.android.package-archive"
-            )
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-
-        val pendingIntent = PendingIntent.getActivity(
-            appContext,
-            0,
-            installIntent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
+        val pendingIntent = installPendingIntent(version, filePath)
 
         val progressStyle = Notification.ProgressStyle()
             .also {
@@ -270,26 +252,27 @@ object DownloadNotificationManager {
         notificationManager.notify(NOTIFICATION_ID, notification)
     }
 
-    private fun showDownloadCompleteLegacy(version: String, filePath: String) {
-        val installIntent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(
-                androidx.core.content.FileProvider.getUriForFile(
-                    appContext,
-                    "${appContext.packageName}.FileProvider",
-                    java.io.File(filePath)
-                ),
-                "application/vnd.android.package-archive"
-            )
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    /**
+     * Tapping the finished download opens [UpdateInstallActivity], which starts the session from a
+     * foreground lifetime: Android 12 refuses to open the install-permission page from a broadcast
+     * receiver, and the copy into the session must not outlive the component that began it.
+     */
+    private fun installPendingIntent(version: String, filePath: String): PendingIntent {
+        val trigger = Intent(appContext, com.mochyy.mochymusic.core.updater.UpdateInstallActivity::class.java).apply {
+            putExtra(com.mochyy.mochymusic.core.updater.UpdateInstallActivity.EXTRA_VERSION, version)
+            putExtra(com.mochyy.mochymusic.core.updater.UpdateInstallActivity.EXTRA_APK, filePath)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-
-        val pendingIntent = PendingIntent.getActivity(
+        return PendingIntent.getActivity(
             appContext,
             0,
-            installIntent,
+            trigger,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
+    }
+
+    private fun showDownloadCompleteLegacy(version: String, filePath: String) {
+        val pendingIntent = installPendingIntent(version, filePath)
 
         val notification = NotificationCompat.Builder(appContext, CHANNEL_ID)
             .setSmallIcon(R.drawable.updated)

@@ -1906,7 +1906,13 @@ class MusicService :
             e != null -> plainReason(e)
             else -> "unknown error"
         }
-        com.mochyy.mochymusic.ui.component.TopToaster.error("Stream failed: $reason")
+        // naming the stream that failed turns the next report into evidence
+        val from = player.currentMediaItem?.mediaId?.let { _playingFrom.value[it] }
+        val where = from?.let { f -> listOfNotNull(f.name, f.quality).joinToString(" · ") }
+        if (e != null) Timber.tag("StreamFetch").e(e, "stream failed for ${player.currentMediaItem?.mediaId} from $where")
+        com.mochyy.mochymusic.ui.component.TopToaster.error(
+            if (where != null) "Stream failed ($where): $reason" else "Stream failed: $reason",
+        )
     }
 
     /** A readable reason from the root cause, since IO_UNSPECIFIED alone says nothing. */
@@ -1985,6 +1991,22 @@ class MusicService :
 
     // each song only needs its duration and related tracks recovered once per session, not on every chunk read
     private val recoveredSongs = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    /**
+     * a SoundCloud upload, saved the way the youtube path saves a song, so it reaches history and
+     * recently played. It is saved from the queue's own metadata: nothing about it is on YouTube,
+     * and asking YouTube for it is what keeps the usual recovery from saving one.
+     */
+    private suspend fun recoverSoundCloudSong(mediaId: String) {
+        val metadata = withContext(Dispatchers.Main) { player.findNextMediaItemById(mediaId)?.metadata } ?: return
+        val saved = database.song(mediaId).first()
+        database.query {
+            if (saved == null) {
+                insert(metadata)
+            } else if (saved.song.duration == -1) {
+                update(saved.song.copy(duration = metadata.duration))
+            }
+        }
+    }
 
     private suspend fun recoverSong(
         mediaId: String,
@@ -5286,6 +5308,34 @@ class MusicService :
         // offline: no provider is asked; the song plays if it's cached, and is skipped if not.
         // An imported file is never looked for online, even one whose file has gone missing.
         if (com.mochyy.mochymusic.utils.OfflineMode.isOn || mediaId.startsWith("LOCAL_")) return null
+        // an upload from the app's own SoundCloud screen: it is opened by its own id, so no
+        // search runs and the upload that was tapped is the one that plays
+        if (mediaId.startsWith(com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.MediaIdPrefix)) {
+            if (!sourceModules.isEnabled(com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.Id)) {
+                throw com.mochyy.mochymusic.playback.custom.NoProviderException("SoundCloud đang tắt. Bật lại module để phát bài này.")
+            }
+            val soundCloud = sourceModules.module(com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.Id)
+                as? com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
+                ?: throw com.mochyy.mochymusic.playback.custom.NoProviderException("the SoundCloud module is not loaded")
+            val uploadId = mediaId.removePrefix(com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.MediaIdPrefix)
+            val stream = withContext(Dispatchers.IO) {
+                val quality = sourceModules.playbackPicks(soundCloud.info.id, soundCloud)[
+                    com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.ChoiceQuality
+                ] ?: com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.OptionBest
+                soundCloud.streamFor(uploadId, quality)
+            }
+                ?: throw com.mochyy.mochymusic.playback.custom.NoProviderException("SoundCloud can't play this upload: it was removed, or it is DRM-protected")
+            streamFacts.update { it + (mediaId to StreamFacts(codec = stream.codec, fromModule = true)) }
+            notePlayingFrom(mediaId, PlayingFrom(soundCloud.info.id, soundCloud.info.name, stream.qualityLabel))
+            scope.launch(Dispatchers.IO) { runCatching { recoverSoundCloudSong(mediaId) } }
+            return com.mochyy.mochymusic.playback.custom.CustomStreamResult(
+                streamUrl = stream.url,
+                isHls = stream.format == com.mochyy.mochymusic.module.StreamFormat.Hls,
+                isDash = stream.format == com.mochyy.mochymusic.module.StreamFormat.Dash,
+                source = "${soundCloud.info.name} \u00b7 ${stream.qualityLabel}",
+                cacheKey = "$ModuleCacheKeyPrefix${soundCloud.info.id}|$mediaId",
+            )
+        }
         forcedRoutes[mediaId]?.let { forced ->
             if (forced.providerId == com.mochyy.mochymusic.modules.SourceModules.YouTubeId) return youTubeRoute(mediaId)
             forcedModuleStream(mediaId, forced)?.let { return it }
