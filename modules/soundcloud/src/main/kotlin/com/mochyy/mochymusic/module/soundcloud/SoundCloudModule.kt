@@ -273,16 +273,14 @@ class SoundCloudModule : SourceModule {
     private fun openStream(track: ScTrack, quality: String): ScStream? {
         for (transcoding in ordered(track.transcodings, quality)) {
             val body = requestWithClientId { clientId ->
-                transcoding.url + "?" + queryString(
-                    mapOf("client_id" to clientId, "track_authorization" to track.authorization),
-                )
+                mediaRequestUrl(transcoding.url, clientId, track.authorization)
             }
             if (body == null) continue
             if (!body.ok) continue
-            val resolved = field(body.text, "url")?.takeIf { it.startsWith("http") } ?: continue
+            val resolved = field(body.text, "url")?.takeIf(::isHttpsUrl) ?: continue
             return ScStream(
                 url = resolved,
-                format = formatOf(resolved),
+                format = if (transcoding.protocol.equals("hls", ignoreCase = true)) StreamFormat.Hls else formatOf(resolved),
                 quality = qualityLabel(transcoding.preset),
                 codec = codecOf(transcoding.preset),
             )
@@ -350,14 +348,36 @@ class SoundCloudModule : SourceModule {
         val avatarUrl: String?,
     )
 
-    fun comments(id: String, limit: Int = 50): List<Comment> {
+    data class CommentPage(val comments: List<Comment>, val nextOffset: Int?)
+
+    fun comments(id: String, limit: Int = 50): List<Comment> = commentsPage(id, limit).comments
+
+    fun commentsPage(id: String, limit: Int = 50, offset: Int = 0): CommentPage {
         require(TrackIdPattern.matches(id)) { "Invalid SoundCloud track id" }
+        require(offset >= 0) { "Invalid comment offset" }
+        val pageSize = limit.coerceIn(1, 100)
         val response = catalogApi("/tracks/$id/comments", mapOf(
-            "threaded" to "0", "filter_replies" to "0", "offset" to "0",
-            "limit" to limit.coerceIn(1, 100).toString(),
+            "threaded" to "0", "filter_replies" to "0", "offset" to offset.toString(),
+            "limit" to pageSize.toString(),
         ))
-        return commentsIn(response.text)
+        return commentPageIn(response.text, pageSize, offset)
     }
+
+    internal fun commentPageIn(text: String, limit: Int, offset: Int): CommentPage {
+        val root = runCatching { json.parseToJsonElement(text) as? JsonObject }.getOrNull()
+            ?: throw SoundCloudResponseException()
+        val raw = root["collection"] as? JsonArray ?: throw SoundCloudResponseException()
+        val next = when {
+            raw.isEmpty() || offset > Int.MAX_VALUE - raw.size -> null
+            "next_href" in root && root.string("next_href").isNullOrBlank() -> null
+            "next_href" in root || raw.size >= limit -> offset + raw.size
+            else -> null
+        }
+        // Use only the locally computed offset: never follow a server URL with a client ID.
+        return CommentPage(commentsIn(text), next)
+    }
+
+    class SoundCloudResponseException : RuntimeException("SoundCloud trả dữ liệu không hợp lệ. Hãy thử tải lại.")
 
     internal fun commentsIn(text: String): List<Comment> =
         (objectsIn(text, "collection") ?: emptyList()).mapNotNull { entry ->
@@ -391,14 +411,14 @@ class SoundCloudModule : SourceModule {
     fun search(text: String, limit: Int = SearchPage): List<Upload> {
         if (text.isBlank()) return emptyList()
         val response = catalogApi(SearchPath, mapOf("q" to text.trim(), "limit" to limit.coerceIn(1, MaxCatalogLimit).toString()))
-        return tracksIn(response.text).mapNotNull(::uploadOf)
+        return requireObjectsIn(response.text, "collection").mapNotNull(::trackOf).map(::uploadOf)
     }
 
     /** Searches playlists and sets. Blocking, as [search]. */
     fun searchPlaylists(text: String, limit: Int = SearchPage): List<Playlist> {
         if (text.isBlank()) return emptyList()
         val response = catalogApi(PlaylistsPath, mapOf("q" to text.trim(), "limit" to limit.coerceIn(1, MaxCatalogLimit).toString()))
-        val collection = objectsIn(response.text, "collection") ?: return emptyList()
+        val collection = requireObjectsIn(response.text, "collection")
         return collection.mapNotNull(::playlistOf)
     }
 
@@ -430,7 +450,7 @@ class SoundCloudModule : SourceModule {
     fun related(id: String, limit: Int = RelatedPage): List<Upload> {
         if (!TrackIdPattern.matches(id)) return emptyList()
         val response = catalogApi("/tracks/$id/related", mapOf("limit" to limit.coerceIn(1, MaxCatalogLimit).toString()))
-        return (objectsIn(response.text, "collection") ?: emptyList()).mapNotNull(::trackOf).mapNotNull(::uploadOf)
+        return requireObjectsIn(response.text, "collection").mapNotNull(::trackOf).map(::uploadOf)
     }
 
     internal fun chartsQuery(limit: Int): Map<String, String> = mapOf(
@@ -443,7 +463,7 @@ class SoundCloudModule : SourceModule {
     fun charts(limit: Int = ChartsPage, region: ChartRegion = ChartRegion.Global): List<Upload> {
         region.discoveryQuery?.let { return search(it, limit) }
         val response = catalogApi(ChartsPath, chartsQuery(limit))
-        return chartTracks(response.text).mapNotNull(::uploadOf)
+        return requireObjectsIn(response.text, "collection").mapNotNull { it["track"] as? JsonObject }.mapNotNull(::trackOf).map(::uploadOf)
     }
 
     /** Recommendations use SoundCloud's related-tracks endpoint for a seed, otherwise regional charts. */
@@ -489,6 +509,9 @@ class SoundCloudModule : SourceModule {
         )
     }
 
+    private fun requireObjectsIn(text: String, key: String): List<JsonObject> =
+        objectsIn(text, key) ?: throw SoundCloudResponseException()
+
     private fun objectsIn(text: String, key: String): List<JsonObject>? {
         val root = runCatching { json.parseToJsonElement(text) as? JsonObject }.getOrNull() ?: return null
         return (root[key] as? JsonArray)?.mapNotNull { it as? JsonObject }
@@ -507,9 +530,20 @@ class SoundCloudModule : SourceModule {
         return Stream(opened.url, opened.format, opened.quality, opened.codec)
     }
 
+    internal fun mediaRequestUrl(url: String, clientId: String, authorization: String): String {
+        val base = url.substringBefore('#')
+        val separator = if ('?' in base) "&" else "?"
+        return base + separator + queryString(mapOf("client_id" to clientId, "track_authorization" to authorization))
+    }
+
+    private fun isHttpsUrl(url: String): Boolean = runCatching {
+        val uri = java.net.URI(url)
+        uri.scheme.equals("https", ignoreCase = true) && !uri.host.isNullOrBlank() && uri.userInfo == null
+    }.getOrDefault(false)
+
     private fun transcodingOf(element: JsonObject): ScTranscoding? {
         val preset = element.string("preset") ?: return null
-        val url = element.string("url") ?: return null
+        val url = element.string("url")?.takeIf(::isHttpsUrl) ?: return null
         return ScTranscoding(
             preset = preset,
             url = url,
@@ -528,7 +562,7 @@ class SoundCloudModule : SourceModule {
         val (wanted, rest) = playable.partition { it.preset in Preferred }
         val order = if (quality == OptionDataSaver) listOf(DataSaverPreset, BestPreset) else listOf(BestPreset, DataSaverPreset)
         val ranked = order.flatMap { preset -> wanted.filter { it.preset == preset } }
-        return (ranked + rest).distinctBy { it.preset }
+        return (ranked + rest).distinctBy { it.url }
     }
 
     /** an HLS playlist unless the resolved link names a file */

@@ -87,7 +87,104 @@ class SoundCloudViewModelTest {
         }
     }
 
-    private class CatalogHost : ModuleHost {
+    @Test
+    fun `back restores playlist and original search after nested related retry`() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val enabled = MutableStateFlow(true)
+        var relatedCalls = 0
+        val host = CatalogHost { uri ->
+            when (uri.path) {
+                "/search/playlists" -> HttpResponse(200, """{"collection":[{"id":17,"title":"My playlist"}]}""".encodeToByteArray())
+                "/playlists/17" -> HttpResponse(200, """{"tracks":[{"id":7,"title":"Playlist track"}]}""".encodeToByteArray())
+                "/tracks/7/related" -> if (++relatedCalls == 1) HttpResponse(400, byteArrayOf()) else
+                    HttpResponse(200, """{"collection":[{"id":8,"title":"Related track"}]}""".encodeToByteArray())
+                else -> null
+            }
+        }
+        val module = SoundCloudModule().also { it.attach(host) }
+        val model = SoundCloudViewModel({ enabled.value }, enabled, StandardTestDispatcher(testScheduler)) { module }
+        try {
+            runCurrent()
+            model.onQueryChange("playlist search")
+            model.onTabChange(SoundCloudViewModel.Tab.Playlists)
+            assertTrue(model.state.value.loading)
+            assertTrue(model.state.value.uploads.isEmpty())
+            runCurrent()
+            val search = model.state.value
+            model.openPlaylist(search.playlists.single())
+            runCurrent()
+            val playlist = model.state.value
+            model.openRelated(playlist.uploads.single())
+            runCurrent()
+            assertTrue(model.state.value.error != null)
+            model.retry()
+            runCurrent()
+            assertEquals("Related track", model.state.value.uploads.single().title)
+            model.closeRelated()
+            assertEquals(playlist, model.state.value)
+            model.closePlaylist()
+            assertEquals(search, model.state.value)
+            assertEquals(5, host.totalCalls.get())
+        } finally {
+            model.viewModelScope.cancel()
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    fun `comment pagination retains rows on error then merges unique ids and stops on repeated page`() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val enabled = MutableStateFlow(true)
+        var pageTwoCalls = 0
+        val host = CatalogHost { uri ->
+            if (uri.path != "/tracks/7/comments") null else {
+                val offset = uri.query.substringAfter("offset=", "0").substringBefore('&').toInt()
+                val first = """{"id":1,"body":"First"}"""
+                val second = """{"id":2,"body":"Second"}"""
+                when (offset) {
+                    0 -> commentPage(first)
+                    1 -> if (++pageTwoCalls == 1) HttpResponse(400, byteArrayOf()) else commentPage("$first,$second")
+                    3 -> commentPage(second)
+                    else -> error("Unexpected offset $offset")
+                }
+            }
+        }
+        val module = SoundCloudModule().also { it.attach(host) }
+        val model = SoundCloudViewModel({ enabled.value }, enabled, StandardTestDispatcher(testScheduler)) { module }
+        try {
+            runCurrent()
+            model.openComments(model.state.value.uploads.single())
+            runCurrent()
+            assertEquals(1, model.state.value.commentsNextOffset)
+            model.loadMoreComments()
+            model.loadMoreComments()
+            runCurrent()
+            assertEquals(listOf("1"), model.state.value.comments.map { it.id })
+            assertTrue(model.state.value.commentsMoreError != null)
+            assertEquals(1, model.state.value.commentsNextOffset)
+            assertFalse(model.state.value.commentsLoadingMore)
+            model.loadMoreComments()
+            runCurrent()
+            assertEquals(listOf("1", "2"), model.state.value.comments.map { it.id })
+            assertNull(model.state.value.commentsMoreError)
+            assertEquals(3, model.state.value.commentsNextOffset)
+            model.loadMoreComments()
+            runCurrent()
+            assertNull(model.state.value.commentsNextOffset)
+            model.closeComments()
+            assertTrue(model.state.value.comments.isEmpty())
+            assertNull(model.state.value.commentsFor)
+        } finally {
+            model.viewModelScope.cancel()
+            Dispatchers.resetMain()
+        }
+    }
+
+    private fun commentPage(comments: String) = HttpResponse(
+        200, """{"collection":[$comments],"next_href":"https://example.test/unused"}""".encodeToByteArray(),
+    )
+
+    private class CatalogHost(private val route: (URI) -> HttpResponse? = { null }) : ModuleHost {
         private val data = ConcurrentHashMap(mapOf(
             "client_id" to "0123456789abcdefghijklmnopqrstuv",
             "client_id_at" to System.currentTimeMillis().toString(),
@@ -109,7 +206,9 @@ class SoundCloudViewModelTest {
 
         override fun http(request: HttpRequest): HttpResponse {
             totalCalls.incrementAndGet()
-            return when (URI(request.url).path) {
+            val uri = URI(request.url)
+            route(uri)?.let { return it }
+            return when (uri.path) {
                 "/charts" -> ok("""{"collection":[{"track":{"id":7,"title":"Chart request ${chartCalls.incrementAndGet()}"}}]}""")
                 "/tracks/7/comments" -> when (commentCalls.incrementAndGet()) {
                     1 -> ok("""{"collection":[{"id":1,"body":"First comment"}]}""")

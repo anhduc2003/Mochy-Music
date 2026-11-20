@@ -5152,7 +5152,12 @@ class MusicService :
                 as? com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
                 ?: throw com.mochyy.mochymusic.playback.custom.NoProviderException("the SoundCloud module is not loaded")
             val uploadId = mediaId.removePrefix(com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.MediaIdPrefix)
-            val stream = withContext(Dispatchers.IO) { soundCloud.streamFor(uploadId) }
+            val stream = withContext(Dispatchers.IO) {
+                val quality = sourceModules.playbackPicks(soundCloud.info.id, soundCloud)[
+                    com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.ChoiceQuality
+                ] ?: com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.OptionBest
+                soundCloud.streamFor(uploadId, quality)
+            }
                 ?: throw com.mochyy.mochymusic.playback.custom.NoProviderException("SoundCloud can't play this upload: it was removed, or it is DRM-protected")
             streamFacts.update { it + (mediaId to StreamFacts(codec = stream.codec, fromModule = true)) }
             notePlayingFrom(mediaId, PlayingFrom(soundCloud.info.id, soundCloud.info.name, stream.qualityLabel))

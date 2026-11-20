@@ -6,6 +6,7 @@ import com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
 import com.mochyy.mochymusic.modules.ModuleRegistry
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -22,12 +23,13 @@ import javax.inject.Inject
 class SoundCloudViewModel internal constructor(
     private val enabledNow: () -> Boolean,
     enabledChanges: Flow<Boolean>,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val findModule: () -> SoundCloudModule?,
 ) : ViewModel() {
     @Inject constructor(registry: ModuleRegistry) : this(
         { registry.isEnabled(SoundCloudModule.Id) },
         registry.observeEnabled(SoundCloudModule.Id),
-        { registry.module(SoundCloudModule.Id) as? SoundCloudModule },
+        findModule = { registry.module(SoundCloudModule.Id) as? SoundCloudModule },
     )
 
     enum class Tab { Tracks, Playlists, Recommendations }
@@ -38,6 +40,9 @@ class SoundCloudViewModel internal constructor(
         val comments: List<SoundCloudModule.Comment> = emptyList(),
         val commentsLoading: Boolean = false,
         val commentsError: String? = null,
+        val commentsNextOffset: Int? = null,
+        val commentsLoadingMore: Boolean = false,
+        val commentsMoreError: String? = null,
         val query: String = "",
         val tab: Tab = Tab.Tracks,
         val region: SoundCloudModule.ChartRegion = SoundCloudModule.ChartRegion.Global,
@@ -50,15 +55,11 @@ class SoundCloudViewModel internal constructor(
         val relatedTo: SoundCloudModule.Upload? = null,
     )
 
-    private val module: SoundCloudModule?
-        get() = if (enabledNow()) findModule() else null
-
     private val _state = MutableStateFlow(UiState(enabled = enabledNow()))
     val state = _state.asStateFlow()
     private var generation = 0L
-    private var requestJob: Job? = null
-    private var debounceJob: Job? = null
-    private var beforeRelated: List<SoundCloudModule.Upload> = emptyList()
+    private var browseJob: Job? = null
+    private val backStack = ArrayDeque<UiState>()
     private var commentsJob: Job? = null
     private var commentsGeneration = 0L
 
@@ -66,33 +67,59 @@ class SoundCloudViewModel internal constructor(
         viewModelScope.launch {
             enabledChanges.collect { enabled ->
                 if (enabled != enabledNow()) return@collect
-                val token = beginRequest()
+                cancelBrowse()
                 closeComments()
-                beforeRelated = emptyList()
+                backStack.clear()
                 _state.update {
                     it.copy(enabled = enabled, loading = false, error = null, uploads = emptyList(),
                         playlists = emptyList(), open = null, relatedTo = null)
                 }
-                if (enabled) {
-                    if (_state.value.query.isNotBlank()) launchRequest(token) { searchNow(token) }
-                    else refreshForCurrentTab(token)
-                }
+                if (enabled) refresh()
             }
         }
     }
 
     fun openComments(upload: SoundCloudModule.Upload) {
-        val source = module ?: return
+        if (!canBrowse()) return
         closeComments()
         val token = commentsGeneration
         _state.update { it.copy(commentsFor = upload, commentsLoading = true) }
         commentsJob = viewModelScope.launch {
-            val result = request { source.comments(upload.id) }
-            if (token != commentsGeneration || !enabledNow()) return@launch
-            _state.update {
-                it.copy(comments = result.getOrDefault(emptyList()), commentsLoading = false,
-                    commentsError = result.exceptionOrNull()?.let { error -> error.message ?: GenericFailure })
-            }
+            val result = request { it.commentsPage(upload.id) }
+            if (!isCurrentComments(token, upload.id)) return@launch
+            result.fold(
+                onSuccess = { page -> _state.update {
+                    it.copy(comments = page.comments.distinctBy { comment -> comment.id },
+                        commentsLoading = false, commentsNextOffset = page.nextOffset?.takeIf { offset -> offset > 0 })
+                } },
+                onFailure = { error -> _state.update {
+                    it.copy(commentsLoading = false, commentsError = error.displayMessage())
+                } },
+            )
+        }
+    }
+
+    fun loadMoreComments() {
+        if (!canBrowse()) return
+        val current = _state.value
+        val upload = current.commentsFor ?: return
+        val offset = current.commentsNextOffset ?: return
+        if (current.commentsLoading || current.commentsLoadingMore) return
+        val token = commentsGeneration
+        _state.update { it.copy(commentsLoadingMore = true, commentsMoreError = null) }
+        commentsJob = viewModelScope.launch {
+            val result = request { it.commentsPage(upload.id, offset = offset) }
+            if (!isCurrentComments(token, upload.id)) return@launch
+            result.fold(
+                onSuccess = { page -> _state.update {
+                    val merged = (it.comments + page.comments).distinctBy { comment -> comment.id }
+                    it.copy(comments = merged, commentsLoadingMore = false,
+                        commentsNextOffset = page.nextOffset?.takeIf { next -> next > offset && merged.size > it.comments.size })
+                } },
+                onFailure = { error -> _state.update {
+                    it.copy(commentsLoadingMore = false, commentsMoreError = error.displayMessage())
+                } },
+            )
         }
     }
 
@@ -100,177 +127,145 @@ class SoundCloudViewModel internal constructor(
         commentsGeneration++
         commentsJob?.cancel()
         commentsJob = null
-        _state.update { it.copy(commentsFor = null, comments = emptyList(), commentsLoading = false, commentsError = null) }
+        _state.update { it.withoutComments() }
     }
 
     fun onQueryChange(text: String) {
-        _state.update { it.copy(query = text, loading = text.isNotBlank(), uploads = emptyList(), playlists = emptyList(), error = null, open = null, relatedTo = null) }
-        val token = beginRequest()
-        if (text.isBlank()) {
-            _state.update { it.copy(error = null, open = null, relatedTo = null) }
-            refreshForCurrentTab(token)
-            return
-        }
-        debounceJob = viewModelScope.launch {
-            delay(SearchDelayMs)
-            launchRequest(token) { searchNow(token) }
-        }
+        if (!canBrowse() || _state.value.query == text) return
+        browseRoot(_state.value.copy(query = text), if (text.isBlank()) 0L else SearchDelayMs)
     }
 
     fun onTabChange(tab: Tab, currentTrackSeed: String? = null) {
-        if (_state.value.tab == tab && currentTrackSeed == null) return
-        val token = beginRequest()
-        _state.update {
-            it.copy(
-                tab = tab,
-                recommendationSeed = currentTrackSeed?.takeIf(String::isNotBlank) ?: it.recommendationSeed,
-                open = null,
-                relatedTo = null,
-                error = null,
-            )
-        }
-        if (_state.value.query.isNotBlank()) launchRequest(token) { searchNow(token) }
-        else refreshForCurrentTab(token)
+        if (!canBrowse()) return
+        val current = _state.value
+        val seed = if (tab == Tab.Recommendations) currentTrackSeed?.takeIf(String::isNotBlank) else current.recommendationSeed
+        if (current.tab == tab && current.recommendationSeed == seed) return
+        browseRoot(current.copy(tab = tab, recommendationSeed = seed))
     }
 
     fun onRegionChange(region: SoundCloudModule.ChartRegion) {
-        if (_state.value.region == region) return
-        val token = beginRequest()
-        _state.update { it.copy(region = region, error = null) }
-        if (_state.value.open != null || _state.value.relatedTo != null) return
-        if (_state.value.query.isNotBlank()) launchRequest(token) { searchNow(token) }
-        else refreshForCurrentTab(token)
-    }
-
-    fun search() {
-        val token = beginRequest()
-        launchRequest(token) { searchNow(token) }
-    }
-
-    fun retry() {
+        if (!canBrowse()) return
         val current = _state.value
-        when {
-            current.open != null -> openPlaylist(current.open)
-            current.relatedTo != null -> openRelated(current.relatedTo)
-            current.query.isNotBlank() -> search()
-            else -> refresh()
-        }
+        // The discovery control is not available in search, playlists, or seeded recommendations.
+        if (current.region == region || current.open != null || current.relatedTo != null || current.query.isNotBlank() ||
+            current.tab == Tab.Playlists || (current.tab == Tab.Recommendations && current.recommendationSeed != null)) return
+        browseRoot(current.copy(region = region))
     }
+
+    fun search() = refresh()
+
+    fun retry() = refresh()
 
     fun refresh() {
-        val token = beginRequest()
-        _state.update { it.copy(error = null, open = null, relatedTo = null) }
-        refreshForCurrentTab(token)
-    }
-
-    private fun refreshForCurrentTab(token: Long) {
-        when (_state.value.tab) {
-            Tab.Tracks -> launchRequest(token) { loadCharts(token) }
-            Tab.Playlists -> _state.update { it.copy(loading = false, uploads = emptyList(), playlists = emptyList()) }
-            Tab.Recommendations -> launchRequest(token) { loadRecommendations(token) }
-        }
+        if (canBrowse()) loadBrowse(_state.value)
     }
 
     fun openPlaylist(playlist: SoundCloudModule.Playlist) {
-        val source = module ?: return showUnavailable()
-        val token = beginRequest()
-        _state.update { it.copy(loading = true, error = null, open = playlist, relatedTo = null, playlists = emptyList()) }
-        launchRequest(token) {
-            val result = request { source.playlistTracks(playlist.id) }
-            if (!isCurrent(token)) return@launchRequest
-            result.fold(
-                onSuccess = { tracks ->
-                    if (tracks.isEmpty()) fail(token, IllegalStateException(NoResults))
-                    else _state.update { it.copy(loading = false, uploads = tracks, error = null) }
-                },
-                onFailure = { fail(token, it) },
-            )
+        if (!canBrowse()) return
+        val current = _state.value
+        if (current.open?.id == playlist.id) {
+            refresh()
+            return
         }
+        pushBrowse(current)
+        loadBrowse(current.emptyResults().copy(open = playlist, relatedTo = null))
     }
 
     fun closePlaylist() {
-        val token = beginRequest()
-        _state.update { it.copy(open = null, uploads = emptyList(), playlists = emptyList(), error = null) }
-        if (_state.value.query.isNotBlank()) launchRequest(token) { searchNow(token) }
-        else refreshForCurrentTab(token)
+        if (canBrowse() && _state.value.open != null) popBrowse()
     }
 
     fun openRelated(upload: SoundCloudModule.Upload) {
-        val source = module ?: return showUnavailable()
-        beforeRelated = _state.value.uploads
-        val token = beginRequest()
-        _state.update { it.copy(loading = true, error = null, relatedTo = upload, open = null, playlists = emptyList()) }
-        launchRequest(token) {
-            val result = request { source.related(upload.id) }
-            if (!isCurrent(token)) return@launchRequest
-            result.fold(
-                onSuccess = { tracks ->
-                    if (tracks.isEmpty()) fail(token, IllegalStateException(NoRecommendations))
-                    else _state.update { it.copy(loading = false, uploads = tracks, error = null) }
-                },
-                onFailure = { fail(token, it) },
-            )
+        if (!canBrowse()) return
+        val current = _state.value
+        if (current.relatedTo?.id == upload.id) {
+            refresh()
+            return
         }
+        pushBrowse(current)
+        loadBrowse(current.emptyResults().copy(open = null, relatedTo = upload))
     }
 
     fun closeRelated() {
-        beginRequest()
-        _state.update { it.copy(relatedTo = null, uploads = beforeRelated, loading = false, error = null) }
-        beforeRelated = emptyList()
+        if (canBrowse() && _state.value.relatedTo != null) popBrowse()
     }
 
-    private suspend fun searchNow(token: Long) {
-        val source = module ?: return fail(token, IllegalStateException(ModuleUnavailable))
-        val current = _state.value
-        val query = current.query.trim()
-        if (query.isEmpty()) return
-        _state.update { it.copy(loading = true, error = null, open = null, relatedTo = null) }
-        when (current.tab) {
-            Tab.Tracks -> request { source.search(query) }.applyTracks(token)
-            Tab.Playlists -> {
-                val result = request { source.searchPlaylists(query) }
-                if (!isCurrent(token)) return
-                result.fold(
-                    onSuccess = { playlists ->
-                        if (playlists.isEmpty()) fail(token, IllegalStateException(NoResults))
-                        else _state.update { it.copy(loading = false, playlists = playlists, uploads = emptyList(), error = null) }
-                    },
-                    onFailure = { fail(token, it) },
-                )
-            }
-            Tab.Recommendations -> request { source.recommendations(query, region = current.region) }.applyTracks(token)
+    private fun browseRoot(state: UiState, debounceMs: Long = 0L) {
+        backStack.clear()
+        closeComments()
+        loadBrowse(state.withoutComments().emptyResults().copy(open = null, relatedTo = null), debounceMs)
+    }
+
+    private fun pushBrowse(current: UiState) {
+        backStack.addLast(current.withoutComments())
+        closeComments()
+    }
+
+    private fun popBrowse() {
+        val previous = backStack.removeLastOrNull() ?: return
+        closeComments()
+        // A pending request was canceled when entering its child, so resume it when returning.
+        if (previous.loading) loadBrowse(previous) else {
+            cancelBrowse()
+            _state.value = previous
         }
     }
 
-    private suspend fun loadCharts(token: Long) {
-        val source = module ?: return fail(token, IllegalStateException(ModuleUnavailable))
-        val region = _state.value.region
-        _state.update { it.copy(loading = true, error = null, open = null, relatedTo = null) }
-        request { source.charts(region = region) }.applyTracks(token)
+    private fun loadBrowse(target: UiState, debounceMs: Long = 0L) {
+        val token = cancelBrowse()
+        val query = target.query.trim()
+        if (target.open == null && target.relatedTo == null && target.tab == Tab.Playlists && query.isEmpty()) {
+            _state.value = target.emptyResults().copy(loading = false)
+            return
+        }
+        _state.value = target.copy(loading = true, error = null)
+        browseJob = viewModelScope.launch {
+            if (debounceMs > 0) delay(debounceMs)
+            if (!isCurrentBrowse(token)) return@launch
+            val playlist = target.open
+            val related = target.relatedTo
+            if (playlist == null && related == null && target.tab == Tab.Playlists) {
+                val result = request { it.searchPlaylists(query) }
+                if (!isCurrentBrowse(token)) return@launch
+                result.fold(
+                    onSuccess = { playlists -> _state.update {
+                        it.copy(loading = false, playlists = playlists.distinctBy { playlist -> playlist.id },
+                            uploads = emptyList(), error = NoResults.takeIf { playlists.isEmpty() })
+                    } },
+                    onFailure = { fail(token, it) },
+                )
+            } else {
+                val result = request { source ->
+                    when {
+                        playlist != null -> source.playlistTracks(playlist.id)
+                        related != null -> source.related(related.id)
+                        target.tab == Tab.Recommendations -> source.recommendations(
+                            query.takeIf(String::isNotEmpty) ?: target.recommendationSeed, region = target.region,
+                        )
+                        query.isNotEmpty() -> source.search(query)
+                        else -> source.charts(region = target.region)
+                    }
+                }
+                if (!isCurrentBrowse(token)) return@launch
+                result.fold(
+                    onSuccess = { tracks -> _state.update {
+                        it.copy(loading = false, uploads = tracks, playlists = emptyList(),
+                            error = if (tracks.isEmpty()) {
+                                if (related != null) NoRecommendations else NoResults
+                            } else null)
+                    } },
+                    onFailure = { fail(token, it) },
+                )
+            }
+        }
     }
 
-    private suspend fun loadRecommendations(token: Long) {
-        val source = module ?: return fail(token, IllegalStateException(ModuleUnavailable))
-        val current = _state.value
-        _state.update { it.copy(loading = true, error = null, open = null, relatedTo = null) }
-        request { source.recommendations(current.recommendationSeed, region = current.region) }.applyTracks(token)
-    }
-
-    private suspend fun Result<List<SoundCloudModule.Upload>>.applyTracks(token: Long) {
-        if (!isCurrent(token)) return
-        fold(
-            onSuccess = { tracks ->
-                if (tracks.isEmpty()) fail(token, IllegalStateException(NoResults))
-                else _state.update { it.copy(loading = false, uploads = tracks, playlists = emptyList(), error = null) }
-            },
-            onFailure = { fail(token, it) },
-        )
-    }
-
-    private suspend fun <T> request(block: () -> T): Result<T> = withContext(Dispatchers.IO) {
+    private suspend fun <T> request(block: (SoundCloudModule) -> T): Result<T> = withContext(ioDispatcher) {
         if (!enabledNow()) throw CancellationException("SoundCloud is disabled")
         try {
-            Result.success(block())
+            val source = findModule() ?: return@withContext Result.failure(IllegalStateException(ModuleUnavailable))
+            if (!enabledNow()) throw CancellationException("SoundCloud is disabled")
+            Result.success(block(source))
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
@@ -278,32 +273,29 @@ class SoundCloudViewModel internal constructor(
         }
     }
 
-    private fun beginRequest(): Long {
+    private fun cancelBrowse(): Long {
         generation++
-        debounceJob?.cancel()
-        debounceJob = null
-        requestJob?.cancel()
-        requestJob = null
+        browseJob?.cancel()
+        browseJob = null
         return generation
     }
 
-    private fun launchRequest(token: Long, block: suspend () -> Unit) {
-        requestJob = viewModelScope.launch {
-            if (isCurrent(token)) block()
-        }
-    }
-
-    private fun isCurrent(token: Long) = token == generation
+    private fun canBrowse() = _state.value.enabled && enabledNow()
+    private fun isCurrentBrowse(token: Long) = token == generation && canBrowse()
+    private fun isCurrentComments(token: Long, id: String) =
+        token == commentsGeneration && canBrowse() && _state.value.commentsFor?.id == id
 
     private fun fail(token: Long, error: Throwable) {
-        if (!isCurrent(token)) return
-        val message = error.message?.takeIf(String::isNotBlank) ?: GenericFailure
-        _state.update { it.copy(loading = false, error = message, uploads = emptyList(), playlists = emptyList()) }
+        if (isCurrentBrowse(token)) _state.update { it.copy(loading = false, error = error.displayMessage()) }
     }
 
-    private fun showUnavailable() {
-        _state.update { it.copy(loading = false, error = ModuleUnavailable) }
-    }
+    private fun UiState.emptyResults() = copy(uploads = emptyList(), playlists = emptyList(), error = null)
+    private fun UiState.withoutComments() = copy(
+        commentsFor = null, comments = emptyList(), commentsLoading = false, commentsError = null,
+        commentsNextOffset = null, commentsLoadingMore = false, commentsMoreError = null,
+    )
+
+    private fun Throwable.displayMessage() = message?.takeIf(String::isNotBlank) ?: GenericFailure
 
     private companion object {
         const val SearchDelayMs = 450L

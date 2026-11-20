@@ -6,7 +6,11 @@
 - Live read-only probes on 2026-11-20 reproduced HTTP 400 from `/charts` with all tested `region` values (`soundcloud:regions:VN`, `soundcloud:regions:US`, `VN`, `vn`). Global charts return 200 without that parameter. `country=VN` returned the same leading IDs as global, so it is not a verified replacement.
 - Removed unsupported chart-region parameters and country chips. The **Nhạc Việt Nam** option searches `nhạc Việt`; it is explicitly keyword discovery, not a verified geographical chart, uploader-country filter, or license bypass.
 - Public track metadata includes optional `likes_count`/`favoritings_count` and `comment_count`; these now reach the screen. Missing counts remain absent rather than being invented as zero.
-- Public comment reads work with `threaded=0&filter_replies=0&offset=0`; omitting `threaded` reproduced 400. Track menus show author, text and timestamp for the first 50 public comments, plus retry and canonical SoundCloud link. Pagination is not yet implemented; the limit is visible.
+- Public comment reads work with `threaded=0&filter_replies=0`; omitting `threaded` reproduced 400. Menus show author, text and timestamp, with pages of 50 comments and a load-more action. Loading a later page preserves existing rows on failure, supports retry, deduplicates IDs and stops on a repeated page. Offsets are computed locally; response URLs are never followed with credentials.
+- Nested playlist/related views retain a stack of browse states. Back restores the original playlist/search; retry reloads the same view rather than replacing its parent snapshot. Android system back follows the same behavior as the toolbar.
+- Media resolution preserves existing query parameters, retains alternative URLs with the same quality preset, validates HTTPS URLs and recognizes extensionless HLS from its protocol metadata. Repeated songs in a playlist have unique Compose keys.
+- Malformed successful catalog/comment responses are surfaced as errors rather than valid empty results. Error/retry content is in the scrollable list and does not cover search/navigation controls.
+- Direct SoundCloud playback now uses `playbackPicks`, honoring the selected quality and global data-saver cap instead of always defaulting to best quality.
 - Search, global charts, related tracks, track detail and comment endpoint shapes were checked against live SoundCloud. Mock HTTP tests protect the region/comment parameter corrections. These checks do not prove Android playback or visual performance.
 
 ## Account login and actions
@@ -17,8 +21,9 @@ SoundCloud's [API guide](https://developers.soundcloud.com/docs/api/guide) docum
 
 ## Validation for this patch
 
-- SoundCloud module: 29 test cases, 0 failures/errors, 1 opt-in live test skipped (28 executed).
-- FOSS app: 227 tests, 0 failures/errors. Includes a coroutine ViewModel test for disabled/no requests, enable/load, disable/clear, re-enable/reload and late-comment response suppression.
+- SoundCloud module: 34 test cases, 0 failures/errors, 1 opt-in live test skipped (33 executed).
+- FOSS app: 229 tests, 0 failures/errors. Includes deterministic coroutine tests for module toggles, late-response suppression, nested playlist/related back navigation after retry, and comment pagination failure/retry/deduplication.
+- Live comment pagination returned HTTP 200 for offsets 0 and 2 with distinct IDs and next offsets 2 and 4; each page contained 2 raw comments. No response URL or client ID was exposed.
 - Live read-only probes independently verified chart, search, related, track detail and comment request shapes; no account tokens were used.
 - No Android device was connected (`adb devices -l` empty); no on-device playback/performance claim is made.
 - The user confirmed no registered SoundCloud Developer application is available. Native account login/write actions remain pending that configuration.

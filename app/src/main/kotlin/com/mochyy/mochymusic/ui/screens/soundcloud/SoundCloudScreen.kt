@@ -1,5 +1,6 @@
 package com.mochyy.mochymusic.ui.screens.soundcloud
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
@@ -68,6 +69,9 @@ fun SoundCloudScreen(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val isPlaying by playerConnection.isEffectivelyPlaying.collectAsState()
     val lazyListState = rememberLazyListState()
+    BackHandler(enabled = state.open != null || state.relatedTo != null) {
+        if (state.relatedTo != null) viewModel.closeRelated() else viewModel.closePlaylist()
+    }
 
     // the page's capsule is the catalog's search box, so what is typed there is what is searched
     var query by remember { mutableStateOf(TextFieldValue(state.query)) }
@@ -131,8 +135,9 @@ fun SoundCloudScreen(
             state.region == SoundCloudModule.ChartRegion.VN -> "Khám phá nhạc Việt theo từ khóa"
             else -> "Thịnh hành toàn cầu"
         },
-        overlay = {
-            state.error?.let { error ->
+    ) {
+        state.error?.let { error ->
+            item(key = "soundcloud-error", contentType = "status") {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
@@ -141,8 +146,7 @@ fun SoundCloudScreen(
                     Button(onClick = viewModel::retry) { Text("Thử lại") }
                 }
             }
-        },
-    ) {
+        }
         if (state.open == null && state.relatedTo == null) {
             item(key = "browse-filters", contentType = "filters") {
                 Column(
@@ -190,7 +194,7 @@ fun SoundCloudScreen(
             }
         }
 
-        if (state.loading && state.uploads.isEmpty() && state.playlists.isEmpty()) {
+        if (state.loading) {
             item(key = "soundcloud-loading", contentType = "status") {
                 Row(
                     horizontalArrangement = Arrangement.Center,
@@ -214,7 +218,7 @@ fun SoundCloudScreen(
             )
         }
 
-        itemsIndexed(uploads, key = { _, upload -> upload.id }, contentType = { _, _ -> "track" }) { index, upload ->
+        itemsIndexed(uploads, key = { index, upload -> "$index-${upload.id}" }, contentType = { _, _ -> "track" }) { index, upload ->
             val isThis = "$SC${upload.id}" == active
             PlaylistTrackRow(
                 thumbnailUrl = upload.artworkUrl,
@@ -249,7 +253,7 @@ fun SoundCloudScreen(
                         upload.likesCount?.let { "$it lượt thích" },
                         upload.commentCount?.let { "$it bình luận" },
                     ).joinToString(" • "))
-                    Text("Bình luận công khai (tối đa 50). Đăng nhập và tương tác tài khoản hiện thực hiện trên SoundCloud.")
+                    Text("Bình luận công khai. Đăng nhập và tương tác tài khoản hiện thực hiện trên SoundCloud.")
                     when {
                         state.commentsLoading -> CircularProgressIndicator()
                         state.commentsError != null -> {
@@ -270,6 +274,13 @@ fun SoundCloudScreen(
                                     Text(comment.body)
                                 }
                             }
+                        }
+                    }
+                    state.commentsMoreError?.let { Text(it) }
+                    if (state.commentsLoadingMore) CircularProgressIndicator()
+                    else if (state.commentsNextOffset != null && !state.commentsLoading && state.commentsError == null) {
+                        TextButton(onClick = viewModel::loadMoreComments) {
+                            Text(if (state.commentsMoreError != null) "Thử tải thêm lần nữa" else "Tải thêm bình luận")
                         }
                     }
                     TextButton(onClick = {
