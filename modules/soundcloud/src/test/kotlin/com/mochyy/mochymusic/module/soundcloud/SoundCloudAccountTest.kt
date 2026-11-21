@@ -97,6 +97,23 @@ class SoundCloudAccountTest {
     }
 
     @Test
+    fun `a token without a client claim refreshes with the public player key`() {
+        // newer web tokens carry no client_id; the endpoint still knows the public key the
+        // session was signed in with, so a token refresh must fall back to it
+        val old = jwt("""{"exp":${System.currentTimeMillis() / 1000 - 60}}""")
+        val new = jwt("""{"client_id":"web-client","exp":${System.currentTimeMillis() / 1000 + 3600}}""")
+        val host = Host(refreshTo = new)
+        val module = SoundCloudModule().also { it.attach(host) }
+        module.onSignInHeader("oauth_token", old, "https://soundcloud.com/")
+        module.onSignInHeader("oauth_refresh_token", "refresh-123456789012345678901", "https://soundcloud.com/")
+
+        assertTrue(runBlocking { module.verifyAccount() } is AccountState.SignedIn)
+        val refresh = host.requests.single { it.url.startsWith("https://secure.soundcloud.com/oauth/token") }
+        assertTrue(refresh.body?.decodeToString()?.contains("client_id=0123456789abcdefghijklmnopqrstuv") == true)
+        assertEquals(new, host.storage.get("session_token"))
+    }
+
+    @Test
     fun `a refused refresh signs the account out instead of retrying forever`() {
         val old = jwt("""{"client_id":"web-client","exp":${System.currentTimeMillis() / 1000 - 60}}""")
         val host = Host(refuseRefresh = true).apply { refuseAccount = true }
@@ -193,6 +210,17 @@ class SoundCloudAccountTest {
     }
 
     @Test
+    fun `a forbidden comment names the status instead of blaming the network`() {
+        val host = Host().apply { refuseComment = true; commentStatus = 403 }
+        val module = SoundCloudModule().also { it.attach(host) }
+        module.onSignInHeader("oauth_token", "2-293230-123456789-abcdefghij", "https://soundcloud.com/")
+
+        val error = runCatching { module.postComment("7", "Hay quá") }.exceptionOrNull()
+        assertTrue(error is SoundCloudModule.SoundCloudRejectedException)
+        assertTrue(error?.message?.contains("403") == true)
+    }
+
+    @Test
     fun `a comment keeps its track position and the moment it was written apart`() {
         val parsed = commentIn(
             """{"id":9,"body":"Hay","timestamp":85000,"created_at":"2026-10-22T23:53:04Z","user":{"username":"Listener","avatar_url":"https://i.example.test/a.jpg"}}""",
@@ -220,6 +248,7 @@ class SoundCloudAccountTest {
         var refuseAccount = false
         var offline = false
         var refuseComment = false
+        var commentStatus = 422
         private val refreshTo = refreshTo
         private val values = mutableMapOf(
             "client_id" to "0123456789abcdefghijklmnopqrstuv",
@@ -249,14 +278,15 @@ class SoundCloudAccountTest {
             }
             if (path == "/oauth/token") {
                 return if (refuseRefresh) {
-                    HttpResponse(400, "{}".toByteArray())
+                    // the endpoint's own answer for a dead refresh token
+                    HttpResponse(400, """{"error":"invalid_grant"}""".toByteArray())
                 } else {
                     HttpResponse(200, """{"access_token":"$refreshTo","refresh_token":"rotated-refresh"}""".toByteArray())
                 }
             }
             if (path == "/tracks/7/comments" && request.method == "POST") {
                 return if (refuseComment) {
-                    HttpResponse(422, "{}".toByteArray())
+                    HttpResponse(commentStatus, "{}".toByteArray())
                 } else {
                     HttpResponse(
                         201,

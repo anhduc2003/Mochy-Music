@@ -176,29 +176,43 @@ class SoundCloudModule : SourceModule {
      */
     private fun refreshSession(): Boolean? {
         val refresh = refreshToken?.takeIf { it.isNotBlank() } ?: return null
-        val clientId = host.storage.get(SessionClientIdKey)?.takeIf { it.isNotBlank() } ?: return null
-        val form = queryString(mapOf("grant_type" to "refresh_token", "refresh_token" to refresh, "client_id" to clientId))
-        val response = runCatching {
-            host.http(
-                HttpRequest(
-                    url = TokenUrl,
-                    method = "POST",
-                    headers = tokenHeaders,
-                    body = form.toByteArray(),
-                    contentType = FormContentType,
-                ),
-            )
-        }.getOrNull() ?: return null
-        if (response.code in 400..499) {
-            expire(SessionEndedReason)
-            return false
+        // The token endpoint needs the client the web session was issued to. A JWT that carries
+        // its own client_id names it; newer web tokens leave that claim out, and then the public
+        // player key (the one the session was signed in with) is the client id the endpoint knows.
+        val claim = host.storage.get(SessionClientIdKey)?.takeIf { it.isNotBlank() }
+        val public = runCatching { clientId(forceRefresh = false) }.getOrNull()?.takeIf { it.isNotBlank() }
+        val candidates = listOfNotNull(claim, public).distinct()
+        if (candidates.isEmpty()) return null
+        for (clientId in candidates) {
+            val form = queryString(mapOf("grant_type" to "refresh_token", "refresh_token" to refresh, "client_id" to clientId))
+            val response = runCatching {
+                host.http(
+                    HttpRequest(
+                        url = TokenUrl,
+                        method = "POST",
+                        headers = tokenHeaders,
+                        body = form.toByteArray(),
+                        contentType = FormContentType,
+                    ),
+                )
+            }.getOrNull() ?: return null
+            if (response.ok) {
+                val root = runCatching { json.parseToJsonElement(response.text) as? JsonObject }.getOrNull() ?: return null
+                val access = root.string("access_token")?.takeIf { it.isNotBlank() } ?: return null
+                saveSession(access)
+                root.string("refresh_token")?.takeIf { it.isNotBlank() }?.let { refreshToken = it }
+                return true
+            }
+            // `invalid_grant` is the endpoint saying the refresh token itself is dead: that is a
+            // real sign-out. Any other refusal (a stale public key, for instance) is not, and the
+            // caller's key refresh plus one more attempt may still get through.
+            if (response.code == 400 && response.text.contains("invalid_grant")) {
+                expire(SessionEndedReason)
+                return false
+            }
+            if (response.code !in 400..499) return null
         }
-        if (!response.ok) return null
-        val root = runCatching { json.parseToJsonElement(response.text) as? JsonObject }.getOrNull() ?: return null
-        val access = root.string("access_token")?.takeIf { it.isNotBlank() } ?: return null
-        saveSession(access)
-        root.string("refresh_token")?.takeIf { it.isNotBlank() }?.let { refreshToken = it }
-        return true
+        return null
     }
 
     fun reactivate() {
@@ -634,16 +648,16 @@ class SoundCloudModule : SourceModule {
             method = "POST",
         ) ?: throw SoundCloudApiException(null)
         when {
-            response.code == 401 || response.code == 403 -> {
-                // a refused refresh, or a legacy session with nothing to refresh, is a real
-                // sign-out; an unavailable refresh is reported as a network failure instead
-                host.storage.get(ExpiredKey)?.let { throw SoundCloudAuthException() }
-                if (refreshToken == null) {
-                    expire(SessionEndedReason)
-                    throw SoundCloudAuthException()
-                }
-                throw SoundCloudApiException(null)
+            response.code == 401 -> {
+                // the request layer already refreshed the token and the key; a 401 here is the
+                // session's own answer, so ask for the sign-in again instead of blaming the network
+                expire(SessionEndedReason)
+                throw SoundCloudAuthException()
             }
+            response.code == 403 ->
+                throw SoundCloudRejectedException(
+                    "SoundCloud từ chối bình luận này (403). Bài hát có thể đã tắt bình luận hoặc tài khoản bị giới hạn.",
+                )
             response.code == 422 || response.code == 400 ->
                 throw SoundCloudRejectedException("SoundCloud không nhận bình luận này. Thử nội dung ngắn hơn rồi gửi lại.")
             !response.ok -> throw SoundCloudApiException(response.code)
@@ -1014,6 +1028,13 @@ class SoundCloudModule : SourceModule {
         private const val UserAgent =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
         private val browserHeaders = mapOf("User-Agent" to UserAgent, "Accept-Language" to "en")
-        private val apiHeaders = mapOf("Accept" to "application/json", "User-Agent" to UserAgent)
+        // the browser sends these on every cross-origin call to api-v2, writes included; the
+        // account routes are the ones that notice their absence
+        private val apiHeaders = mapOf(
+            "Accept" to "application/json",
+            "User-Agent" to UserAgent,
+            "Origin" to "https://soundcloud.com",
+            "Referer" to "https://soundcloud.com/",
+        )
     }
 }
