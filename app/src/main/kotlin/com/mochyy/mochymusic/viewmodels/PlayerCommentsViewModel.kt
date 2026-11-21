@@ -1,11 +1,13 @@
 package com.mochyy.mochymusic.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mochyy.mochymusic.module.AccountState
 import com.mochyy.mochymusic.module.MochyModule
 import com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
 import com.mochyy.mochymusic.modules.ModuleRegistry
+import com.mochyy.mochymusic.ui.screens.soundcloud.SoundCloudWebComment
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -90,8 +92,12 @@ class PlayerCommentsViewModel @Inject constructor(
         _state.update { it.copy(draft = text, postError = null) }
     }
 
-    /** posts what is in the composer as the signed-in account, and puts it on top of the list */
-    fun post() {
+    /**
+     * Posts what is in the composer as the signed-in account, and puts it on top of the list.
+     * [context] is only touched when DataDome refuses the app's own client: the write is then
+     * repeated inside a WebView, which is a browser as far as the site is concerned.
+     */
+    fun post(context: Context) {
         val id = trackId ?: return
         val text = _state.value.draft.trim()
         if (text.isEmpty() || _state.value.posting) return
@@ -119,21 +125,57 @@ class PlayerCommentsViewModel @Inject constructor(
             val result = withContext(Dispatchers.IO) { runCatching { module.postComment(id, text) } }
             if (token != generation) return@launch
             result.fold(
-                onSuccess = { comment ->
-                    _state.update { current ->
-                        current.copy(
-                            posting = false,
-                            draft = "",
-                            comments = listOf(comment) + current.comments.filterNot { it.id == comment.id },
-                        )
-                    }
-                },
+                onSuccess = { comment -> accepted(comment) },
                 onFailure = { error ->
-                    val message = error.message?.takeIf { it.isNotBlank() } ?: "Không gửi được bình luận. Thử lại sau."
-                    _state.update { it.copy(posting = false, postError = message, account = module.accountState()) }
+                    // a write the app's own client couldn't make is retried as the browser: that
+                    // covers both the bot wall and a refusal the web request may not share
+                    val retryAsBrowser = error is SoundCloudModule.SoundCloudBlockedException ||
+                        (error is SoundCloudModule.SoundCloudRejectedException &&
+                            error.message?.contains("(403)") == true)
+                    if (retryAsBrowser) {
+                        val session = withContext(Dispatchers.IO) {
+                            runCatching { module.browserSession() }.getOrNull()
+                        }
+                        if (session != null) {
+                            val web = SoundCloudWebComment(context).post(id, text, session)
+                            if (token != generation) return@launch
+                            web.fold(
+                                onSuccess = { raw ->
+                                    val comment = module.commentFromJson(raw) ?: SoundCloudModule.Comment(
+                                        id = "new-${System.currentTimeMillis()}",
+                                        body = text,
+                                        author = (verified as? AccountState.SignedIn)?.label
+                                            ?.substringAfterLast("·")?.trim().orEmpty(),
+                                        timestampMs = null,
+                                        avatarUrl = null,
+                                        createdAtMs = System.currentTimeMillis(),
+                                    )
+                                    accepted(comment)
+                                },
+                                onFailure = { webError -> failed(module, webError) },
+                            )
+                            return@launch
+                        }
+                    }
+                    failed(module, error)
                 },
             )
         }
+    }
+
+    private fun accepted(comment: SoundCloudModule.Comment) {
+        _state.update { current ->
+            current.copy(
+                posting = false,
+                draft = "",
+                comments = listOf(comment) + current.comments.filterNot { it.id == comment.id },
+            )
+        }
+    }
+
+    private fun failed(module: SoundCloudModule, error: Throwable) {
+        val message = error.message?.takeIf { it.isNotBlank() } ?: "Không gửi được bình luận. Thử lại sau."
+        _state.update { it.copy(posting = false, postError = message, account = module.accountState()) }
     }
 
     private fun moduleOrNull(): SoundCloudModule? =

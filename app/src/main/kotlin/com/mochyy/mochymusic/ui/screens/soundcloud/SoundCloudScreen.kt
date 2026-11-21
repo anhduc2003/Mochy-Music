@@ -373,7 +373,7 @@ fun SoundCloudScreen(
                 onRetry = { commentsViewModel.open("$SC${upload.id}", upload.title) },
                 onLoadMore = commentsViewModel::loadMore,
                 onDraftChange = commentsViewModel::onDraftChange,
-                onSend = commentsViewModel::post,
+                onSend = { commentsViewModel.post(context) },
                 onSignIn = {
                     commentsViewModel.signInModule()?.let { module ->
                         // the comments sheet is a window of its own and the sign-in is the app's

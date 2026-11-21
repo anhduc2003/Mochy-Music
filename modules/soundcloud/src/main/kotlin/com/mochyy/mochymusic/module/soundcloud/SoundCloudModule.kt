@@ -472,6 +472,12 @@ class SoundCloudModule : SourceModule {
     /** SoundCloud read the request and refused what was in it (an empty or too long comment) */
     class SoundCloudRejectedException(message: String) : RuntimeException(message)
 
+    /** DataDome refused the write itself; the app retries it inside a WebView, as a browser */
+    class SoundCloudBlockedException : RuntimeException("SoundCloud đang chặn yêu cầu từ mạng này.")
+
+    /** the browser's own credentials, for a write that has to look like the web player */
+    class BrowserSession(val clientId: String, val token: String)
+
     private fun catalogApi(path: String, query: Map<String, String>): HttpResponse {
         val response = api(path, query) ?: throw SoundCloudApiException(null)
         if (!response.ok) throw SoundCloudApiException(response.code)
@@ -686,14 +692,11 @@ class SoundCloudModule : SourceModule {
                 val blocked = response.header("x-datadome") != null ||
                     response.text.contains("datadome", ignoreCase = true) ||
                     response.text.contains("captcha", ignoreCase = true)
+                if (blocked) throw SoundCloudBlockedException()
+                val detail = response.text.trim().take(140)
                 throw SoundCloudRejectedException(
-                    if (blocked) {
-                        "SoundCloud đang chặn yêu cầu gửi bình luận từ mạng hiện tại (thường do VPN/proxy). Tắt VPN rồi thử lại."
-                    } else {
-                        val detail = response.text.trim().take(140)
-                        "SoundCloud từ chối bình luận này (403). " +
-                            detail.ifBlank { "Bài hát có thể đã tắt bình luận hoặc tài khoản bị giới hạn." }
-                    },
+                    "SoundCloud từ chối bình luận này (403). " +
+                        detail.ifBlank { "Bài hát có thể đã tắt bình luận hoặc tài khoản bị giới hạn." },
                 )
             }
             response.code == 422 || response.code == 400 ->
@@ -716,6 +719,20 @@ class SoundCloudModule : SourceModule {
         )
 
     private fun instantMs(text: String): Long? = runCatching { Instant.parse(text).toEpochMilli() }.getOrNull()
+
+    /**
+     * The public player key and the account token as the browser holds them. The app's own HTTP
+     * client is what DataDome refuses, so a blocked write is repeated inside a WebView instead.
+     */
+    fun browserSession(): BrowserSession? {
+        val id = runCatching { clientId(forceRefresh = false) }.getOrNull()?.takeIf { it.isNotBlank() } ?: return null
+        val token = session ?: return null
+        return BrowserSession(id, token)
+    }
+
+    /** a comment from the api's own JSON, for a write the app made outside this client */
+    fun commentFromJson(text: String): Comment? =
+        runCatching { json.parseToJsonElement(text) as? JsonObject }.getOrNull()?.let(::commentOf)
 
     /** the payload of a JWT-shaped web token, or null for a legacy opaque token */
     internal fun jwtPayload(token: String): JsonObject? {

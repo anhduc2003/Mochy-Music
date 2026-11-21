@@ -1882,7 +1882,7 @@ private fun PlayerSheet(
                 },
                 onLoadMore = commentsViewModel::loadMore,
                 onDraftChange = commentsViewModel::onDraftChange,
-                onSend = commentsViewModel::post,
+                onSend = { commentsViewModel.post(studioContext) },
                 onSignIn = {
                     commentsViewModel.signInModule()?.let { module ->
                         // the comments sheet is a window of its own and the sign-in is the app's
