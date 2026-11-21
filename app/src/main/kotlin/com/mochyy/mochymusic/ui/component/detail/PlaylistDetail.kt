@@ -1504,7 +1504,9 @@ fun PlaylistTrackRow(
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(36.dp)
+                    // a full 48dp target: a 36dp one made the dots easy to miss and a tap near
+                    // them opened the song instead of its menu
+                    .size(48.dp)
                     .clip(CircleShape)
                     .clickable(onClick = onMenuClick)
             ) {

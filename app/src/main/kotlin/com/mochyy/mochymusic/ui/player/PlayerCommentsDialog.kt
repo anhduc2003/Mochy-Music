@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -77,7 +78,9 @@ fun PlayerCommentsDialog(
     onSignIn: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    MenuSheetSurface(onDismiss = onDismiss, halfDetent = 0.86f, fullDetent = 0.94f) { _ ->
+    // The sheet rests on the screen's bottom edge (a shorter detent pushes its last rows, the
+    // composer included, below the screen) and the composer is padded out of the keyboard's way.
+    MenuSheetSurface(onDismiss = onDismiss, halfDetent = 1f, fullDetent = 1f) { _ ->
         val listState = rememberLazyListState()
         // a posted comment lands on top of the list, so bring the reader there to see it
         var firstId by remember { mutableStateOf<String?>(null) }
@@ -89,7 +92,7 @@ fun PlayerCommentsDialog(
             }
         }
 
-        Column(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().imePadding()) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth().padding(start = 22.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
