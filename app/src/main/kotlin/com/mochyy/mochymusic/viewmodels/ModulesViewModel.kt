@@ -16,6 +16,7 @@ import com.mochyy.mochymusic.module.ItemProblem
 import com.mochyy.mochymusic.module.ItemsAdded
 import com.mochyy.mochymusic.module.LyricsModule
 import com.mochyy.mochymusic.module.MetadataModule
+import com.mochyy.mochymusic.module.MochyModule
 import com.mochyy.mochymusic.module.ModuleFeature
 import com.mochyy.mochymusic.module.ModuleItem
 import com.mochyy.mochymusic.module.ModuleServer
@@ -89,6 +90,9 @@ class ModulesViewModel @Inject constructor(
 
     private var testJob: Job? = null
     private var signedIn = false
+    // a sign-in the service refused (often a stale cookie from an earlier session); the page keeps
+    // running, so the same value must not be tried again on the next tick
+    private val refusedSignIns = mutableSetOf<String>()
 
     // the module being updated right now, for its button's spinner
     private val _updating = MutableStateFlow<String?>(null)
@@ -176,7 +180,13 @@ class ModulesViewModel @Inject constructor(
 
     fun signOut(id: String) {
         registry.module(id)?.signOut()
-        modules.setEnabled(id, false)
+        // SoundCloud keeps browsing and playing after its optional account is signed out; the
+        // modules that exist for an account stop being usable, so their switch goes off with it
+        if (id != com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.Id) {
+            modules.setEnabled(id, false)
+        } else {
+            modules.refresh()
+        }
         _steps.value = emptyList()
     }
 
@@ -267,18 +277,81 @@ class ModulesViewModel @Inject constructor(
     /** a header from the sign-in page; [onDone] runs once, when the account is in */
     fun onSignInHeader(id: String, name: String, value: String, url: String, onDone: (AccountState) -> Unit) {
         val module = registry.module(id) ?: return
-        if (signedIn || !module.onSignInHeader(name, value, url)) return
+        val key = signInKey(id, name, value)
+        if (signedIn || key in refusedSignIns || !module.onSignInHeader(name, value, url)) return
+        // the same session may also live in cookies (SoundCloud's refresh token does): hand those
+        // over before verifying, so a fast header doesn't close the sheet before they are read
+        module.signIn?.let { deliverSignInCookies(id, module, it.sessionOrigins) }
+        finishSignIn(id, key, onDone)
+    }
+
+    /**
+     * A web player keeps its session in cookies as well as in request headers; a cookie is handed
+     * to the module exactly like a header, so a page that only stores one is still signed in.
+     */
+    fun onSignInCookies(id: String, origins: Set<String>, onDone: (AccountState) -> Unit) {
+        val module = registry.module(id) ?: return
+        val delivered = deliverSignInCookies(id, module, origins)
+        if (!signedIn && delivered.ready) finishSignIn(id, delivered.accessKey ?: "cookie-session", onDone)
+    }
+
+    private class CookieDelivery(val accessKey: String?, val ready: Boolean)
+
+    /**
+     * Every cookie is handed over before the sign-in is judged: a session can be two cookies
+     * (SoundCloud's short-lived access token and its refresh token), and the module needs both.
+     */
+    private fun deliverSignInCookies(id: String, module: MochyModule, origins: Set<String>): CookieDelivery {
+        val cookies = android.webkit.CookieManager.getInstance()
+        var readyKey: String? = null
+        var accessKey: String? = null
+        for (origin in origins) {
+            val header = runCatching { cookies.getCookie(origin) }.getOrNull() ?: continue
+            for (pair in header.split(';')) {
+                val name = pair.substringBefore('=').trim()
+                val value = pair.substringAfter('=', "").trim()
+                if (name.isEmpty() || value.isEmpty()) continue
+                val key = signInKey(id, name, value)
+                if (key in refusedSignIns) continue
+                if (name.equals("oauth_token", ignoreCase = true)) accessKey = key
+                if (module.onSignInHeader(name, value, origin)) readyKey = key
+            }
+        }
+        return CookieDelivery(accessKey ?: readyKey, readyKey != null)
+    }
+
+    private fun finishSignIn(id: String, key: String, onDone: (AccountState) -> Unit) {
+        val module = registry.module(id) ?: return
+        if (signedIn) return
         signedIn = true
         viewModelScope.launch {
             val state = withContext(Dispatchers.IO) { runCatching { module.verifyAccount() }.getOrNull() } ?: module.accountState()
-            // signing in is asking for it: the module plays from now on
-            if (state is AccountState.SignedIn) modules.setEnabled(id, true) else modules.refresh()
-            onDone(state)
+            when (state) {
+                is AccountState.SignedIn -> {
+                    // signing in is asking for it: the module plays from now on
+                    modules.setEnabled(id, true)
+                    onDone(state)
+                }
+                is AccountState.Expired -> {
+                    // the page handed over a value SoundCloud refused: forget it, keep the sheet
+                    // open and wait for the session the next sign-in step produces
+                    module.signOut()
+                    refusedSignIns += key
+                    signedIn = false
+                }
+                AccountState.SignedOut -> {
+                    signedIn = false
+                    onDone(state)
+                }
+            }
         }
     }
 
+    private fun signInKey(id: String, name: String, value: String) = "$id|${name.lowercase()}|$value"
+
     fun resetSignIn() {
         signedIn = false
+        refusedSignIns.clear()
     }
 
     /** what the import's musickit probe read off music.apple.com: the same two tokens the web player sends as headers */

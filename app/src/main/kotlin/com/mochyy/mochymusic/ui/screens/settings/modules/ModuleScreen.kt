@@ -169,6 +169,11 @@ fun ModuleScreen(navController: NavController, id: String, viewModel: ModulesVie
     }
 }
 
+private fun builtInBannerRes(id: String): Int? = when (id) {
+    SoundCloudModule.Id -> R.drawable.provider_soundcloud_banner
+    else -> null
+}
+
 /** the module's banner, or its icon blown up and blurred when it has none, fading into the page */
 @Composable
 private fun ModuleBanner(entry: ModuleEntry) {
@@ -186,9 +191,15 @@ private fun ModuleBanner(entry: ModuleEntry) {
     ) {
         val banner = entry.banner
         val icon = entry.icon
+        val builtInBanner = builtInBannerRes(entry.id)
         when {
             banner != null -> AsyncImage(
                 model = artModel(banner), contentDescription = null, contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+            // the modules that ship with their own artwork get the same wide banner as the mock
+            builtInBanner != null -> androidx.compose.foundation.Image(
+                painterResource(builtInBanner), contentDescription = null, contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
             // blur only exists on android 12+, older phones would get a giant sharp icon instead

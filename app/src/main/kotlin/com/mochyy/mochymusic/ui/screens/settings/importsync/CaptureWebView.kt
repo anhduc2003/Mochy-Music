@@ -65,7 +65,7 @@ import com.mochyy.mochymusic.ui.utils.stableStatusBarsPadding
 internal const val BRIDGE_NAME = "MochyCapture"
 
 /** headers the web players send with their session: the token itself and spotify's client details */
-private val SESSION_HEADERS = setOf("authorization", "media-user-token", "client-token", "app-platform", "spotify-app-version")
+private val SESSION_HEADERS = setOf("authorization", "media-user-token", "client-token", "app-platform", "spotify-app-version", "oauth_token")
 
 /** wraps fetch and xhr so the session headers and spotify's library queries the web player sends reach the app */
 private val HOOK_JS = """
@@ -73,7 +73,7 @@ private val HOOK_JS = """
   if (window.__mochyHooked) return;
   window.__mochyHooked = true;
   window.__mochyQueries = window.__mochyQueries || {};
-  var wanted = { 'authorization': 1, 'media-user-token': 1, 'client-token': 1, 'app-platform': 1, 'spotify-app-version': 1 };
+  var wanted = { 'authorization': 1, 'media-user-token': 1, 'client-token': 1, 'app-platform': 1, 'spotify-app-version': 1, 'oauth_token': 1 };
   var seen = {};
   var seenCount = 0;
   function report(name, value, url) {
@@ -118,8 +118,17 @@ private val HOOK_JS = """
       window.$BRIDGE_NAME.onHeader('$WEB_PLAYER_QUERY_HEADER', JSON.stringify(query), address.toString());
     } catch (e) {}
   }
+  // some web players still put the session in the query string ("?oauth_token=...")
+  function reportTokenFromUrl(url) {
+    try {
+      var address = new URL(String(url || ''), location.href);
+      var token = address.searchParams.get('oauth_token');
+      if (token) report('oauth_token', token, address.toString());
+    } catch (e) {}
+  }
   function scan(headers, url) {
     try {
+      reportTokenFromUrl(url);
       if (!headers) return;
       if (typeof Headers !== 'undefined' && headers instanceof Headers) {
         headers.forEach(function(v, k) { report(k, v, url); });
@@ -136,6 +145,7 @@ private val HOOK_JS = """
       window.fetch = function(input, init) {
         try {
           var url = (typeof input === 'string') ? input : (input && input.url);
+          reportTokenFromUrl(url);
           if (input && typeof input === 'object' && input.headers) scan(input.headers, url);
           if (init && init.headers) scan(init.headers, url);
           reportQuery(url, init && init.body);
@@ -148,6 +158,7 @@ private val HOOK_JS = """
     var originalOpen = XMLHttpRequest.prototype.open;
     var originalSet = XMLHttpRequest.prototype.setRequestHeader;
     XMLHttpRequest.prototype.open = function(method, url) {
+      try { reportTokenFromUrl(url); } catch (e) {}
       try { this.__mochyUrl = url; } catch (e) {}
       return originalOpen.apply(this, arguments);
     };

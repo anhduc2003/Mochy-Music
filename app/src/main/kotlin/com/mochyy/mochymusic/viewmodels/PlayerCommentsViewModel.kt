@@ -2,6 +2,8 @@ package com.mochyy.mochymusic.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mochyy.mochymusic.module.AccountState
+import com.mochyy.mochymusic.module.MochyModule
 import com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
 import com.mochyy.mochymusic.modules.ModuleRegistry
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,6 +34,12 @@ class PlayerCommentsViewModel @Inject constructor(
         val nextOffset: Int? = null,
         val loadingMore: Boolean = false,
         val moreError: String? = null,
+        /** the SoundCloud account, so the composer can ask for a sign-in instead of failing a send */
+        val account: AccountState = AccountState.SignedOut,
+        /** what is typed in the composer; kept here so a rotation or a failed send doesn't lose it */
+        val draft: String = "",
+        val posting: Boolean = false,
+        val postError: String? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -48,7 +56,7 @@ class PlayerCommentsViewModel @Inject constructor(
         generation++
         job?.cancel()
         trackId = id
-        _state.value = UiState(title = title, loading = true)
+        _state.value = UiState(title = title, loading = true, account = moduleOrNull()?.accountState() ?: AccountState.SignedOut)
         load(id, offset = 0, token = generation, more = false)
     }
 
@@ -68,6 +76,56 @@ class PlayerCommentsViewModel @Inject constructor(
         trackId = null
         _state.value = UiState()
     }
+
+    /** the module a sign-in sheet signs into, null when SoundCloud isn't loaded */
+    fun signInModule(): MochyModule? = moduleOrNull()
+
+    /** after a sign-in sheet closes, so the composer stops asking for one */
+    fun refreshAccount() {
+        val account = moduleOrNull()?.accountState() ?: AccountState.SignedOut
+        _state.update { it.copy(account = account) }
+    }
+
+    fun onDraftChange(text: String) {
+        _state.update { it.copy(draft = text, postError = null) }
+    }
+
+    /** posts what is in the composer as the signed-in account, and puts it on top of the list */
+    fun post() {
+        val id = trackId ?: return
+        val text = _state.value.draft.trim()
+        if (text.isEmpty() || _state.value.posting) return
+        val module = moduleOrNull() ?: return
+        val account = module.accountState()
+        if (account !is AccountState.SignedIn) {
+            _state.update { it.copy(account = account, postError = "Đăng nhập SoundCloud để bình luận bằng tài khoản của bạn.") }
+            return
+        }
+        val token = generation
+        _state.update { it.copy(posting = true, postError = null) }
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) { runCatching { module.postComment(id, text) } }
+            if (token != generation) return@launch
+            result.fold(
+                onSuccess = { comment ->
+                    _state.update { current ->
+                        current.copy(
+                            posting = false,
+                            draft = "",
+                            comments = listOf(comment) + current.comments.filterNot { it.id == comment.id },
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    val message = error.message?.takeIf { it.isNotBlank() } ?: "Không gửi được bình luận. Thử lại sau."
+                    _state.update { it.copy(posting = false, postError = message, account = module.accountState()) }
+                },
+            )
+        }
+    }
+
+    private fun moduleOrNull(): SoundCloudModule? =
+        runCatching { registry.module(SoundCloudModule.Id) as? SoundCloudModule }.getOrNull()
 
     private fun load(id: String, offset: Int, token: Long, more: Boolean) {
         job = viewModelScope.launch(Dispatchers.IO) {

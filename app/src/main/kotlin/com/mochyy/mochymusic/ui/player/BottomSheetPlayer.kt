@@ -3,6 +3,7 @@
 package com.mochyy.mochymusic.ui.player
 
 import androidx.compose.animation.animateColorAsState
+import com.mochyy.mochymusic.ui.screens.settings.modules.showModuleSignInSheet
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -316,6 +317,10 @@ private fun PlayerSheet(
     var showLyricsSource by remember { mutableStateOf(false) }
     var showComments by remember { mutableStateOf(false) }
     val commentsViewModel: com.mochyy.mochymusic.viewmodels.PlayerCommentsViewModel =
+        androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel()
+    // the same sign-in sheet the module's settings page opens, over the player
+    val zoomSheets = com.mochyy.mochymusic.ui.component.LocalZoomOutOverlayState.current
+    val modulesViewModel: com.mochyy.mochymusic.viewmodels.ModulesViewModel =
         androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel()
 
     var showExpandMenu by remember { mutableStateOf(false) }
@@ -1876,6 +1881,13 @@ private fun PlayerSheet(
                     }
                 },
                 onLoadMore = commentsViewModel::loadMore,
+                onDraftChange = commentsViewModel::onDraftChange,
+                onSend = commentsViewModel::post,
+                onSignIn = {
+                    commentsViewModel.signInModule()?.let { module ->
+                        zoomSheets.showModuleSignInSheet(module, modulesViewModel) { commentsViewModel.refreshAccount() }
+                    }
+                },
                 onDismiss = {
                     showComments = false
                     commentsViewModel.close()

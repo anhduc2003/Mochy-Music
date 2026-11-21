@@ -93,6 +93,8 @@ private fun ModuleSignInContent(
                     onApplePageProbe = { viewModel.onApplePageProbe(id, it, onDone) },
                     onCookies = { viewModel.onAppleCookies(id, it, onDone) },
                 )
+                // pages that keep the session in a cookie hand it over here, the same way a header is
+                viewModel.onSignInCookies(id, spec.sessionOrigins, onDone)
             },
             onExit = onClose,
             onUrlChange = { url = it },

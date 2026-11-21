@@ -11,8 +11,8 @@ import com.mochyy.mochymusic.module.MatchedTrack
 import com.mochyy.mochymusic.module.ModuleChoice
 import com.mochyy.mochymusic.module.ModuleHost
 import com.mochyy.mochymusic.module.ModuleInfo
-import com.mochyy.mochymusic.module.NO_ACCOUNT_LABEL
 import com.mochyy.mochymusic.module.ResolveResult
+import com.mochyy.mochymusic.module.SignInSpec
 import com.mochyy.mochymusic.module.SourceModule
 import com.mochyy.mochymusic.module.SourceStream
 import com.mochyy.mochymusic.module.StreamFormat
@@ -26,16 +26,20 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.longOrNull
+import java.net.URI
 import java.net.URLEncoder
 import java.text.Normalizer
+import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
 /**
  * SoundCloud's catalog, played the way the web player plays it: an HLS stream behind a signed URL.
  *
- * Public catalog requests currently use the web player's rotating client ID. Account APIs need
- * separately registered OAuth credentials; a public client ID is not a logged-in user session.
- * The web client ID is read from player bundles when expired or rejected.
+ * Public catalog requests use the web player's rotating client ID. Signing in happens on
+ * soundcloud.com itself, inside Mochy's own sign-in browser: the session token the page sends to
+ * api-v2 is kept (never the password), and it turns on what only an account can do, such as
+ * posting a comment. A public client ID is not a user session, so browsing and reading comments
+ * keep working while signed out.
  *
  * What it is good at is what the other sources are not: independent artists, DJ sets, remixes, and
  * uploads 40 minutes long.
@@ -45,8 +49,8 @@ class SoundCloudModule : SourceModule {
     override val info = ModuleInfo(
         id = Id,
         name = "SoundCloud",
-        version = "1.1",
-        description = "Danh mục SoundCloud công khai: tìm kiếm, gợi ý nhạc Việt theo metadata, phát nhạc, xem bình luận và lượt thích. Không cần tài khoản SoundCloud.",
+        version = "1.2",
+        description = "Danh mục SoundCloud: tìm kiếm, gợi ý nhạc Việt, phát nhạc, đọc và viết bình luận. Đăng nhập SoundCloud ngay trong ứng dụng để bình luận bằng tài khoản của bạn; nghe nhạc vẫn dùng được khi chưa đăng nhập.",
     )
 
     private lateinit var host: ModuleHost
@@ -69,23 +73,132 @@ class SoundCloudModule : SourceModule {
         ),
     )
 
-    // a server that didn't answer is left alone for a while, as the other sources do
+    // ---- account ------------------------------------------------------------------------------
+
+    /**
+     * SoundCloud's own sign-in page, in Mochy's browser. The page is a single-page app, so the
+     * session is not a cookie the sheet can hand over by itself: it is the `Authorization: OAuth …`
+     * header the page puts on its api-v2 requests, plus the `oauth_token` cookie the web player
+     * keeps. The hook in the sign-in browser reports both.
+     */
+    override val signIn = SignInSpec(
+        startUrl = "https://soundcloud.com/signin",
+        origins = listOf("https://soundcloud.com", "https://m.soundcloud.com", "https://secure.soundcloud.com"),
+        sessionOrigins = setOf("https://soundcloud.com", "https://m.soundcloud.com", "https://secure.soundcloud.com"),
+        desktopSite = false,
+        title = "Đăng nhập SoundCloud",
+        subtitle = "Bình luận bằng tài khoản của bạn. Nghe nhạc vẫn không cần đăng nhập.",
+    )
+
+    private var session: String?
+        get() = host.storage.get(TokenKey)
+        set(value) = host.storage.set(TokenKey, value)
+
+    /** the web session's other half: SoundCloud rotates a short-lived access token with this */
+    private var refreshToken: String?
+        get() = host.storage.get(RefreshTokenKey)
+        set(value) = host.storage.set(RefreshTokenKey, value)
+
     override fun accountState(): AccountState {
-        val reason = host.storage.get("unreachable") ?: return AccountState.SignedIn(NO_ACCOUNT_LABEL)
-        val markedAt = host.storage.get("unreachable_at")?.toLongOrNull() ?: 0L
-        return if (System.currentTimeMillis() - markedAt < UnreachableRetryMs) AccountState.Expired(reason) else AccountState.SignedIn(NO_ACCOUNT_LABEL)
+        session ?: return AccountState.SignedOut
+        val expired = host.storage.get(ExpiredKey)
+        if (expired != null) return AccountState.Expired(expired)
+        return AccountState.SignedIn(host.storage.get(LabelKey) ?: SignedInLabel)
+    }
+
+    /** true once a soundcloud.com page has handed over a session api-v2 accepts */
+    override fun onSignInHeader(name: String, value: String, url: String): Boolean {
+        if (!url.isSoundCloudAddress()) return false
+        when (name.trim().lowercase()) {
+            "authorization" -> {
+                val raw = value.trim()
+                val candidate = raw.replace(AuthorizationPrefix, "").trim()
+                // the page also sends Basic/Bearer headers for its own endpoints; only its OAuth
+                // session is the one api-v2 takes, and only that one is kept
+                if (raw.startsWith("OAuth ", ignoreCase = true) || SessionToken.matches(candidate)) saveSession(candidate)
+            }
+            "oauth_token" -> value.trim().trim('"').takeIf { SessionToken.matches(it) }?.let(::saveSession)
+            "oauth_refresh_token" -> value.trim().trim('"').takeIf { SessionToken.matches(it) }?.let { refreshToken = it }
+        }
+        return session != null
+    }
+
+    private fun saveSession(value: String) {
+        session = value
+        host.storage.set(ExpiredKey, null)
+        // the web token is a JWT: its client id is what the refresh endpoint asks for, and its
+        // exp is how a 401 is told apart from a rotating public key
+        jwtPayload(value)?.let { claims ->
+            claims.string("client_id")?.takeIf { it.isNotBlank() }?.let { host.storage.set(SessionClientIdKey, it) }
+            claims.long("exp")?.let { host.storage.set(SessionExpiresAtKey, (it * 1000L).toString()) }
+        }
     }
 
     override suspend fun verifyAccount(): AccountState {
-        val response = runCatching { api(SearchPath, mapOf("q" to "test", "limit" to "1")) }.getOrNull()
-        return if (response?.ok == true) {
-            host.storage.set("unreachable", null)
-            AccountState.SignedIn("$NO_ACCOUNT_LABEL · server reachable")
-        } else {
-            val reason = "SoundCloud didn't answer (${response?.code ?: "offline"})"
-            markUnreachable(reason)
-            AccountState.Expired(reason)
+        session ?: return AccountState.SignedOut
+        // A network that didn't answer is not a sign-out: keep the session and the label it had.
+        val response = runCatching { accountApi("/me") }.getOrNull() ?: return accountState()
+        if (response.code == 401 || response.code == 403) {
+            // A refused refresh, or a legacy session with no refresh token at all, is a real
+            // sign-out. A refresh that could not answer (no network) is not: keep the session.
+            host.storage.get(ExpiredKey)?.let { return AccountState.Expired(it) }
+            if (refreshToken != null) return accountState()
+            expire(SessionEndedReason)
+            return AccountState.Expired(SessionEndedReason)
         }
+        if (!response.ok) return accountState()
+        val user = runCatching { json.parseToJsonElement(response.text) as? JsonObject }.getOrNull()
+            ?: return accountState()
+        val username = user.string("username")?.takeIf { it.isNotBlank() }
+        val label = username?.let { "$SignedInLabel · $it" } ?: SignedInLabel
+        host.storage.set(LabelKey, label)
+        host.storage.set(ExpiredKey, null)
+        return AccountState.SignedIn(label)
+    }
+
+    private fun expire(reason: String) {
+        host.storage.set(ExpiredKey, reason)
+    }
+
+    /** true when the JWT is at (or past) its end, or when it isn't a JWT and cannot say */
+    private fun sessionDue(): Boolean {
+        val expiresAt = host.storage.get(SessionExpiresAtKey)?.toLongOrNull() ?: return true
+        return expiresAt <= System.currentTimeMillis() + RefreshMarginMs
+    }
+
+    /**
+     * Exchanges the web session's `oauth_refresh_token` for a fresh access token, the same way the
+     * web player keeps itself signed in. The endpoint is a public client: `client_id` is the claim
+     * inside the JWT, and the response rotates both tokens.
+     *
+     * true = refreshed, false = SoundCloud refused the refresh token (a real sign-out), null = it
+     * could not be tried or did not answer, which is not a sign-out.
+     */
+    private fun refreshSession(): Boolean? {
+        val refresh = refreshToken?.takeIf { it.isNotBlank() } ?: return null
+        val clientId = host.storage.get(SessionClientIdKey)?.takeIf { it.isNotBlank() } ?: return null
+        val form = queryString(mapOf("grant_type" to "refresh_token", "refresh_token" to refresh, "client_id" to clientId))
+        val response = runCatching {
+            host.http(
+                HttpRequest(
+                    url = TokenUrl,
+                    method = "POST",
+                    headers = tokenHeaders,
+                    body = form.toByteArray(),
+                    contentType = FormContentType,
+                ),
+            )
+        }.getOrNull() ?: return null
+        if (response.code in 400..499) {
+            expire(SessionEndedReason)
+            return false
+        }
+        if (!response.ok) return null
+        val root = runCatching { json.parseToJsonElement(response.text) as? JsonObject }.getOrNull() ?: return null
+        val access = root.string("access_token")?.takeIf { it.isNotBlank() } ?: return null
+        saveSession(access)
+        root.string("refresh_token")?.takeIf { it.isNotBlank() }?.let { refreshToken = it }
+        return true
     }
 
     fun reactivate() {
@@ -95,6 +208,8 @@ class SoundCloudModule : SourceModule {
     }
 
     override fun signOut() {
+        listOf(TokenKey, RefreshTokenKey, SessionClientIdKey, SessionExpiresAtKey, LabelKey, ExpiredKey)
+            .forEach { host.storage.set(it, null) }
         matches.clear()
         misses.clear()
     }
@@ -128,11 +243,11 @@ class SoundCloudModule : SourceModule {
             val best = TrackMatcher.ranked(track, candidates.map { it.catalog }).firstOrNull()
                 ?.let { scored -> candidates.first { it.catalog === scored.track } }
             if (best == null) {
-                misses[key] = System.currentTimeMillis()
+                rememberMiss(key)
                 report(DiagnosticStep("Find the song", false, "No matching upload of “${track.title}”"))
                 return ResolveResult.NotFound("No matching upload on SoundCloud")
             }
-            matches[key] = best
+            rememberMatch(key, best)
             best
         }
         report(DiagnosticStep("Find the song", true, "${found.catalog.title} · ${found.catalog.artist}"))
@@ -173,28 +288,103 @@ class SoundCloudModule : SourceModule {
 
     // ---- the api, and the key it needs ----
 
-    private fun api(path: String, query: Map<String, String>): HttpResponse? =
-        requestWithClientId { id -> ApiBase + path + "?" + queryString(query + ("client_id" to id)) }
+    private fun api(
+        path: String,
+        query: Map<String, String>,
+        method: String = "GET",
+        body: String? = null,
+        contentType: String? = null,
+        authorization: String? = null,
+    ): HttpResponse? = requestWithClientId(method, body, contentType, authorization) { id ->
+        ApiBase + path + "?" + queryString(query + ("client_id" to id))
+    }
 
-    private fun requestWithClientId(urlFor: (String) -> String): HttpResponse? {
+    /** the account's own calls, which need both the public key and the signed-in session */
+    private fun accountApi(
+        path: String,
+        query: Map<String, String> = emptyMap(),
+        method: String = "GET",
+        body: String? = null,
+    ): HttpResponse? = api(
+        path = path,
+        query = query,
+        method = method,
+        body = body,
+        contentType = body?.let { "application/json; charset=utf-8" },
+        authorization = session,
+    )
+
+    private fun requestWithClientId(
+        method: String = "GET",
+        body: String? = null,
+        contentType: String? = null,
+        authorization: String? = null,
+        urlFor: (String) -> String,
+    ): HttpResponse? {
         var activeClientId = clientId(forceRefresh = false) ?: return null
-        var refreshed = false
+        var activeSession = authorization
+        var refreshedKey = false
+        var refreshedSession = false
         var retry = 0
         while (true) {
+            val headers = if (activeSession != null) apiHeaders + ("Authorization" to "OAuth $activeSession") else apiHeaders
             val response = runCatching {
-                host.http(HttpRequest(urlFor(activeClientId), headers = apiHeaders))
+                host.http(
+                    HttpRequest(
+                        url = urlFor(activeClientId),
+                        method = method,
+                        headers = headers,
+                        body = body?.toByteArray(),
+                        contentType = contentType,
+                    ),
+                )
             }.getOrNull()
-            if (response?.code == 401 && !refreshed) {
-                host.storage.set(ClientIdKey, null)
-                host.storage.set(ClientIdAtKey, null)
-                activeClientId = clientId(forceRefresh = true) ?: return response
-                refreshed = true
-                continue
+            // A 401 can mean the short-lived web token expired, the rotating public key went stale,
+            // or the account's session ended. The token is refreshed first when its JWT says it is
+            // due; then one key refresh tells a stale key from a dead session: a new key is retried
+            // once, an unchanged one is not.
+            if (response?.code == 401) {
+                // the usual cause: the short-lived web token is due, so refresh it first
+                if (activeSession != null && !refreshedSession && sessionDue()) {
+                    refreshedSession = true
+                    when (refreshSession()) {
+                        true -> {
+                            activeSession = session
+                            continue
+                        }
+                        // the token endpoint refused the refresh token: the session is really over
+                        false -> return response
+                        // no refresh token, or a network that could not answer: try the key next
+                        null -> Unit
+                    }
+                }
+                if (!refreshedKey) {
+                    refreshedKey = true
+                    host.storage.set(ClientIdKey, null)
+                    host.storage.set(ClientIdAtKey, null)
+                    val renewed = clientId(forceRefresh = true)
+                    if (renewed != null && renewed != activeClientId) {
+                        activeClientId = renewed
+                        continue
+                    }
+                }
+                // a token that is not due can still have been revoked; one refresh is the last
+                // chance before the caller decides the session ended
+                if (activeSession != null && !refreshedSession) {
+                    refreshedSession = true
+                    when (refreshSession()) {
+                        true -> {
+                            activeSession = session
+                            continue
+                        }
+                        false -> return response
+                        null -> Unit
+                    }
+                }
+                return response
             }
-            // A 401 after key refresh is terminal; it can indicate auth/access restrictions,
-            // and must not be disguised as a different-key retry.
-            if (response?.code == 401) return response
-            if (retry < MaxApiRetries && (response == null || response.code == 429 || response.code in 500..599)) {
+            // retrying a POST could post the same comment twice, so only reads are retried
+            if (method == "GET" && retry < MaxApiRetries && (response == null || response.code == 429 || response.code in 500..599)) {
                 val delayMs = apiRetryDelayMs(retry++, response?.header("retry-after"))
                 try {
                     Thread.sleep(delayMs)
@@ -248,6 +438,12 @@ class SoundCloudModule : SourceModule {
         },
     )
 
+    /** the session is gone or was never there: the UI offers the sign-in again instead of a retry */
+    class SoundCloudAuthException : RuntimeException("Đăng nhập SoundCloud để bình luận bằng tài khoản của bạn.")
+
+    /** SoundCloud read the request and refused what was in it (an empty or too long comment) */
+    class SoundCloudRejectedException(message: String) : RuntimeException(message)
+
     private fun catalogApi(path: String, query: Map<String, String>): HttpResponse {
         val response = api(path, query) ?: throw SoundCloudApiException(null)
         if (!response.ok) throw SoundCloudApiException(response.code)
@@ -257,6 +453,8 @@ class SoundCloudModule : SourceModule {
     private fun discoverClientId(): String? {
         val page = runCatching { host.http(HttpRequest(HomePage, headers = browserHeaders)) }.getOrNull() ?: return null
         if (!page.ok) return null
+        // some deploys inline the key in the page itself instead of shipping it in a bundle
+        clientIdIn(page.text)?.let { return it }
         val scripts = bundleUrlsIn(page.text).take(MaxBundles)
         for (script in scripts) {
             val bundle = runCatching { host.http(HttpRequest(script, headers = browserHeaders)) }.getOrNull() ?: continue
@@ -288,6 +486,22 @@ class SoundCloudModule : SourceModule {
         host.storage.set("unreachable", reason)
         host.storage.set("unreachable_at", System.currentTimeMillis().toString())
     }
+
+    // the song cache is a convenience, not a library: bound it so a long session can't grow it forever
+    private fun rememberMatch(key: String, track: ScTrack) {
+        if (matches.size >= MaxCachedMatches) matches.clear()
+        matches[key] = track
+    }
+
+    private fun rememberMiss(key: String) {
+        if (misses.size >= MaxCachedMisses) misses.clear()
+        misses[key] = System.currentTimeMillis()
+    }
+
+    private fun String.isSoundCloudAddress(): Boolean = runCatching {
+        val host = URI(this).host?.lowercase() ?: return@runCatching false
+        host == "soundcloud.com" || host.endsWith(".soundcloud.com")
+    }.getOrDefault(false)
 
     // ---- reading what SoundCloud sent ----
 
@@ -344,8 +558,11 @@ class SoundCloudModule : SourceModule {
         val id: String,
         val body: String,
         val author: String,
+        /** where in the upload the comment was left, for a "1:25" chip; null for a general one */
         val timestampMs: Long?,
         val avatarUrl: String?,
+        /** when it was written; the list shows this, and falls back to nothing when the API omits it */
+        val createdAtMs: Long? = null,
     )
 
     data class CommentPage(val comments: List<Comment>, val nextOffset: Int?)
@@ -380,15 +597,99 @@ class SoundCloudModule : SourceModule {
     class SoundCloudResponseException : RuntimeException("SoundCloud trả dữ liệu không hợp lệ. Hãy thử tải lại.")
 
     internal fun commentsIn(text: String): List<Comment> =
-        (objectsIn(text, "collection") ?: emptyList()).mapNotNull { entry ->
-            val id = entry.long("id") ?: return@mapNotNull null
-            val body = entry.string("body")?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            val user = entry["user"] as? JsonObject
-            Comment(
-                id.toString(), body, user?.string("username").orEmpty(),
-                entry.long("timestamp")?.takeIf { it >= 0 }, user?.string("avatar_url"),
-            )
-        }.distinctBy { it.id }
+        (objectsIn(text, "collection") ?: emptyList()).mapNotNull(::commentOf).distinctBy { it.id }
+
+    internal fun commentOf(entry: JsonObject): Comment? {
+        val id = entry.long("id") ?: return null
+        val body = entry.string("body")?.takeIf { it.isNotBlank() } ?: return null
+        val user = entry["user"] as? JsonObject
+        return Comment(
+            id = id.toString(),
+            body = body,
+            author = user?.string("username").orEmpty(),
+            // `timestamp` is where in the upload the comment sits, not when it was written;
+            // `created_at` is the moment it was posted
+            timestampMs = entry.long("timestamp")?.takeIf { it >= 0 },
+            avatarUrl = user?.string("avatar_url"),
+            createdAtMs = entry.string("created_at")?.let(::instantMs),
+        )
+    }
+
+    /**
+     * Posts a comment as the signed-in account. Blocking, as [search]; call it off the main thread.
+     * The comment is written by the same api-v2 the web player uses, so the account's own session
+     * is what authorizes it.
+     */
+    fun postComment(trackId: String, body: String): Comment {
+        require(TrackIdPattern.matches(trackId)) { "Invalid SoundCloud track id" }
+        val text = body.trim()
+        require(text.isNotEmpty()) { EmptyCommentReason }
+        require(text.length <= MaxCommentLength) { "Bình luận tối đa $MaxCommentLength ký tự." }
+        if (session == null) throw SoundCloudAuthException()
+        // api-v2, the endpoint the web player writes with, takes the comment as query parameters
+        // (`body`, and `timestamp` for one placed on the track), not as a JSON body
+        val response = accountApi(
+            path = "/tracks/$trackId/comments",
+            query = mapOf("body" to text),
+            method = "POST",
+        ) ?: throw SoundCloudApiException(null)
+        when {
+            response.code == 401 || response.code == 403 -> {
+                // a refused refresh, or a legacy session with nothing to refresh, is a real
+                // sign-out; an unavailable refresh is reported as a network failure instead
+                host.storage.get(ExpiredKey)?.let { throw SoundCloudAuthException() }
+                if (refreshToken == null) {
+                    expire(SessionEndedReason)
+                    throw SoundCloudAuthException()
+                }
+                throw SoundCloudApiException(null)
+            }
+            response.code == 422 || response.code == 400 ->
+                throw SoundCloudRejectedException("SoundCloud không nhận bình luận này. Thử nội dung ngắn hơn rồi gửi lại.")
+            !response.ok -> throw SoundCloudApiException(response.code)
+        }
+        // the answer is the comment itself; if a deploy answers with something else, show what was
+        // written rather than claiming the post failed when the server accepted it
+        val posted = runCatching { json.parseToJsonElement(response.text) as? JsonObject }.getOrNull()?.let(::commentOf)
+        return posted ?: Comment(
+            id = "new-${System.currentTimeMillis()}",
+            body = text,
+            author = host.storage.get(LabelKey)?.substringAfterLast("·")?.trim().orEmpty(),
+            timestampMs = null,
+            avatarUrl = null,
+            createdAtMs = System.currentTimeMillis(),
+        )
+    }
+
+    private fun instantMs(text: String): Long? = runCatching { Instant.parse(text).toEpochMilli() }.getOrNull()
+
+    /** the payload of a JWT-shaped web token, or null for a legacy opaque token */
+    internal fun jwtPayload(token: String): JsonObject? {
+        val part = token.split('.').getOrNull(1) ?: return null
+        val text = base64Url(part)?.decodeToString() ?: return null
+        return runCatching { json.parseToJsonElement(text) as? JsonObject }.getOrNull()
+    }
+
+    /** base64url without java.util.Base64, which only exists on newer Android than Mochy supports */
+    internal fun base64Url(text: String): ByteArray? {
+        val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+        val clean = text.trimEnd('=')
+        if (clean.isEmpty() || clean.length % 4 == 1) return null
+        val out = java.io.ByteArrayOutputStream(clean.length * 3 / 4)
+        var buffer = 0
+        var bits = 0
+        for (character in clean) {
+            val value = alphabet.indexOf(character)
+            if (value < 0) return null
+            buffer = (buffer shl 6) or value
+            bits += 6
+            if (bits >= 8) {
+                bits -= 8
+                out.write((buffer shr bits) and 0xFF)
+            }
+        }
+        return out.toByteArray()
+    }
 
     /** A playable stream, resolved for one upload. */
     class Stream internal constructor(
@@ -685,7 +986,27 @@ class SoundCloudModule : SourceModule {
         /** how long a key is trusted before it is read again even if it still answers */
         private const val ClientIdLifeMs = 30L * 24 * 60 * 60 * 1000
         private const val MissMemoryMs = 30L * 60 * 1000
-        private const val UnreachableRetryMs = 10L * 60 * 1000
+        private const val MaxCachedMatches = 300
+        private const val MaxCachedMisses = 300
+
+        /** where the account's session and its label live in the module's own storage */
+        private const val TokenKey = "session_token"
+        private const val RefreshTokenKey = "refresh_token"
+        private const val SessionClientIdKey = "session_client_id"
+        private const val SessionExpiresAtKey = "session_expires_at"
+        private const val LabelKey = "account_label"
+        private const val ExpiredKey = "session_expired"
+        private const val SignedInLabel = "Đã đăng nhập SoundCloud"
+        private const val SessionEndedReason = "Phiên SoundCloud đã kết thúc. Hãy đăng nhập lại."
+        private const val TokenUrl = "https://secure.soundcloud.com/oauth/token"
+        private const val FormContentType = "application/x-www-form-urlencoded"
+        private const val RefreshMarginMs = 60_000L
+        private val tokenHeaders = mapOf("Accept" to "application/json")
+        private const val EmptyCommentReason = "Bình luận không được để trống."
+        const val MaxCommentLength = 1000
+
+        private val SessionToken = Regex("[A-Za-z0-9._~+/=-]{20,4096}")
+        private val AuthorizationPrefix = Regex("^(?i)oauth\\s+")
 
         private val BundlePattern = Regex("""(?i)(?:https?:)?//a-v2\.sndcdn\.com/assets/[A-Za-z0-9._-]+\.js(?:\?[^\s\"'<>]*)?""")
         private val ClientIdPattern = Regex("""client_id\s*[:=]\s*["']([A-Za-z0-9]{32})["']""")

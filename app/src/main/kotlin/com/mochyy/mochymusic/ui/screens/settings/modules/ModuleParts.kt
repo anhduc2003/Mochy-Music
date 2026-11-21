@@ -46,6 +46,7 @@ import com.mochyy.mochymusic.module.AccountState
 import com.mochyy.mochymusic.module.ModuleFeature
 import com.mochyy.mochymusic.module.applemusic.AppleMusicModule
 import com.mochyy.mochymusic.module.monochrome.MonochromeModule
+import com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
 import com.mochyy.mochymusic.modules.ModuleEntry
 import com.mochyy.mochymusic.modules.ModuleOrigin
 import com.mochyy.mochymusic.ui.screens.audiolab.LabColors
@@ -63,6 +64,7 @@ internal val StatusTrouble = Color(0xFFFFB340)
 private fun logoFor(id: String): Int? = when (id) {
     AppleMusicModule.Id -> R.drawable.provider_apple_music
     MonochromeModule.Id -> R.drawable.provider_monochrome
+    SoundCloudModule.Id -> R.drawable.provider_soundcloud
     else -> null
 }
 
@@ -158,6 +160,9 @@ internal fun moduleStatus(entry: ModuleEntry): String = when (val account = entr
 
 /** the dot beside a module's name: green while it's working for you */
 internal fun statusColor(entry: ModuleEntry): Color = when {
+    // SoundCloud works without an account: only its comment writing needs one, so a signed-out
+    // module is on, not in trouble
+    entry.id == SoundCloudModule.Id -> if (entry.enabled) StatusOn else StatusOff
     entry.account !is AccountState.SignedIn -> StatusTrouble
     entry.enabled -> StatusOn
     else -> StatusOff

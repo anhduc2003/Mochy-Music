@@ -99,8 +99,14 @@ class SourceModules @Inject constructor(
     }
 
     /** whether [id] can play anything now: YouTube while it's on, a module when on and signed in */
-    fun isUsable(id: String): Boolean = isEnabled(id) &&
-        (id == YouTubeId || module(id)?.accountState() is AccountState.SignedIn)
+    fun isUsable(id: String): Boolean = isEnabled(id) && when {
+        id == YouTubeId -> true
+        // SoundCloud's account only unlocks writing a comment: its catalog, playback and comment
+        // reading work signed out, so requiring a session here would turn the source off for
+        // everyone who never signs in
+        id == com.mochyy.mochymusic.module.soundcloud.SoundCloudModule.Id -> true
+        else -> module(id)?.accountState() is AccountState.SignedIn
+    }
 
     /** whether [id] can give a download: youtube always, since downloads have always fallen back to it, a module when on and signed in */
     fun isUsableForDownload(id: String): Boolean = id == YouTubeId || isUsable(id)

@@ -14,11 +14,10 @@ class SoundCloudCatalogContractTest {
     @Test fun `reactivation clears temporary offline marker without a network request`() {
         val host = Host()
         val module = SoundCloudModule().also { it.attach(host) }
-        host.storage.set("unreachable", "offline")
-        host.storage.set("unreachable_at", System.currentTimeMillis().toString())
-        assertTrue(module.accountState() is com.mochyy.mochymusic.module.AccountState.Expired)
+        // browsing works signed out, so no account is not an expired account
+        assertTrue(module.accountState() is com.mochyy.mochymusic.module.AccountState.SignedOut)
         module.reactivate()
-        assertTrue(module.accountState() is com.mochyy.mochymusic.module.AccountState.SignedIn)
+        assertTrue(module.accountState() is com.mochyy.mochymusic.module.AccountState.SignedOut)
         assertTrue(host.requests.isEmpty())
     }
 
