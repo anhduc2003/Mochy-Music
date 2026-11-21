@@ -1,5 +1,8 @@
 package com.mochyy.mochymusic.ui.player
 
+import android.graphics.drawable.ColorDrawable
+import android.os.Build
+import android.view.WindowManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +33,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +51,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
 import coil3.compose.AsyncImage
 import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.module.AccountState
@@ -78,8 +86,17 @@ fun PlayerCommentsDialog(
     onSignIn: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    // The sheet rests on the screen's bottom edge (a shorter detent pushes its last rows, the
-    // composer included, below the screen) and the composer is padded out of the keyboard's way.
+    // A window of its own: over the player, the page and the app's navigation bar, so the mini
+    // player can't cover the composer the way an in-layout sheet lets it. The sheet rests on the
+    // screen's bottom edge (a shorter detent pushes its last rows, the composer included, below
+    // the screen) and the composer is padded out of the keyboard's way.
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+    ) {
+    // the window itself is only a frame: no dim, no animation, no background, so the sheet's own
+    // scrim and slide are what the eye sees, and the keyboard's inset reaches the composer
+    ClearDialogWindow()
     MenuSheetSurface(onDismiss = onDismiss, halfDetent = 1f, fullDetent = 1f) { _ ->
         val listState = rememberLazyListState()
         // a posted comment lands on top of the list, so bring the reader there to see it
@@ -186,6 +203,24 @@ fun PlayerCommentsDialog(
                 onSend = onSend,
                 onSignIn = onSignIn,
             )
+        }
+    }
+    }
+}
+
+@Composable
+private fun ClearDialogWindow() {
+    val window = (LocalView.current.parent as? DialogWindowProvider)?.window ?: return
+    SideEffect {
+        window.run {
+            setWindowAnimations(0)
+            setDimAmount(0f)
+            clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+            setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
+            setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT)
+            if (Build.VERSION.SDK_INT >= 30) {
+                attributes = attributes.also { it.fitInsetsTypes = 0 }
+            }
         }
     }
 }

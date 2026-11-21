@@ -376,7 +376,14 @@ fun SoundCloudScreen(
                 onSend = commentsViewModel::post,
                 onSignIn = {
                     commentsViewModel.signInModule()?.let { module ->
-                        overlay.showModuleSignInSheet(module, modulesViewModel) { commentsViewModel.refreshAccount() }
+                        // the comments sheet is a window of its own and the sign-in is the app's
+                        // sheet host, so the comments step aside while the browser is up and come
+                        // back once the account is in
+                        commentsFor = null
+                        overlay.showModuleSignInSheet(module, modulesViewModel) {
+                            commentsViewModel.refreshAccount()
+                            commentsFor = upload
+                        }
                     }
                 },
                 onDismiss = {

@@ -1885,7 +1885,14 @@ private fun PlayerSheet(
                 onSend = commentsViewModel::post,
                 onSignIn = {
                     commentsViewModel.signInModule()?.let { module ->
-                        zoomSheets.showModuleSignInSheet(module, modulesViewModel) { commentsViewModel.refreshAccount() }
+                        // the comments sheet is a window of its own and the sign-in is the app's
+                        // sheet host, so the comments step aside while the browser is up and come
+                        // back once the account is in
+                        showComments = false
+                        zoomSheets.showModuleSignInSheet(module, modulesViewModel) {
+                            commentsViewModel.refreshAccount()
+                            showComments = true
+                        }
                     }
                 },
                 onDismiss = {
