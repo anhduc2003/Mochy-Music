@@ -162,11 +162,19 @@ internal fun moduleStatus(entry: ModuleEntry): String = when (val account = entr
 internal fun statusColor(entry: ModuleEntry): Color = when {
     // SoundCloud works without an account: only its comment writing needs one, so a signed-out
     // module is on, not in trouble
-    entry.id == SoundCloudModule.Id -> if (entry.enabled) StatusOn else StatusOff
+    entry.accountOptional -> if (entry.enabled) StatusOn else StatusOff
     entry.account !is AccountState.SignedIn -> StatusTrouble
     entry.enabled -> StatusOn
     else -> StatusOff
 }
+
+/**
+ * A module whose account is optional: SoundCloud browses, plays and reads comments signed out, and
+ * only a comment write needs the account. Its switch must stay usable before a sign-in, or the
+ * page locks itself: no account means no switch, and no switch means no sign-in button.
+ */
+internal val ModuleEntry.accountOptional: Boolean
+    get() = id == SoundCloudModule.Id
 
 /** where it came from and its version */
 @Composable

@@ -117,7 +117,9 @@ fun ModuleScreen(navController: NavController, id: String, viewModel: ModulesVie
                     onCheck = { viewModel.checkUpdate(id) },
                 )
                 val canQueryModule = id != SoundCloudModule.Id || entry.enabled
-                if (canQueryModule) AccountActions(
+                // an optional account is also the way to turn the module on from a fresh install,
+                // so its sign-in stays reachable while the switch is still off
+                if (canQueryModule || entry.accountOptional) AccountActions(
                     entry = entry,
                     checking = viewModel.checking.collectAsState().value,
                     onSignIn = ::signIn,
