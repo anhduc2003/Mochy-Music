@@ -99,6 +99,15 @@ class SoundCloudModule : SourceModule {
         get() = host.storage.get(RefreshTokenKey)
         set(value) = host.storage.set(RefreshTokenKey, value)
 
+    /**
+     * The bot-protection cookie the browser earned on the sign-in page. api-v2 sits behind
+     * DataDome, which refuses writes from clients that don't carry it (a VPN makes that more
+     * likely), so the write repeats the cookie the browser already has.
+     */
+    private var dataDomeCookie: String?
+        get() = host.storage.get(DataDomeKey)
+        set(value) = host.storage.set(DataDomeKey, value)
+
     override fun accountState(): AccountState {
         session ?: return AccountState.SignedOut
         val expired = host.storage.get(ExpiredKey)
@@ -119,6 +128,7 @@ class SoundCloudModule : SourceModule {
             }
             "oauth_token" -> value.trim().trim('"').takeIf { SessionToken.matches(it) }?.let(::saveSession)
             "oauth_refresh_token" -> value.trim().trim('"').takeIf { SessionToken.matches(it) }?.let { refreshToken = it }
+            "datadome" -> value.trim().trim('"').takeIf { it.isNotBlank() }?.let { dataDomeCookie = it }
         }
         return session != null
     }
@@ -309,7 +319,8 @@ class SoundCloudModule : SourceModule {
         body: String? = null,
         contentType: String? = null,
         authorization: String? = null,
-    ): HttpResponse? = requestWithClientId(method, body, contentType, authorization) { id ->
+        cookie: String? = null,
+    ): HttpResponse? = requestWithClientId(method, body, contentType, authorization, cookie) { id ->
         ApiBase + path + "?" + queryString(query + ("client_id" to id))
     }
 
@@ -326,6 +337,7 @@ class SoundCloudModule : SourceModule {
         body = body,
         contentType = body?.let { "application/json; charset=utf-8" },
         authorization = session,
+        cookie = dataDomeCookie?.let { "datadome=$it" },
     )
 
     private fun requestWithClientId(
@@ -333,6 +345,7 @@ class SoundCloudModule : SourceModule {
         body: String? = null,
         contentType: String? = null,
         authorization: String? = null,
+        cookie: String? = null,
         urlFor: (String) -> String,
     ): HttpResponse? {
         var activeClientId = clientId(forceRefresh = false) ?: return null
@@ -341,7 +354,8 @@ class SoundCloudModule : SourceModule {
         var refreshedSession = false
         var retry = 0
         while (true) {
-            val headers = if (activeSession != null) apiHeaders + ("Authorization" to "OAuth $activeSession") else apiHeaders
+            var headers = if (activeSession != null) apiHeaders + ("Authorization" to "OAuth $activeSession") else apiHeaders
+            if (cookie != null) headers = headers + ("Cookie" to cookie)
             val response = runCatching {
                 host.http(
                     HttpRequest(
@@ -654,26 +668,52 @@ class SoundCloudModule : SourceModule {
                 expire(SessionEndedReason)
                 throw SoundCloudAuthException()
             }
-            response.code == 403 ->
+            response.code == 403 -> {
+                // DataDome sits in front of api-v2. A refusal hands out a `datadome` cookie; a
+                // write that carries it is the browser's own request, so keep it and try once more
+                val challenge = response.header("set-cookie")?.let { DataDomeCookie.find(it)?.groupValues?.getOrNull(1) }
+                if (challenge != null && challenge != dataDomeCookie) {
+                    dataDomeCookie = challenge
+                    val retried = accountApi(
+                        path = "/tracks/$trackId/comments",
+                        query = mapOf("body" to text),
+                        method = "POST",
+                    )
+                    if (retried != null && retried.ok) {
+                        return postedComment(retried.text, text)
+                    }
+                }
+                val blocked = response.header("x-datadome") != null ||
+                    response.text.contains("datadome", ignoreCase = true) ||
+                    response.text.contains("captcha", ignoreCase = true)
                 throw SoundCloudRejectedException(
-                    "SoundCloud từ chối bình luận này (403). Bài hát có thể đã tắt bình luận hoặc tài khoản bị giới hạn.",
+                    if (blocked) {
+                        "SoundCloud đang chặn yêu cầu gửi bình luận từ mạng hiện tại (thường do VPN/proxy). Tắt VPN rồi thử lại."
+                    } else {
+                        val detail = response.text.trim().take(140)
+                        "SoundCloud từ chối bình luận này (403). " +
+                            detail.ifBlank { "Bài hát có thể đã tắt bình luận hoặc tài khoản bị giới hạn." }
+                    },
                 )
+            }
             response.code == 422 || response.code == 400 ->
                 throw SoundCloudRejectedException("SoundCloud không nhận bình luận này. Thử nội dung ngắn hơn rồi gửi lại.")
             !response.ok -> throw SoundCloudApiException(response.code)
         }
-        // the answer is the comment itself; if a deploy answers with something else, show what was
-        // written rather than claiming the post failed when the server accepted it
-        val posted = runCatching { json.parseToJsonElement(response.text) as? JsonObject }.getOrNull()?.let(::commentOf)
-        return posted ?: Comment(
+        return postedComment(response.text, text)
+    }
+
+    /** the answer is the comment itself; if a deploy answers with something else, show what was
+     * written rather than claiming the post failed when the server accepted it */
+    private fun postedComment(text: String, body: String): Comment =
+        runCatching { json.parseToJsonElement(text) as? JsonObject }.getOrNull()?.let(::commentOf) ?: Comment(
             id = "new-${System.currentTimeMillis()}",
-            body = text,
+            body = body,
             author = host.storage.get(LabelKey)?.substringAfterLast("·")?.trim().orEmpty(),
             timestampMs = null,
             avatarUrl = null,
             createdAtMs = System.currentTimeMillis(),
         )
-    }
 
     private fun instantMs(text: String): Long? = runCatching { Instant.parse(text).toEpochMilli() }.getOrNull()
 
@@ -1006,6 +1046,7 @@ class SoundCloudModule : SourceModule {
         /** where the account's session and its label live in the module's own storage */
         private const val TokenKey = "session_token"
         private const val RefreshTokenKey = "refresh_token"
+        private const val DataDomeKey = "datadome_cookie"
         private const val SessionClientIdKey = "session_client_id"
         private const val SessionExpiresAtKey = "session_expires_at"
         private const val LabelKey = "account_label"
@@ -1020,6 +1061,7 @@ class SoundCloudModule : SourceModule {
         const val MaxCommentLength = 1000
 
         private val SessionToken = Regex("[A-Za-z0-9._~+/=-]{20,4096}")
+        private val DataDomeCookie = Regex("""(?:^|[;,\s])datadome=([^;,\s]+)""")
         private val AuthorizationPrefix = Regex("^(?i)oauth\\s+")
 
         private val BundlePattern = Regex("""(?i)(?:https?:)?//a-v2\.sndcdn\.com/assets/[A-Za-z0-9._-]+\.js(?:\?[^\s\"'<>]*)?""")
@@ -1028,13 +1070,6 @@ class SoundCloudModule : SourceModule {
         private const val UserAgent =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
         private val browserHeaders = mapOf("User-Agent" to UserAgent, "Accept-Language" to "en")
-        // the browser sends these on every cross-origin call to api-v2, writes included; the
-        // account routes are the ones that notice their absence
-        private val apiHeaders = mapOf(
-            "Accept" to "application/json",
-            "User-Agent" to UserAgent,
-            "Origin" to "https://soundcloud.com",
-            "Referer" to "https://soundcloud.com/",
-        )
+        private val apiHeaders = mapOf("Accept" to "application/json", "User-Agent" to UserAgent)
     }
 }

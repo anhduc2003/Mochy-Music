@@ -104,6 +104,18 @@ class PlayerCommentsViewModel @Inject constructor(
         val token = generation
         _state.update { it.copy(posting = true, postError = null) }
         viewModelScope.launch {
+            // the stored label can be older than the session: ask the account before writing, so
+            // an expired or guest session asks for the sign-in instead of being refused as a write
+            val verified = withContext(Dispatchers.IO) {
+                runCatching { module.verifyAccount() }.getOrDefault(module.accountState())
+            }
+            if (token != generation) return@launch
+            if (verified !is AccountState.SignedIn) {
+                _state.update {
+                    it.copy(posting = false, account = verified, postError = "Phiên SoundCloud đã kết thúc. Hãy đăng nhập lại rồi gửi lại bình luận.")
+                }
+                return@launch
+            }
             val result = withContext(Dispatchers.IO) { runCatching { module.postComment(id, text) } }
             if (token != generation) return@launch
             result.fold(

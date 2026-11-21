@@ -221,6 +221,21 @@ class SoundCloudAccountTest {
     }
 
     @Test
+    fun `a challenged comment repeats the cookie the challenge handed out`() {
+        val host = Host().apply { challengeComment = true }
+        val module = SoundCloudModule().also { it.attach(host) }
+        module.onSignInHeader("oauth_token", "2-293230-123456789-abcdefghij", "https://soundcloud.com/")
+
+        val posted = module.postComment("7", "Hay quá")
+
+        assertEquals("Hay quá", posted.body)
+        val posts = host.requests.filter { it.method == "POST" }
+        assertEquals(2, posts.size)
+        assertNull(posts[0].headers["Cookie"])
+        assertEquals("datadome=challenge-123", posts[1].headers["Cookie"])
+    }
+
+    @Test
     fun `a comment keeps its track position and the moment it was written apart`() {
         val parsed = commentIn(
             """{"id":9,"body":"Hay","timestamp":85000,"created_at":"2026-10-22T23:53:04Z","user":{"username":"Listener","avatar_url":"https://i.example.test/a.jpg"}}""",
@@ -249,6 +264,7 @@ class SoundCloudAccountTest {
         var offline = false
         var refuseComment = false
         var commentStatus = 422
+        var challengeComment = false
         private val refreshTo = refreshTo
         private val values = mutableMapOf(
             "client_id" to "0123456789abcdefghijklmnopqrstuv",
@@ -285,6 +301,13 @@ class SoundCloudAccountTest {
                 }
             }
             if (path == "/tracks/7/comments" && request.method == "POST") {
+                if (challengeComment && request.headers["Cookie"]?.contains("datadome=") != true) {
+                    return HttpResponse(
+                        403,
+                        "{}".toByteArray(),
+                        mapOf("set-cookie" to "datadome=challenge-123; Path=/; Domain=.soundcloud.com"),
+                    )
+                }
                 return if (refuseComment) {
                     HttpResponse(commentStatus, "{}".toByteArray())
                 } else {
