@@ -660,6 +660,10 @@ class SoundCloudModule : SourceModule {
         require(text.isNotEmpty()) { EmptyCommentReason }
         require(text.length <= MaxCommentLength) { "Bình luận tối đa $MaxCommentLength ký tự." }
         if (session == null) throw SoundCloudAuthException()
+        // The documented write (the one the registered-app clients use) takes a JSON body on
+        // api.soundcloud.com; it is a different host from the web player's api-v2, so it is tried
+        // first and the web shape below remains the fallback when this session isn't taken there.
+        postOfficialComment(trackId, text)?.let { return it }
         // api-v2, the endpoint the web player writes with, takes the comment as query parameters
         // (`body`, and `timestamp` for one placed on the track), not as a JSON body
         val response = accountApi(
@@ -704,6 +708,39 @@ class SoundCloudModule : SourceModule {
             !response.ok -> throw SoundCloudApiException(response.code)
         }
         return postedComment(response.text, text)
+    }
+
+    /**
+     * The official comment write: `POST https://api.soundcloud.com/tracks/{id}/comments` with
+     * `{"comment":{"body":"..."}}`. Null means this session isn't accepted on that host (401/403)
+     * or the answer wasn't a comment, so the caller can fall back to the web endpoint.
+     */
+    private fun postOfficialComment(trackId: String, text: String): Comment? {
+        val token = session ?: return null
+        val payload = """{"comment":{"body":${JsonPrimitive(text)}}}"""
+        val response = runCatching {
+            host.http(
+                HttpRequest(
+                    url = OfficialApiBase + "/tracks/$trackId/comments",
+                    method = "POST",
+                    headers = mapOf(
+                        "Accept" to "application/json",
+                        "Authorization" to "OAuth $token",
+                    ),
+                    body = payload.toByteArray(),
+                    contentType = "application/json; charset=utf-8",
+                ),
+            )
+        }.getOrNull() ?: return null
+        return when {
+            response.ok -> postedComment(response.text, text)
+            response.code == 422 || response.code == 400 ->
+                throw SoundCloudRejectedException("SoundCloud không nhận bình luận này. Thử nội dung ngắn hơn rồi gửi lại.")
+            response.code == 429 -> throw SoundCloudApiException(429)
+            // 401/403: the web session isn't a registered app's token on this host; api-v2 below
+            // is where the web player itself writes
+            else -> null
+        }
     }
 
     /** the answer is the comment itself; if a deploy answers with something else, show what was
@@ -1034,6 +1071,7 @@ class SoundCloudModule : SourceModule {
         private val Preferred = setOf(BestPreset, DataSaverPreset)
 
         private const val ApiBase = "https://api-v2.soundcloud.com"
+        private const val OfficialApiBase = "https://api.soundcloud.com"
         private const val SearchPath = "/search/tracks"
         private const val PlaylistsPath = "/search/playlists"
         private const val TracksPath = "/tracks"

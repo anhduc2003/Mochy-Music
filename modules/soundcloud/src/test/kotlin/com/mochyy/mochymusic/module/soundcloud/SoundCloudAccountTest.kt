@@ -191,7 +191,7 @@ class SoundCloudAccountTest {
         assertEquals("Hay quá", posted.body)
         assertEquals("Nghe Sĩ", posted.author)
         assertNotNull(posted.createdAtMs)
-        val request = host.requests.single { it.method == "POST" }
+        val request = host.requests.single { it.method == "POST" && it.url.contains("api-v2") }
         assertEquals("OAuth 2-293230-123456789-abcdefghij", request.header("Authorization"))
         assertTrue(request.url.contains("client_id=0123456789abcdefghijklmnopqrstuv"))
         assertTrue(request.url.contains("body=Hay+qu%C3%A1"))
@@ -221,6 +221,22 @@ class SoundCloudAccountTest {
     }
 
     @Test
+    fun `the documented write is tried first with a json body`() {
+        val host = Host().apply { acceptOfficialComment = true }
+        val module = SoundCloudModule().also { it.attach(host) }
+        module.onSignInHeader("oauth_token", "2-293230-123456789-abcdefghij", "https://soundcloud.com/")
+
+        val posted = module.postComment("7", "Hay quá")
+
+        assertEquals("Hay quá", posted.body)
+        val official = host.requests.first { it.url.contains("api.soundcloud.com") }
+        assertEquals("POST", official.method)
+        assertTrue(official.body?.decodeToString()?.contains("\"comment\"") == true)
+        assertTrue(official.body?.decodeToString()?.contains("Hay quá") == true)
+        assertNull(host.requests.firstOrNull { it.url.contains("api-v2") })
+    }
+
+    @Test
     fun `a challenged comment repeats the cookie the challenge handed out`() {
         val host = Host().apply { challengeComment = true }
         val module = SoundCloudModule().also { it.attach(host) }
@@ -229,7 +245,7 @@ class SoundCloudAccountTest {
         val posted = module.postComment("7", "Hay quá")
 
         assertEquals("Hay quá", posted.body)
-        val posts = host.requests.filter { it.method == "POST" }
+        val posts = host.requests.filter { it.method == "POST" && it.url.contains("api-v2") }
         assertEquals(2, posts.size)
         assertNull(posts[0].headers["Cookie"])
         assertEquals("datadome=challenge-123", posts[1].headers["Cookie"])
@@ -265,6 +281,7 @@ class SoundCloudAccountTest {
         var refuseComment = false
         var commentStatus = 422
         var challengeComment = false
+        var acceptOfficialComment = false
         private val refreshTo = refreshTo
         private val values = mutableMapOf(
             "client_id" to "0123456789abcdefghijklmnopqrstuv",
@@ -283,6 +300,18 @@ class SoundCloudAccountTest {
             requests += RecordedRequest(request.url, request.method, request.headers, request.body, request.contentType)
             if (offline) error("offline")
             val path = URI(request.url).path
+            val host = URI(request.url).host
+            if (host == "api.soundcloud.com" && path == "/tracks/7/comments" && request.method == "POST") {
+                return if (acceptOfficialComment) {
+                    HttpResponse(
+                        201,
+                        """{"id":11,"body":"Hay quá","created_at":"2026-11-21T09:00:00Z","user":{"username":"Nghe Sĩ"}}""".toByteArray(),
+                    )
+                } else {
+                    // the web session is not a registered app's token on the official host
+                    HttpResponse(401, "{}".toByteArray())
+                }
+            }
             if (path == "/me") {
                 val session = request.headers["Authorization"]
                 val accepted = refreshTo == null || session == "OAuth $refreshTo"
