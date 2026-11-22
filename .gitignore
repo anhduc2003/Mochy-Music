@@ -54,6 +54,8 @@ docs/*
 !docs/assets/
 !docs/wiki/
 !docs/modules/
+# release notes the release workflow reads as docs/releases/<tag>.md
+!docs/releases/
 
 # Logs, crash dumps & API response dumps
 *.log
