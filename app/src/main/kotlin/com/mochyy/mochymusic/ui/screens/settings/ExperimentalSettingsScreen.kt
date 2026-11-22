@@ -188,7 +188,8 @@ fun ExperimentalSettingsScreen(navController: NavController) {
                             }
                         )
                     )
-                    add(
+                    // only worth a switch while the module store is set up; this build has no store to preview
+                    if (com.mochyy.mochymusic.modules.browser.ModuleFeed.FeedUrl.isNotBlank()) add(
                         SettingsItem(
                             title = { Text(stringResource(R.string.experimental_simulate_fork_title)) },
                             highlightKey = "Pretend to be a fork",

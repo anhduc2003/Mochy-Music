@@ -287,8 +287,10 @@ class ModuleFeed @Inject constructor(
     }
 
     companion object {
-        // the worker's address (see the mochy-module-feed project); blank makes the browser say it isn't set up
-        const val FeedUrl = "https://mochy-module-feed.mochyy.workers.dev"
+        // the worker's address (see the mochy-module-feed project); blank makes the browser say it isn't set up.
+        // This fork has no official key, so the store can only ever answer "you're using a fork": leaving it
+        // blank keeps the Module Store card out of Settings instead of offering a page that cannot work.
+        const val FeedUrl = ""
 
         private const val SessionKey = "session"
         private const val PrefsName = "module_browser"
