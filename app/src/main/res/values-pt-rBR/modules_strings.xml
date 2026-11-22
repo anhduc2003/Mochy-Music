@@ -14,7 +14,6 @@
     <string name="module_origin_web">De um link · v%1$s</string>
     <string name="module_origin_file">De um arquivo · v%1$s</string>
     <string name="modules_find_more">Encontrar mais fontes</string>
-    <string name="modules_bar">Encontre mais módulos no Mochy’s Bar &lt;3</string>
     <string name="modules_third_party">Os módulos são criados por outras pessoas; por isso, relatos sobre módulos de terceiros serão ignorados. Quer criar o seu?</string>
     <string name="modules_third_party_docs">Ver a documentação</string>
     <string name="modules_looks">Módulos de aparência</string>
@@ -160,15 +159,8 @@
     <string name="module_updated">%1$s está atualizado.</string>
     <string name="module_update_failed">Não foi possível atualizar %1$s. %2$s</string>
     <string name="module_page_shader_problem">O shader desta página não carregou, então será exibida a versão alternativa: %1$s</string>
-    <string name="module_browser_title">Navegador de módulos</string>
-    <string name="module_browser_subtitle">Este recurso não é oficial</string>
     <string name="module_browser_search">Pesquisar</string>
     <string name="module_browser_all">Todos</string>
-    <string name="module_browser_looks">Aparências</string>
-    <string name="module_browser_players">Reprodutores</string>
-    <string name="module_browser_sources">Fontes</string>
-    <string name="module_browser_paid">Módulo pago</string>
-    <string name="module_browser_others">Outros</string>
     <string name="module_browser_add">ADICIONAR</string>
     <string name="module_browser_update">ATUALIZAR</string>
     <string name="module_browser_added">ADICIONADO</string>

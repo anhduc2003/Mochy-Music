@@ -14,7 +14,6 @@
     <string name="module_origin_web">Bağlantıdan · v%1$s</string>
     <string name="module_origin_file">Dosyadan · v%1$s</string>
     <string name="modules_find_more">Daha fazla kaynak bul</string>
-    <string name="modules_bar">Mochy\'nin Bar\'ında daha fazla modül bul &lt;3</string>
     <string name="modules_third_party">Modüller başkaları tarafından yapılır, bu yüzden 3. taraf bir modülle ilgili bildirimler yok sayılır. Kendi modülünü yapmak ister misin?</string>
     <string name="modules_third_party_docs">Belgeleri gör</string>
     <string name="modules_looks">Görünüm modülleri</string>
@@ -160,15 +159,8 @@
     <string name="module_updated">%1$s artık güncel.</string>
     <string name="module_update_failed">%1$s güncellenemedi. %2$s</string>
     <string name="module_page_shader_problem">Bu sayfanın gölgelendiricisi yüklenmedi, bu yüzden yedeğini gösteriyor: %1$s</string>
-    <string name="module_browser_title">Modül Tarayıcısı</string>
-    <string name="module_browser_subtitle">bu şey resmî değil lütfen</string>
     <string name="module_browser_search">Ara</string>
     <string name="module_browser_all">Tümü</string>
-    <string name="module_browser_looks">Görünümler</string>
-    <string name="module_browser_players">Oynatıcılar</string>
-    <string name="module_browser_sources">Kaynak</string>
-    <string name="module_browser_paid">Ücretli Modül</string>
-    <string name="module_browser_others">Diğer</string>
     <string name="module_browser_add">EKLE</string>
     <string name="module_browser_update">GÜNCELLE</string>
     <string name="module_browser_added">EKLENDİ</string>

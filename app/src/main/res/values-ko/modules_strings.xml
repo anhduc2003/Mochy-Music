@@ -14,7 +14,6 @@
     <string name="module_origin_web">링크에서 추가 · v%1$s</string>
     <string name="module_origin_file">파일에서 추가 · v%1$s</string>
     <string name="modules_find_more">더 많은 제공처 찾기</string>
-    <string name="modules_bar">Mochy’s Bar에서 더 많은 모듈 찾기 &lt;3</string>
     <string name="modules_third_party">모듈은 다른 사람이 제작합니다. 타사 모듈의 문제 보고는 처리하지 않습니다. 직접 만들고 싶으신가요?</string>
     <string name="modules_third_party_docs">문서 보기</string>
     <string name="modules_looks">모양 모듈</string>
@@ -160,15 +159,8 @@
     <string name="module_updated">%1$s을(를) 최신 버전으로 업데이트했습니다.</string>
     <string name="module_update_failed">%1$s을(를) 업데이트하지 못했습니다. %2$s</string>
     <string name="module_page_shader_problem">이 페이지의 셰이더를 불러오지 못해 대체 모양을 표시합니다: %1$s</string>
-    <string name="module_browser_title">모듈 탐색기</string>
-    <string name="module_browser_subtitle">비공식 기능입니다</string>
     <string name="module_browser_search">검색</string>
     <string name="module_browser_all">전체</string>
-    <string name="module_browser_looks">모양</string>
-    <string name="module_browser_players">플레이어</string>
-    <string name="module_browser_sources">제공처</string>
-    <string name="module_browser_paid">유료 모듈</string>
-    <string name="module_browser_others">기타</string>
     <string name="module_browser_add">추가</string>
     <string name="module_browser_update">업데이트</string>
     <string name="module_browser_added">추가됨</string>
