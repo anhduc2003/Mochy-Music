@@ -2,6 +2,8 @@
 
 package com.mochyy.mochymusic.ui.screens.settings
 
+import com.mochyy.mochymusic.modules.browser.ModuleFeed
+import com.mochyy.mochymusic.ui.screens.settings.modules.ModuleBrowserRoute
 import com.mochyy.mochymusic.ui.component.navigateToTab
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -184,6 +186,7 @@ private val SettingsIndex = listOf(
     SettingsEntry("Local song auto metadata", "App behaviour", "general_settings", "match tags id3 covers lyrics"),
     SettingsEntry("Pause search history", "App behaviour", "general_settings", "search history pause private incognito privacy", R.string.pause_search_history),
     SettingsEntry("Count plays on YouTube views", "App behaviour", "general_settings", "youtube history plays views report count privacy", R.string.settings_youtube_plays),
+    SettingsEntry("Override lyrics sorting", "App behaviour", "general_settings", "lyrics provider order sort priority duet word sync apple music source", R.string.settings_lyrics_order_override),
 
     // Playback
     SettingsEntry("Playback", "Playback", PlaybackSettingsRoute, "background bluetooth shuffle skip silence mute queue failure"),
@@ -433,6 +436,15 @@ fun MochySettingsScreen(navController: NavController, pane: SettingsPane? = null
                         .graphicsLayer { alpha = contentAlpha }
                 ) {
                     RecommendedCard(recommendations = recommendations, open = open)
+
+                    // a build without the module feed (most forks) has no store to open
+                    if (ModuleFeed.FeedUrl.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        ModuleStoreCard(
+                            onClick = { navController.navigate(ModuleBrowserRoute) },
+                            modifier = Modifier.padding(horizontal = 20.dp),
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(18.dp))
 
