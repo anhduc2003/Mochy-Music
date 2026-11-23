@@ -47,6 +47,11 @@ class ModuleCatalog @Inject constructor() {
             .build()
     }
 
+    // the last list that loaded: opening the store with no network shows what it had instead of
+    // nothing, and reopening it doesn't wait on the same fetch again
+    @Volatile
+    private var last: List<CatalogModule>? = null
+
     suspend fun load(): Result<List<CatalogModule>> = withContext(Dispatchers.IO) {
         runCatching {
             val text = client.newCall(Request.Builder().url(CatalogUrl).build()).execute().use { response ->
@@ -79,6 +84,9 @@ class ModuleCatalog @Inject constructor() {
                     moduleId = item.optString("id").takeIf { it.isNotBlank() },
                 )
             }
+        }.onSuccess { last = it }.recoverCatching { failure ->
+            // a stale list beats an empty store; the failure only wins when nothing ever loaded
+            last ?: throw failure
         }
     }
 
