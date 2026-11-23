@@ -46,7 +46,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mochyy.mochymusic.R
-import com.mochyy.mochymusic.modules.CatalogModule
 import com.mochyy.mochymusic.modules.ModuleRegistry.LinkCheck
 import com.mochyy.mochymusic.ui.component.PopupSheetHandle
 import com.mochyy.mochymusic.ui.component.PopupSheetState
@@ -128,10 +127,6 @@ private fun FindModulesContent(viewModel: ModulesViewModel, onAdded: (String) ->
     // a problem shows under whichever of the two, the link or the file, it came from
     var problemFromFile by remember { mutableStateOf(false) }
     var ready by remember { mutableStateOf<LinkCheck.Ready?>(null) }
-    var catalog by remember { mutableStateOf<Result<List<CatalogModule>>?>(null) }
-
-    LaunchedEffect(Unit) { catalog = viewModel.catalog() }
-
     fun show(result: LinkCheck) {
         if (result is LinkCheck.Ready) ready = result else problem = linkProblem(context, result)
     }
@@ -227,11 +222,6 @@ private fun FindModulesContent(viewModel: ModulesViewModel, onAdded: (String) ->
             enabled = !checking,
         )
         problem?.takeIf { problemFromFile }?.let { ProblemText(it) }
-
-        Spacer(Modifier.height(26.dp))
-        SheetLabel(stringResource(R.string.modules_catalog))
-        Spacer(Modifier.height(10.dp))
-        CatalogList(catalog, busy = checking, onPick = { check(it.url) })
     }
 }
 
@@ -252,52 +242,6 @@ internal fun linkProblem(context: android.content.Context, result: LinkCheck): S
 @Composable
 internal fun ProblemText(text: String) {
     Text(text, color = ProblemColor, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 10.dp, start = 4.dp))
-}
-
-@Composable
-private fun CatalogList(catalog: Result<List<CatalogModule>>?, busy: Boolean, onPick: (CatalogModule) -> Unit) {
-    val list = catalog?.getOrNull()
-    when {
-        catalog == null -> Box(Modifier.fillMaxWidth().padding(vertical = 18.dp), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
-        }
-        list == null -> CatalogNote(stringResource(R.string.modules_catalog_failed))
-        list.isEmpty() -> CatalogNote(stringResource(R.string.modules_catalog_empty))
-        else -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            list.forEach { item -> CatalogRow(item, enabled = !busy) { onPick(item) } }
-        }
-    }
-}
-
-@Composable
-private fun CatalogNote(text: String) {
-    Text(text, color = SearchColors.Secondary, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(horizontal = 4.dp))
-}
-
-@Composable
-private fun CatalogRow(item: CatalogModule, enabled: Boolean, onClick: () -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(LabColors.Card)
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(14.dp),
-    ) {
-        ModuleLogo(item.url, item.name, size = 40, art = item.icon)
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(item.name, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-            if (item.description.isNotBlank()) {
-                Text(item.description, color = SearchColors.Secondary, fontSize = 12.sp, lineHeight = 16.sp)
-            }
-            if (item.adds.isNotEmpty()) {
-                Spacer(Modifier.height(6.dp))
-                FeatureChips(item.adds)
-            }
-        }
-    }
 }
 
 /** what the link turned out to be, and one last yes before it's added */

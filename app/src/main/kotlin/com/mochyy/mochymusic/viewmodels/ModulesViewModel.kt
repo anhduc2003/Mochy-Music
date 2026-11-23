@@ -25,8 +25,6 @@ import com.mochyy.mochymusic.module.ServerListModule
 import com.mochyy.mochymusic.module.ServerProblem
 import com.mochyy.mochymusic.module.StreamDrm
 import com.mochyy.mochymusic.module.TrackQuery
-import com.mochyy.mochymusic.modules.CatalogModule
-import com.mochyy.mochymusic.modules.ModuleCatalog
 import com.mochyy.mochymusic.modules.ModuleRegistry
 import com.mochyy.mochymusic.modules.SourceModules
 import com.music.innertube.YouTube
@@ -49,7 +47,6 @@ class ModulesViewModel @Inject constructor(
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val modules: SourceModules,
     private val registry: ModuleRegistry,
-    private val moduleCatalog: ModuleCatalog,
 ) : ViewModel() {
 
     val entries = modules.entries
@@ -398,7 +395,6 @@ class ModulesViewModel @Inject constructor(
         modules.refresh()
     }
 
-    suspend fun catalog(): Result<List<CatalogModule>> = moduleCatalog.load()
 
     /** everything the module adds, tried with [track]: its song (with the license and a real decode), its lyrics, its song info */
     fun runTest(id: String, track: TrackQuery) {

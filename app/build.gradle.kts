@@ -28,8 +28,10 @@ extensions.configure<ApplicationExtension> {
         applicationId = "com.mochyy.mochymusic"
         minSdk = 24
         targetSdk = 37
-        versionCode = 95
-        versionName = "8.4.19 build#1280"
+        // the fork follows upstream's number, and keeps its own build count and code so an
+        // update still installs over what people already have
+        versionCode = 96
+        versionName = "8.4.5 build#1300"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true

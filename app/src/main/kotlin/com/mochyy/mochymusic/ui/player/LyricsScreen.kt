@@ -27,6 +27,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import coil3.imageLoader
+import coil3.request.SuccessResult
+import coil3.toBitmap
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.palette.graphics.Palette
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import com.mochyy.mochymusic.ui.theme.PlayerColorExtractor
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.animation.AnimatedVisibility
@@ -242,12 +253,46 @@ fun LyricsScreen(
 
     // frame-accurate, so the sweep, the gap dots and backing vocals glide at the display's rate instead of stepping with the 66ms poller
     val positionProvider = remember(playerConnection) {
-        PlaybackClock({ playerConnection.player }, { playerConnection.lyricsOffsetMs.value.toLong() })
+        PlaybackClock(playerConnection) { playerConnection.lyricsOffsetMs.value.toLong() }
     }
     val sheetDragging by rememberUpdatedState(isSheetDragging)
 
     LaunchedEffect(mediaMetadata?.id) {
         mediaMetadata?.let(viewModel::ensureLyricsLoaded)
+    }
+
+    val context = LocalContext.current
+    val fallbackColorInt = MaterialTheme.colorScheme.primary.toArgb()
+    var accentColor by remember { mutableStateOf<Color?>(null) }
+    LaunchedEffect(mediaMetadata?.thumbnailUrl) {
+        val thumbnailUrl = mediaMetadata?.thumbnailUrl
+        accentColor = null
+        if (thumbnailUrl == null) return@LaunchedEffect
+        withContext(Dispatchers.IO) {
+            try {
+                val request = ImageRequest.Builder(context)
+                    .data(thumbnailUrl)
+                    .size(100, 100)
+                    .allowHardware(false)
+                    .memoryCachePolicy(coil3.request.CachePolicy.DISABLED)
+                    .build()
+                val bitmap = (context.imageLoader.execute(request) as? SuccessResult)?.image?.toBitmap()
+                if (bitmap != null) {
+                    val palette = withContext(Dispatchers.Default) {
+                        Palette.from(bitmap)
+                            .maximumColorCount(8)
+                            .resizeBitmapArea(100 * 100)
+                            .generate()
+                    }
+                    val colors = PlayerColorExtractor.extractGradientColors(
+                        palette = palette,
+                        fallbackColor = fallbackColorInt,
+                    )
+                    accentColor = colors.firstOrNull()?.let { PlayerColorExtractor.darkenIfTooLight(it) }
+                }
+            } catch (_: Exception) {
+            }
+        }
     }
 
     // Lyrics with no timing (plain text, or LRC with every line on [00:00.00]) are shown as a

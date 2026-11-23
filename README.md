@@ -239,6 +239,7 @@ Forks are welcome, that's what open source is for! Just two asks:
 - **Better Lyrics API** của [Boidushya](https://github.com/boidushya) ([repos](https://github.com/better-lyrics/api))
 - **LRCLIB** của [tranxuanthang](https://github.com/tranxuanthang) ([repos](https://github.com/tranxuanthang/lrclib) / [Website](https://lrclib.net/))
 - **SimpMusic Lyrics** của [maxrave-dev](https://github.com/maxrave-dev) ([repos](https://github.com/maxrave-dev/SimpMusic))
+- **Unison Lyrics** ([repos](https://github.com/better-lyrics/unison))
 
 ---
 
