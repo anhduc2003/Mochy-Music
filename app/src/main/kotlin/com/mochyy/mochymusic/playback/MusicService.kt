@@ -5215,6 +5215,9 @@ class MusicService :
         fadingPlayer?.release()
         fadingPlayer?.let(playerCrossmixProcessors::remove)
         fadingPlayer?.let(playerSilenceProcessors::remove)
+        // every other map is keyed by the player too, and a key left behind holds the whole released
+        // player: this one was dropped nowhere here, so one stayed for every crossfade the app ran
+        fadingPlayer?.let(playerReplayGain::remove)
         fadingPlayer?.let(::unregisterEqualizer)
         fadingPlayer = null
         fadingLoudnessEnhancer?.runCatching { release() }

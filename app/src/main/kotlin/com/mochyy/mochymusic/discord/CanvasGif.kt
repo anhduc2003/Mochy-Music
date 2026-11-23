@@ -371,7 +371,12 @@ internal class CanvasGif(
                 retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_FRAME_COUNT)?.toIntOrNull()?.takeIf { it > 0 }
             } else null
             val sourceFps = sourceFrames?.let { it * 1000f / ms } ?: 30f
-            val count = (ms * minOf(sourceFps, maxFps.toFloat()) / 1000f).roundToInt().coerceIn(MinFrames, MaxFrames)
+            // every frame is held once as 15-bit colours and once as palette indexes on the way to the
+            // gif, about three bytes a pixel, so a phone with a small heap gets fewer frames instead
+            val budget = (Runtime.getRuntime().maxMemory() / 8).coerceIn(MinFrameBudgetBytes, MaxFrameBudgetBytes)
+            val fitFrames = (budget / (size.toLong() * size * 3)).toInt().coerceAtLeast(MinFrames)
+            val count = (ms * minOf(sourceFps, maxFps.toFloat()) / 1000f).roundToInt()
+                .coerceIn(MinFrames, minOf(MaxFrames, fitFrames))
             // ask for frames already small, decoding them at full size is most of the wait
             val vw = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: size
             val vh = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: size
@@ -482,6 +487,9 @@ internal class CanvasGif(
         private const val MinFrames = 8
         // a longer video just gets fewer fps instead of a huge file
         private const val MaxFrames = 360
+        /** the frames on the way to a gif stay inside this much of the heap, never less and never more */
+        private const val MinFrameBudgetBytes = 8L * 1024 * 1024
+        private const val MaxFrameBudgetBytes = 48L * 1024 * 1024
         // what discord still takes without trouble, as far as i know
         private const val MaxGifBytes = 4 * 1024 * 1024
         private const val RetryAfterFailureMs = 10 * 60_000L
