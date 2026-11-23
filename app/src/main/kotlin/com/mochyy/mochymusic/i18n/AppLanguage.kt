@@ -78,6 +78,13 @@ object AppLanguage {
         base.createConfigurationContext(Configuration().apply { setLocales(uiLocales(base)) })
 
     /**
+     * The language the app is actually showing: the one chosen in settings, else the device's.
+     * Its country is what the content region should follow — a Vietnamese app asks YouTube for
+     * Vietnam's catalogue even on a phone whose own language is English.
+     */
+    fun uiLocale(context: Context): Locale = resolveUiLocale(selection(context), systemLocale(context))
+
+    /**
      * Migrate a legacy pre-Android-13 choice once, unless the platform already has an override.
      * Android's per-app setting is then the only authority on 13+, including system Settings.
      */

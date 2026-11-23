@@ -197,6 +197,29 @@ class App : Application(), SingletonImageLoader.Factory {
         AppLanguage.refreshApplicationResources(this)
     }
 
+    /**
+     * The country and language YouTube Music is asked for: an explicit setting wins, then the
+     * language the app is showing, then the device's own. A Vietnamese app therefore asks for
+     * Vietnam's catalogue even on an English phone — the feed used to follow the phone alone, and
+     * on an English phone that meant the international shelves and nothing Vietnamese.
+     */
+    private suspend fun contentLocale(country: String?, language: String?): YouTubeLocale {
+        // read off the calling thread: choosing a language below Android 13 reaches the store directly
+        val ui = kotlinx.coroutines.withContext(Dispatchers.IO) { AppLanguage.uiLocale(this@App) }
+        val device = AppLanguage.systemLocale(this)
+        // a language with no country of its own (plain English) falls back to the device's country
+        val fallback = ui.takeIf { it.country in CountryCodeToName } ?: device
+        return YouTubeLocale(
+            gl = country?.takeIf { it != SYSTEM_DEFAULT }
+                ?: fallback.country.takeIf { it in CountryCodeToName }
+                ?: "US",
+            hl = language?.takeIf { it != SYSTEM_DEFAULT }
+                ?: ui.language.takeIf { it in LanguageCodeToName }
+                ?: device.language.takeIf { it in LanguageCodeToName }
+                ?: "en",
+        )
+    }
+
     private suspend fun initializeSettings() {
         val settings = dataStore.data.first()
         com.mochyy.mochymusic.utils.OfflineMode.set(settings[OfflineModeKey] ?: false)
@@ -204,15 +227,7 @@ class App : Application(), SingletonImageLoader.Factory {
         val locale = AppLanguage.systemLocale(this)
         val languageTag = locale.language
 
-        YouTube.locale = YouTubeLocale(
-            gl = settings[ContentCountryKey]?.takeIf { it != SYSTEM_DEFAULT }
-                ?: locale.country.takeIf { it in CountryCodeToName }
-                ?: "US",
-            hl = settings[ContentLanguageKey]?.takeIf { it != SYSTEM_DEFAULT }
-                ?: locale.language.takeIf { it in LanguageCodeToName }
-                ?: languageTag.takeIf { it in LanguageCodeToName }
-                ?: "en"
-        )
+        YouTube.locale = contentLocale(settings[ContentCountryKey], settings[ContentLanguageKey])
 
         if (languageTag == "zh-TW") {
             KuGou.useTraditionalChinese = true
@@ -293,17 +308,7 @@ class App : Application(), SingletonImageLoader.Factory {
                 .map { it[ContentCountryKey] to it[ContentLanguageKey] }
                 .distinctUntilChanged()
                 .collect { (contentCountry, contentLanguage) ->
-                    // UI language must not silently change content preferences.
-                    val systemLocale = AppLanguage.systemLocale(this@App)
-                    YouTube.locale = YouTubeLocale(
-                        gl = contentCountry?.takeIf { it != SYSTEM_DEFAULT }
-                            ?: systemLocale.country.takeIf { it in CountryCodeToName }
-                            ?: "US",
-                        hl = contentLanguage?.takeIf { it != SYSTEM_DEFAULT }
-                            ?: systemLocale.toLanguageTag().takeIf { it in LanguageCodeToName }
-                            ?: systemLocale.language.takeIf { it in LanguageCodeToName }
-                            ?: "en"
-                    )
+                    YouTube.locale = contentLocale(contentCountry, contentLanguage)
                 }
         }
 
