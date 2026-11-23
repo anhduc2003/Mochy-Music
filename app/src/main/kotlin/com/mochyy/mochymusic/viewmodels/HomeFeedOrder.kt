@@ -39,3 +39,10 @@ private val VietnameseLetters =
     Regex("[đĐơƠưƯăĂạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]")
 
 internal fun looksVietnamese(text: String): Boolean = VietnameseLetters.containsMatchIn(text)
+
+/**
+ * The Vietnamese shelves Home leads with on Vietnam's feed, each asked for by its own name. These
+ * are asked for as searches because nothing else comes back Vietnamese reliably: the recommendation
+ * feed follows the account, and the charts page follows the network rather than the region.
+ */
+internal val VietnamShelfTitles = listOf("Nhạc Việt", "V-Pop", "Nhạc trẻ")

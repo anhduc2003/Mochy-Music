@@ -908,23 +908,25 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * Vietnam's own chart as a Home shelf. What YouTube recommends is what the account already
-     * listens to, so an account full of foreign music gets a Home with no Vietnamese shelf on it
-     * at all; the chart is the one shelf that is Vietnamese whatever the account has played.
+     * Vietnamese music for Home, asked for by name. What YouTube recommends is what the account
+     * already listens to, and its charts follow the network rather than the region: asked from here
+     * with gl=VN, the charts page still answered "trending in the United States". A query is the
+     * one thing that comes back Vietnamese whatever the account and the network have been doing.
      */
-    private suspend fun vietnamChartSection(hideExplicit: Boolean): HomePage.Section? {
-        val page = YouTube.getChartsPage().getOrNull() ?: return null
-        // a chart page leads with the songs; the shelves after it are genres and new releases
-        val top = page.sections.firstOrNull { it.items.isNotEmpty() } ?: return null
-        val items = top.items.filterExplicit(hideExplicit).distinctBy { it.id }
-        if (items.isEmpty()) return null
-        return HomePage.Section(
-            title = top.title,
-            label = null,
-            thumbnail = null,
-            endpoint = null,
-            items = items,
-        )
+    private suspend fun vietnamShelves(hideExplicit: Boolean): List<HomePage.Section> = coroutineScope {
+        VietnamShelfTitles.map { title ->
+            async {
+                val page = YouTube.search(title.lowercase(), YouTube.SearchFilter.FILTER_SONG).getOrNull()
+                    ?: return@async null
+                // shuffled every launch, so the shelf doesn't greet with the same five songs twice
+                val items = page.items.filterExplicit(hideExplicit).distinctBy { it.id }.shuffled()
+                if (items.isEmpty()) {
+                    null
+                } else {
+                    HomePage.Section(title = title, label = null, thumbnail = null, endpoint = null, items = items)
+                }
+            }
+        }.awaitAll().filterNotNull()
     }
 
     private suspend fun loadNetworkDataPhase() {
@@ -942,9 +944,9 @@ class HomeViewModel @Inject constructor(
             launchSafely { getCommunityPlaylists() }
             launchSafely { loadSimilarRecommendations() }
             launchSafely {
-                // Vietnam's chart is asked for beside the feed, so Home doesn't wait on it
+                // Vietnam's shelves are asked for beside the feed, so Home doesn't wait on them
                 val vietnam = YouTube.locale.gl == "VN"
-                val chart = async { if (vietnam) vietnamChartSection(hideExplicit) else null }
+                val own = async { if (vietnam) vietnamShelves(hideExplicit) else emptyList() }
                 YouTube.home().onSuccess { page ->
                     val filteredSections = page.sections.mapNotNull { section ->
                         if (isCommunityOrTrendingSection(section.title)) return@mapNotNull null
@@ -956,20 +958,20 @@ class HomeViewModel @Inject constructor(
                             .filterNot { it.id in hidden }
                         if (filteredItems.isEmpty()) null else section.copy(items = filteredItems)
                     }
-                    // on Vietnam's feed the chart leads, then the Vietnamese shelves, and the
-                    // order changes each launch; every other region keeps what YouTube answered
+                    // on Vietnam's feed the Vietnamese shelves lead, then the shelves with Vietnamese
+                    // music on them, and the order changes each launch; every other region keeps
+                    // exactly what YouTube answered with
                     val sections =
                         if (!vietnam) {
                             filteredSections
                         } else {
-                            val top = chart.await()
-                            listOfNotNull(top?.takeUnless { shelf -> filteredSections.any { it.title == shelf.title } }) +
-                                orderHomeSections(filteredSections)
+                            val leading = own.await().filterNot { shelf -> filteredSections.any { it.title == shelf.title } }
+                            leading + orderHomeSections(filteredSections)
                         }
                     homePage.value = page.copy(sections = songVersionsOf(sections))
                     homeFeedCache.saveHomePage(homePage.value!!)
                 }.onFailure {
-                    chart.cancel()
+                    own.cancel()
                     reportException(it)
                 }
             }
