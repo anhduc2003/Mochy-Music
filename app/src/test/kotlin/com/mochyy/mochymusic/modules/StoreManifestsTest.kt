@@ -44,6 +44,35 @@ class StoreManifestsTest {
     }
 
     @Test
+    fun `every catalogue row has the pictures its store page draws`() {
+        val text = catalog.readText()
+        for (field in listOf("icon", "banner")) {
+            val urls = Regex("\"$field\"\\s*:\\s*\"([^\"]+)\"").findAll(text).map { it.groupValues[1] }.toList()
+            assertEquals("$field: every row needs one, or its page falls back to a letter", 4, urls.size)
+            for (url in urls) {
+                assertTrue("$url: the app only loads https pictures", url.startsWith("https://"))
+                val path = url.substringAfter("/modules/store/")
+                assertTrue("$url: nothing at modules/store/$path", File(storeDir, path).isFile)
+            }
+        }
+    }
+
+    @Test
+    fun `every zip a row installs from is built and holds its manifest`() {
+        val text = catalog.readText()
+        val zips = Regex("\"zip\"\\s*:\\s*\"([^\"]+)\"").findAll(text).map { it.groupValues[1] }.toList()
+        assertTrue("liquid glass is the one kind a link can't carry", zips.isNotEmpty())
+
+        for (url in zips) {
+            val path = url.substringAfter("/modules/store/")
+            val file = File(storeDir, path)
+            assertTrue("$url: nothing at modules/store/$path, rebuild it with the command in modules/store/README.md", file.isFile)
+            val names = java.util.zip.ZipFile(file).use { zip -> zip.entries().toList().map { it.name } }
+            assertTrue("$url: a zip with no manifest.json at its root", "manifest.json" in names)
+        }
+    }
+
+    @Test
     fun `every catalogue row points at a stored module`() {
         val text = catalog.readText()
         val urls = Regex("\"url\"\\s*:\\s*\"([^\"]+)\"").findAll(text).map { it.groupValues[1] }.toList()

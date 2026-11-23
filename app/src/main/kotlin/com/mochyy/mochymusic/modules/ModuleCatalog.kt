@@ -30,6 +30,8 @@ data class CatalogModule(
     val previews: List<String> = emptyList(),
     /** the store's categories, which are the chips over the list */
     val tags: List<String> = emptyList(),
+    /** its zip, for the kinds a link can't carry (glass, bar, fonts, shaders); null when its manifest is enough */
+    val zip: String? = null,
 )
 
 @Singleton
@@ -66,6 +68,7 @@ class ModuleCatalog @Inject constructor() {
                     tags = item.optJSONArray("tags")?.let { list ->
                         (0 until list.length()).mapNotNull { i -> list.optString(i).takeIf { it.isNotBlank() } }
                     }.orEmpty(),
+                    zip = item.optString("zip").takeIf { it.startsWith("https://") },
                 )
             }
         }

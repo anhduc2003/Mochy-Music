@@ -1,19 +1,82 @@
 {
   "id": "sen",
   "name": "Sen",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Hồng sen dịu, nền chuyển theo bìa, lời chuyển động nhẹ và sáng dần ở viền.",
   "author": "Mochy Việt",
+  "icon": "icon.png",
+  "banner": "banner.webp",
   "look": {
     "accentColor": "#E4739A",
     "pureBlack": "false",
     "dynamicTheme": "true",
     "thumbnailCornerRadius": "18",
-    "playerStyle": "FLAGSHIP",
-    "flagshipBackground": "COVER_GRADIENT",
-    "lyricsMotionStyle": "MOTION",
+    "playerStyle": "MODULE",
     "homeStyle": "LISTEN_NOW",
+    "lyricsMotionStyle": "MOTION",
+    "blurQuality": "HIGH",
+    "blurStrengthPx": "32",
     "enableProgressiveBlur": "true",
-    "blurStrengthPx": "32"
+    "elementBlur": "true",
+    "bottomBar": "FROSTED"
+  },
+  "player": {
+    "name": "Sen",
+    "background": {
+      "type": "gradient",
+      "colors": [
+        "#33E4739A",
+        "#33120A12"
+      ]
+    },
+    "dim": 0.25,
+    "padding": 26,
+    "align": "center",
+    "blocks": [
+      {
+        "type": "space",
+        "grow": true
+      },
+      {
+        "type": "cover",
+        "shape": "rounded",
+        "corner": 28,
+        "size": 0.78,
+        "shadow": true
+      },
+      {
+        "type": "space",
+        "size": 22
+      },
+      {
+        "type": "title",
+        "size": 22,
+        "weight": "medium"
+      },
+      {
+        "type": "artist",
+        "size": 14
+      },
+      {
+        "type": "space",
+        "size": 20
+      },
+      {
+        "type": "progress",
+        "style": "pill"
+      },
+      {
+        "type": "space",
+        "size": 16
+      },
+      {
+        "type": "controls",
+        "size": 50
+      },
+      {
+        "type": "space",
+        "grow": true
+      }
+    ]
   }
 }

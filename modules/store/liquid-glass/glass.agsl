@@ -1,0 +1,57 @@
+// glass.agsl: a liquid pane. it tints what's under the bar, bends it towards the rim the way a thick
+// piece of glass does, lights the edge, and keeps a thin accent line along the mini player's bottom so
+// the two bars read apart. every value the manifest can tune comes in as its own uniform.
+
+uniform shader content;
+uniform float2 size;
+uniform float margin;
+uniform float radius;
+uniform float density;
+uniform float quality;
+uniform float kind;
+layout(color) uniform half4 chrome;
+layout(color) uniform half4 accent;
+
+uniform float tintAlpha;   // how far mochy's bar colour tints the pane, 0 clear to 1 solid
+uniform float bevel;       // how deep the rim's bend reaches, in dp
+uniform float strength;    // how hard the rim bends what's behind it, in dp
+uniform float sheen;       // the lit edge's brightness
+
+// how far a point is from the pane's edge: negative inside, positive outside
+float roundedBox(float2 p, float2 b, float r) {
+    float2 q = abs(p) - b + r;
+    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+}
+
+half4 main(float2 p) {
+    float2 c = size * 0.5;
+    float2 halfSize = c - margin;
+    float d = roundedBox(p - c, halfSize, radius);
+
+    // 0 at the rim, 1 once the pane is thick enough to stop bending
+    float depth = clamp(-d / max(bevel * density, 1.0), 0.0, 1.0);
+    float inside = smoothstep(0.0, 1.0, depth);
+
+    // the rim pulls what's behind it inwards, so the edge reads as a curve rather than a cut
+    float2 dir = normalize((p - c) + float2(1e-4));
+    float bend = (1.0 - inside) * (1.0 - inside) * strength * density;
+    float2 at = clamp(p - dir * (quality > 0.5 ? bend : bend * 0.35), float2(0.0), size);
+
+    float4 color = float4(content.eval(at));
+    color.rgb = mix(color.rgb, float4(chrome).rgb * color.a, tintAlpha);
+
+    // a lit rim, brighter along the top where the light falls
+    float rim = 1.0 - inside;
+    float fromTop = clamp((c.y - p.y) / max(halfSize.y, 1.0) * 0.5 + 0.5, 0.0, 1.0);
+    color.rgb += float3(rim * rim * sheen * mix(0.4, 1.0, fromTop) * color.a);
+
+    // the mini player only: an accent line along its bottom edge
+    if (kind > 0.5 && kind < 1.5) {
+        float line = 1.0 - smoothstep(0.0, 1.4 * density, abs(p.y - (c.y + halfSize.y - density)));
+        color.rgb = mix(color.rgb, float4(accent).rgb * color.a, line * 0.8);
+    }
+
+    // nothing outside the pane, so the corners stay round whatever's behind them
+    color.a *= step(d, 0.0);
+    return half4(color);
+}

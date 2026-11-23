@@ -1,0 +1,101 @@
+{
+  "id": "liquid-glass",
+  "name": "Liquid Glass",
+  "version": "1.0.0",
+  "description": "Kính lỏng cho thanh điều hướng và thanh phát nhỏ: nền bị bẻ cong ở viền, cạnh sáng, một vệt màu nhấn dưới thanh nhạc.",
+  "author": "Mochy Việt",
+  "icon": "icon.png",
+  "banner": "banner.webp",
+  "look": {
+    "bottomBar": "MODULE",
+    "accentColor": "#5AC8FA",
+    "pureBlack": "false",
+    "dynamicTheme": "true",
+    "thumbnailCornerRadius": "20",
+    "lyricsMotionStyle": "MOTION",
+    "enableProgressiveBlur": "true",
+    "elementBlur": "true",
+    "blurQuality": "HIGH",
+    "blurStrengthPx": "30"
+  },
+  "glass": {
+    "shader": "glass.agsl",
+    "blur": 8,
+    "margin": 24,
+    "uniforms": {
+      "tintAlpha": 0.34,
+      "bevel": 16,
+      "strength": 10,
+      "sheen": 0.5
+    }
+  },
+  "settings": [
+    {
+      "key": "glass",
+      "label": "Kiểu kính",
+      "type": "select",
+      "default": "liquid",
+      "options": [
+        {
+          "value": "liquid",
+          "label": "Kính lỏng",
+          "description": "Bẻ cong mạnh, cạnh sáng rõ, hợp nền có ảnh bìa",
+          "glass": {
+            "blur": 8,
+            "uniforms": {
+              "tintAlpha": 0.34,
+              "bevel": 16,
+              "strength": 10,
+              "sheen": 0.5
+            }
+          }
+        },
+        {
+          "value": "clear",
+          "label": "Kính trong",
+          "description": "Gần như không màu, chỉ còn cạnh sáng",
+          "glass": {
+            "blur": 3,
+            "uniforms": {
+              "tintAlpha": 0.12,
+              "bevel": 10,
+              "strength": 6,
+              "sheen": 0.7
+            }
+          }
+        },
+        {
+          "value": "deep",
+          "label": "Kính đặc",
+          "description": "Tối và dày, chữ trên thanh dễ đọc trên nền sáng",
+          "glass": {
+            "blur": 14,
+            "uniforms": {
+              "tintAlpha": 0.62,
+              "bevel": 22,
+              "strength": 14,
+              "sheen": 0.35
+            }
+          }
+        },
+        {
+          "value": "frost",
+          "label": "Sương của Mochy",
+          "description": "Trả thanh về lớp sương mặc định",
+          "look": {
+            "bottomBar": "FROSTED"
+          }
+        }
+      ]
+    },
+    {
+      "key": "thin",
+      "label": "Thanh mảnh",
+      "type": "toggle",
+      "default": "false",
+      "look": {
+        "blurStrengthPx": "16"
+      }
+    }
+  ]
+}

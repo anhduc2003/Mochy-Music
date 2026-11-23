@@ -1,18 +1,79 @@
 {
   "id": "muc",
   "name": "Mực",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Tối giản một màu: bìa vuông góc cạnh, chữ mảnh, không hiệu ứng thừa.",
   "author": "Mochy Việt",
+  "icon": "icon.png",
+  "banner": "banner.webp",
   "look": {
     "accentColor": "#9AA0A6",
     "pureBlack": "true",
     "dynamicTheme": "false",
     "thumbnailCornerRadius": "6",
-    "playerStyle": "CLASSIC",
+    "playerStyle": "MODULE",
     "playlistStyle": "MINIMAL",
     "lyricsMotionStyle": "PLAIN",
     "blurQuality": "LOW",
-    "blurStrengthPx": "16"
+    "blurStrengthPx": "16",
+    "bottomBar": "FROSTED",
+    "enableProgressiveBlur": "false",
+    "elementBlur": "false"
+  },
+  "player": {
+    "name": "Mực",
+    "background": {
+      "type": "solid",
+      "color": "#0A0A0A"
+    },
+    "padding": 24,
+    "align": "start",
+    "blocks": [
+      {
+        "type": "space",
+        "grow": true
+      },
+      {
+        "type": "cover",
+        "shape": "square",
+        "size": 0.62,
+        "corner": 2
+      },
+      {
+        "type": "space",
+        "size": 30
+      },
+      {
+        "type": "title",
+        "size": 20,
+        "weight": "medium"
+      },
+      {
+        "type": "artist",
+        "size": 14
+      },
+      {
+        "type": "space",
+        "size": 24
+      },
+      {
+        "type": "progress",
+        "style": "line",
+        "times": false
+      },
+      {
+        "type": "space",
+        "size": 18
+      },
+      {
+        "type": "controls",
+        "style": "plain",
+        "size": 46
+      },
+      {
+        "type": "space",
+        "grow": true
+      }
+    ]
   }
 }

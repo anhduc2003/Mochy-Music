@@ -1,7 +1,7 @@
 {
   "id": "dem-sai-gon",
   "name": "Đêm Sài Gòn",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Đen tuyệt đối, hồng neon, bìa đĩa xoay như thanh nhạc số.",
   "author": "Mochy Việt",
   "look": {
@@ -12,25 +12,68 @@
     "playerStyle": "MODULE",
     "lyricsMotionStyle": "MOTION",
     "flagshipBackground": "SOLID",
-    "blurStrengthPx": "26"
+    "blurStrengthPx": "26",
+    "playlistStyle": "FLOW",
+    "blurQuality": "HIGH",
+    "bottomBar": "FROSTED",
+    "enableProgressiveBlur": "true",
+    "elementBlur": "true"
   },
   "player": {
     "name": "Đêm Sài Gòn",
-    "background": { "type": "blurredCover" },
+    "background": {
+      "type": "blurredCover"
+    },
     "dim": 0.45,
     "padding": 28,
     "align": "center",
     "blocks": [
-      { "type": "space", "grow": true },
-      { "type": "cover", "shape": "circle", "size": 0.72, "spin": true, "shadow": true },
-      { "type": "space", "size": 26 },
-      { "type": "title", "size": 24, "weight": "bold" },
-      { "type": "artist", "size": 15 },
-      { "type": "space", "size": 18 },
-      { "type": "progress", "style": "line" },
-      { "type": "space", "size": 14 },
-      { "type": "controls", "size": 54 },
-      { "type": "space", "grow": true }
+      {
+        "type": "space",
+        "grow": true
+      },
+      {
+        "type": "cover",
+        "shape": "circle",
+        "size": 0.72,
+        "spin": true,
+        "shadow": true
+      },
+      {
+        "type": "space",
+        "size": 26
+      },
+      {
+        "type": "title",
+        "size": 24,
+        "weight": "bold"
+      },
+      {
+        "type": "artist",
+        "size": 15
+      },
+      {
+        "type": "space",
+        "size": 18
+      },
+      {
+        "type": "progress",
+        "style": "line"
+      },
+      {
+        "type": "space",
+        "size": 14
+      },
+      {
+        "type": "controls",
+        "size": 54
+      },
+      {
+        "type": "space",
+        "grow": true
+      }
     ]
-  }
+  },
+  "icon": "icon.png",
+  "banner": "banner.webp"
 }

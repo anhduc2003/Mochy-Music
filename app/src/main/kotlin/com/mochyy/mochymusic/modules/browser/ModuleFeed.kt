@@ -182,6 +182,8 @@ class ModuleFeed @Inject constructor(
     }
 
     /** the module's zip, or one of a pack's by its [item] id, into the cache, ready to be checked like a zip picked from the phone; null when it couldn't be fetched */    suspend fun download(postId: String, item: String? = null): File? = withContext(Dispatchers.IO) {
+        // the fork's own store hands out https addresses instead of post ids, and needs no session or worker for them
+        if (item == null && postId.startsWith("https://")) return@withContext ownZip(postId)
         if (!isSetUp || !isAllowed()) return@withContext null
         if (!PostIdPattern.matches(postId) || (item != null && !ItemIdPattern.matches(item))) return@withContext null
         val session = _session.value ?: return@withContext null
@@ -202,6 +204,18 @@ class ModuleFeed @Inject constructor(
             }
         }.getOrNull()
     }
+
+    /** one of the fork's own zips, by its https address, into the same cache folder the store's own go to */
+    private fun ownZip(address: String): File? = runCatching {
+        val name = address.substringAfterLast('/').takeIf { it.endsWith(".zip", ignoreCase = true) } ?: "own.zip"
+        val folder = File(context.cacheDir, "module_browser").apply { mkdirs() }
+        val file = File(folder, "own-$name")
+        client.newCall(Request.Builder().url(address).build()).execute().use { res ->
+            if (!res.isSuccessful) return@use null
+            file.outputStream().use { out -> res.body.byteStream().copyTo(out) }
+            file
+        }
+    }.getOrNull()
 
     // every call carries the build's native signature over what it asks for, and never goes out unsigned
     private fun call(request: Request.Builder, session: String): Response? {
@@ -299,7 +313,8 @@ class ModuleFeed @Inject constructor(
         val listed = moduleCatalog.load().getOrNull()?.takeIf { it.isNotEmpty() } ?: return null
         val modules = listed.map { module ->
             FeedModule(
-                id = module.url,
+                // a zip module is fetched by its zip's address; a plain look by its manifest's
+                id = module.zip ?: module.url,
                 name = module.name,
                 moduleId = null,
                 version = module.version,
@@ -313,7 +328,7 @@ class ModuleFeed @Inject constructor(
                 icon = module.icon,
                 banner = module.banner,
                 previews = module.previews,
-                install = FeedInstall.Link,
+                install = if (module.zip != null) FeedInstall.Zip else FeedInstall.Link,
                 pack = emptyList(),
                 size = null,
                 updated = null,
