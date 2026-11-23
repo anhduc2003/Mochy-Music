@@ -240,6 +240,8 @@
     <string name="module_store_preview">A preview of %1$s</string>
     <string name="module_store_open_post">Open its post on Discord</string>
     <string name="module_store_gone">This module isn\'t in the store any more.</string>
+    <string name="module_missing">This module isn\'t installed any more. It may have been removed on another screen.</string>
+    <string name="module_missing_back">Back to modules</string>
     <!-- buttons and notes on a module's own pages, and on pages a module shows in place of Mochy's -->
     <string name="module_page_play">Play</string>
     <string name="module_page_shuffle">Shuffle</string>

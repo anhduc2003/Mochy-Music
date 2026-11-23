@@ -52,13 +52,16 @@ import dalvik.system.PathClassLoader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -152,12 +155,28 @@ class ModuleRegistry @Inject constructor(
     /** filled by [refresh]; the settings call it when they open */
     val entries: StateFlow<List<ModuleEntry>> = _entries.asStateFlow()
 
+    private val _ready = MutableStateFlow(false)
+
+    /** false until the first pass is in, so a page can show a stand-in instead of an empty list */
+    val ready: StateFlow<Boolean> = _ready.asStateFlow()
+
+    // one pass at a time, and only one waiting: a switch flipped on the settings page just queues the work, and ten
+    // quick flips cost one rebuild. Before this, every flip read every module's account state on the drawing thread.
+    private val refreshes = Channel<Unit>(Channel.CONFLATED)
+
     init {
         // the module player picked last time, kept here beside the switches
         ActiveSkin.restorePick(prefs.getString(PlayerPickKey, null).orEmpty())
         ActiveSkin.onPick = { key -> prefs.edit { putString(PlayerPickKey, key) } }
+        scope.launch {
+            for (ignored in refreshes) {
+                // one bad module must not stop the list from ever loading again, so a failed pass is logged and the
+                // collector keeps waiting for the next one
+                runCatching { buildEntries() }.onFailure { Timber.tag(Tag).e(it, "Couldn't rebuild the module list") }
+            }
+        }
         // lyrics modules have to be in the lyrics sources before the first song asks for lyrics
-        scope.launch { refresh() }
+        refresh()
     }
 
     fun module(id: String): MochyModule? = modules.firstOrNull { it.first.info.id == id }?.first
@@ -173,12 +192,16 @@ class ModuleRegistry @Inject constructor(
         .distinctUntilChanged()
 
     fun setEnabled(id: String, on: Boolean) {
-        val module = module(id)
         prefs.edit { putBoolean("enabled_$id", on) }
-        if (on && module is SoundCloudModule) module.reactivate()
-        // a look turned on goes to the top of the looks, so what it brings shows over the others straight away, its first player included
-        if (on && module != null && (module as? SkinSource)?.skin?.players?.isNotEmpty() == true) ActiveSkin.pick("$id/")
-        if (on && module != null && restyles(module)) raise(id) else refresh()
+        // the switch is a tap on the settings page, so the module's own calls and the rebuild go to the io scope: a
+        // code module's reactivate, look or account state can take as long as it likes without freezing the page
+        scope.launch {
+            val module = module(id)
+            if (on && module is SoundCloudModule) module.reactivate()
+            // a look turned on goes to the top of the looks, so what it brings shows over the others straight away, its first player included
+            if (on && module != null && (module as? SkinSource)?.skin?.players?.isNotEmpty() == true) ActiveSkin.pick("$id/")
+            if (on && module != null && restyles(module)) raise(id) else refresh()
+        }
     }
 
     /** puts a look above the others, so its settings, player, font and glass win where they meet */
@@ -216,10 +239,12 @@ class ModuleRegistry @Inject constructor(
 
     /** keeps one of a module's settings; a look that's on changes over to what the new value brings on the refresh */
     fun setField(id: String, fieldId: String, value: String) {
-        val module = module(id) ?: return
         prefs.edit { putString("field_${id}_$fieldId", value) }
-        handValues(module)
-        refresh()
+        // onFields is the module's own code and a look that's on rebuilds with it, so both run beside the tap
+        scope.launch {
+            module(id)?.let(::handValues)
+            refresh()
+        }
     }
 
     // the order modules are listed and asked in: what was dragged on the modules page, else the provider order the songs already use
@@ -232,7 +257,20 @@ class ModuleRegistry @Inject constructor(
         refresh()
     }
 
+    /** asks for the entries to be rebuilt; the list arrives on [entries] once the pass is done */
     fun refresh() {
+        refreshes.trySend(Unit)
+    }
+
+    /**
+     * Waits until [id] is in the list, so a page opened straight after installing finds it. The pass that installs it
+     * is queued, not run inline, so without this the page would open on a module that isn't there yet.
+     */
+    suspend fun awaitEntry(id: String) {
+        withTimeoutOrNull(EntryWaitMs) { entries.first { list -> list.any { it.id == id } } }
+    }
+
+    private fun buildEntries() {
         val order = savedOrder()
         val list = modules.map { (module, origin) ->
             val id = module.info.id
@@ -240,10 +278,15 @@ class ModuleRegistry @Inject constructor(
                 module = module,
                 origin = origin,
                 enabled = isEnabled(id),
-                picks = picks(id),
-                account = module.accountState(),
+                // choices, settings and the account state are the module's own code: one that throws is left out of
+                // its own row instead of taking the page down with it
+                picks = runCatching { picks(id) }.getOrDefault(emptyMap()),
+                account = runCatching { module.accountState() }.getOrElse { failure ->
+                    Timber.tag(Tag).w(failure, "Couldn't read $id's account state")
+                    AccountState.SignedOut
+                },
                 fields = runCatching { (module as? ModuleFields)?.fields }.getOrNull().orEmpty(),
-                values = valuesFor(module),
+                values = runCatching { valuesFor(module) }.getOrDefault(emptyMap()),
                 addedAt = prefs.getLong("added_$id", 0L).takeIf { it > 0L },
                 // copies from before this was kept count from when they were first added
                 installedAt = prefs.getLong("installed_$id", 0L).takeIf { it > 0L } ?: prefs.getLong("added_$id", 0L).takeIf { it > 0L },
@@ -277,6 +320,7 @@ class ModuleRegistry @Inject constructor(
         )
         ModuleMetadata.sources = list.filter { it.active && it.adds(ModuleFeature.Metadata) }.mapNotNull { it.module as? MetadataModule }
         ModuleMenu.publish(list.filter { it.active }.mapNotNull { (it.module as? SkinSource)?.skin })
+        _ready.value = true
     }
 
     private val ModuleEntry.skin: ModuleSkin? get() = (module as? SkinSource)?.skin
@@ -455,7 +499,8 @@ class ModuleRegistry @Inject constructor(
     /** adds a checked link or zip as a module, switched off until the user turns it on; gives back its id, null when a zip's code wouldn't start. unpacks a zip's files, so not on the main thread */
     fun install(ready: LinkCheck.Ready): String? {
         ready.code?.let { return installCode(ready, it) }
-        val manifest = requireNotNull(WebModuleManifest.parse(ready.manifestText))
+        // the sheet read this manifest already, but a second read can still fail on a zip that changed under us
+        val manifest = WebModuleManifest.parse(ready.manifestText) ?: return null
         val base = ready.base
         val newId = if (base != null) WebModuleManifest.idFor(base, manifest) else LocalModule.idFor(manifest)
         // the zip's pictures and fonts go in first, so the module is built with them in place; a link brings none, and old ones go
@@ -588,7 +633,9 @@ class ModuleRegistry @Inject constructor(
         val savedCode = savedCodeModules()
         CodeModules.tidy(context, savedCode.map { it.optString("folder") }.toSet())
         val code = savedCode.mapNotNull { saved ->
-            CodeModules.load(context, saved.optString("folder"))?.let { it.module to ModuleOrigin.Code(saved.optString("file")) }
+            runCatching {
+                CodeModules.load(context, saved.optString("folder"))?.let { it.module to ModuleOrigin.Code(saved.optString("file")) }
+            }.onFailure { Timber.tag(Tag).w(it, "Couldn't load a code module") }.getOrNull()
         }
         // sites that got in as modules before they were turned away; they never played a song, so they go
         val (sites, kept) = savedWebModules().partition { WebModuleManifest.isWebsite(it.optString("manifest")) }
@@ -596,11 +643,17 @@ class ModuleRegistry @Inject constructor(
         val web = kept.mapNotNull { saved ->
             val base = saved.optString("base").takeIf { it.isNotBlank() } ?: return@mapNotNull null
             val manifest = WebModuleManifest.parse(saved.optString("manifest")) ?: return@mapNotNull null
-            WebModule(base, manifest, context.resources, filesFor(WebModuleManifest.idFor(base, manifest))) to ModuleOrigin.Web(base)
+            // the look inside is parsed here, and a manifest written by someone else is not allowed to stop mochy from
+            // opening: the module that fails is left out, the rest still load
+            runCatching { WebModule(base, manifest, context.resources, filesFor(WebModuleManifest.idFor(base, manifest))) to ModuleOrigin.Web(base) }
+                .onFailure { Timber.tag(Tag).w(it, "Couldn't build the web module at $base") }
+                .getOrNull()
         }
         val local = savedLocalModules().mapNotNull { saved ->
             val manifest = WebModuleManifest.parse(saved.optString("manifest")) ?: return@mapNotNull null
-            LocalModule(manifest, filesFor(LocalModule.idFor(manifest))) to ModuleOrigin.File(saved.optString("file"))
+            runCatching { LocalModule(manifest, filesFor(LocalModule.idFor(manifest))) to ModuleOrigin.File(saved.optString("file")) }
+                .onFailure { Timber.tag(Tag).w(it, "Couldn't build a module from a file") }
+                .getOrNull()
         }
         // a module app or a zip's code replaces the built-in module with its id, so a module can be updated on its own
         val replacing = (apps + code).map { it.first.info.id }.toSet()
@@ -608,8 +661,11 @@ class ModuleRegistry @Inject constructor(
         return (builtIn.filter { it.first.info.id !in replacing } + apps + code + web + local)
             .distinctBy { it.first.info.id }
             .onEach { (module, _) ->
-                module.attach(hostFor(module))
-                handValues(module)
+                // a module that throws while attaching or taking its settings keeps its row, without the parts that failed
+                runCatching {
+                    module.attach(hostFor(module))
+                    handValues(module)
+                }.onFailure { Timber.tag(Tag).w(it, "Couldn't prepare ${module.info.id}") }
             }
     }
 
@@ -694,6 +750,8 @@ class ModuleRegistry @Inject constructor(
         // a zip is only searched this far for its manifest, and a manifest bigger than this isn't one
         private const val MaxZipEntries = 200
         private const val MaxManifestBytes = 256 * 1024
+        // long enough for a pass that reads every module's state, short enough that a broken module can't hold a page
+        private const val EntryWaitMs = 2_000L
         private val ServiceResources = setOf("search", "stream", "lyrics", "metadata")
         // a release with a debug and a release zip: debug, fast and profileable builds are signed with the debug key
         private val PreferDebugZips = com.mochyy.mochymusic.BuildConfig.BUILD_TYPE != "release"

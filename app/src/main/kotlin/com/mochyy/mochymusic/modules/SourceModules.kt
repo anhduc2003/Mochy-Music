@@ -20,6 +20,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -242,9 +243,12 @@ class SourceModules @Inject constructor(
 
     fun refresh() {
         registry.refresh()
-        val installed = registry.all().filter { ModuleFeature.AudioSource in it.adds }.map { it.info.id }
-        slotIn(installed, _order.value, ::setOrder)
-        slotIn(installed, _downloadOrder.value, ::setDownloadOrder)
+        // reading the installed list is what loads every module, so it runs beside the tap that asked for it
+        resolveScope.launch {
+            val installed = registry.all().filter { ModuleFeature.AudioSource in it.adds }.map { it.info.id }
+            slotIn(installed, _order.value, ::setOrder)
+            slotIn(installed, _downloadOrder.value, ::setDownloadOrder)
+        }
     }
 
     // a module installed since goes into an order just ahead of youtube

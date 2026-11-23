@@ -32,9 +32,11 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.constants.ModuleStoreTermsKey
@@ -93,9 +96,11 @@ fun ModuleBrowserScreen(
 ) {
     val context = LocalContext.current
     val overlay = LocalZoomOutOverlayState.current
-    val page by viewModel.page.collectAsState()
-    val fetching by viewModel.fetching.collectAsState()
-    val entries by modules.entries.collectAsState()
+    val page by viewModel.page.collectAsStateWithLifecycle()
+    val fetching by viewModel.fetching.collectAsStateWithLifecycle()
+    val loading by viewModel.loading.collectAsStateWithLifecycle()
+    val entries by modules.entries.collectAsStateWithLifecycle()
+    val pullToRefresh = rememberPullToRefreshState()
     var query by rememberSaveable { mutableStateOf("") }
     var category by rememberSaveable { mutableStateOf<String?>(null) }
     var searching by rememberSaveable { mutableStateOf(false) }
@@ -155,7 +160,13 @@ fun ModuleBrowserScreen(
         else -> null
     }
 
-    Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.TopCenter) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .pullToRefresh(state = pullToRefresh, isRefreshing = loading, onRefresh = viewModel::reload),
+        contentAlignment = Alignment.TopCenter,
+    ) {
         Box(Modifier.fillMaxSize().widthIn(max = StoreMaxWidth)) {
             LazyColumn(
                 state = list,
@@ -217,6 +228,11 @@ fun ModuleBrowserScreen(
                 onSearch = { searching = true },
                 onCloseSearch = closeSearch,
                 onBack = { navController.navigateUp() },
+            )
+            PullToRefreshDefaults.LoadingIndicator(
+                state = pullToRefresh,
+                isRefreshing = loading,
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = statusTop),
             )
         }
     }

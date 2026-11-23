@@ -203,7 +203,8 @@ internal fun ActionPill(action: BrowserAction, fetching: Boolean, getLabel: Bool
     }
     Box(
         modifier = Modifier
-            .heightIn(min = 40.dp)
+            // 48dp: the smallest a finger is expected to hit, where this was 40
+            .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(20.dp))
             .background(if (action.isBright) Color.White else BrowserPill)
             .clickable(enabled = !fetching && action != BrowserAction.Added, onClick = onClick)

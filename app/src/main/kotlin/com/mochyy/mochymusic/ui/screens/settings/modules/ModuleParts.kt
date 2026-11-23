@@ -83,14 +83,15 @@ internal fun ModuleLogo(id: String, name: String, size: Int = 46, art: String? =
         contentAlignment = Alignment.Center,
     ) {
         when {
-            art != null -> SubcomposeAsyncImage(
-                model = artModel(art),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.size(size.dp),
-                // a picture that won't load still leaves the module recognisable
-                error = { LetterMark(name, size) },
-            )
+            art != null -> {
+                // a plain painter, not SubcomposeAsyncImage: the subcomposing version is the heaviest thing coil
+                // has and this draws once per row, which is felt while a long store list scrolls. The letter stays
+                // underneath until the picture is actually in, so a slow or broken link still leaves the module
+                // recognisable instead of a blank square.
+                val painter = coil3.compose.rememberAsyncImagePainter(model = artModel(art))
+                if (painter.state !is coil3.compose.AsyncImagePainter.State.Success) LetterMark(name, size)
+                Image(painter, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(size.dp))
+            }
             logo != null -> Image(painterResource(logo), null, contentScale = ContentScale.Crop, modifier = Modifier.size(size.dp))
             else -> LetterMark(name, size)
         }

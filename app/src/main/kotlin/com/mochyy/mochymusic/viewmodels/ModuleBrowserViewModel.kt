@@ -44,6 +44,14 @@ class ModuleBrowserViewModel @Inject constructor(
 
     private var loadJob: Job? = null
 
+    // bumped per reload, so only the newest request turns the refresh spinner off
+    private var loadToken = 0
+
+    private val _loading = MutableStateFlow(false)
+
+    /** true while the list is being asked for again, for pull-to-refresh */
+    val loading: StateFlow<Boolean> = _loading.asStateFlow()
+
     init {
         // signing in happens in the browser and lands here as a new session, which loads the list straight away
         viewModelScope.launch { feed.session.collect { reload() } }
@@ -60,7 +68,15 @@ class ModuleBrowserViewModel @Inject constructor(
     /** asks the feed again; what's on screen stays while it does, so a refresh never blanks the list */
     fun reload() {
         loadJob?.cancel()
-        loadJob = viewModelScope.launch { _page.value = feed.load() }
+        val token = ++loadToken
+        _loading.value = true
+        loadJob = viewModelScope.launch {
+            try {
+                _page.value = feed.load()
+            } finally {
+                if (token == loadToken) _loading.value = false
+            }
+        }
     }
 
     fun signInUri(): Uri? = feed.signInUri()

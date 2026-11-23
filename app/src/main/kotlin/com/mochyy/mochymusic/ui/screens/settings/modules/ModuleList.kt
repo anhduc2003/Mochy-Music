@@ -83,7 +83,7 @@ internal fun ModuleList(
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
     // rows sit on fixed slots so they can slide; a big system font makes the slots taller
-    val rowHeight = 104.dp + 28.dp * (density.fontScale - 1f).coerceAtLeast(0f)
+    val rowHeight = rowHeightFor(density.fontScale)
     val slotPx = with(density) { (rowHeight + RowGap).toPx() }
     val byId = entries.associateBy { it.id }
     var order by remember { mutableStateOf(entries.map { it.id }) }
@@ -207,6 +207,35 @@ internal fun ModuleList(
 }
 
 // grows from nothing to its full width, measured at full width the whole time so the lines slide in instead of squashing
+// the height of one row at a given font scale, shared with the stand-in list below
+private fun rowHeightFor(fontScale: Float): Dp = 104.dp + 28.dp * (fontScale - 1f).coerceAtLeast(0f)
+
+/** stand-in cards while the list is still being read, so the page never says "nothing here" before it knows */
+@Composable
+internal fun ModuleBoneList(rows: Int = 3) {
+    val height = rowHeightFor(LocalDensity.current.fontScale)
+    Column(verticalArrangement = Arrangement.spacedBy(RowGap)) {
+        repeat(rows) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(height)
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(ModuleRowColor)
+                    .padding(start = 18.dp, end = 16.dp),
+            ) {
+                Box(Modifier.size(56.dp).clip(RoundedCornerShape(14.dp)).background(LabColors.Row))
+                Spacer(Modifier.width(16.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    Box(Modifier.width(150.dp).height(18.dp).clip(RoundedCornerShape(9.dp)).background(LabColors.Row))
+                    Box(Modifier.width(96.dp).height(12.dp).clip(RoundedCornerShape(6.dp)).background(LabColors.Row))
+                }
+            }
+        }
+    }
+}
+
 private fun Modifier.revealWidth(full: Dp, progress: () -> Float) = layout { measurable, constraints ->
     val fullPx = full.roundToPx()
     val placeable = measurable.measure(constraints.copy(minWidth = fullPx, maxWidth = fullPx))

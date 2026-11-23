@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +41,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.modules.ModuleEntry
@@ -66,7 +66,9 @@ private val CardShape = RoundedCornerShape(26.dp)
 
 @Composable
 fun ModulesScreen(navController: NavController, viewModel: ModulesViewModel = hiltViewModel()) {
-    val entries by viewModel.entries.collectAsState()
+    val entries by viewModel.entries.collectAsStateWithLifecycle()
+    // false until the first pass is in: an empty list before that would read as "you have no modules"
+    val ready by viewModel.ready.collectAsStateWithLifecycle()
     val overlay = LocalZoomOutOverlayState.current
     val context = LocalContext.current
     var removing by remember { mutableStateOf<ModuleEntry?>(null) }
@@ -77,7 +79,7 @@ fun ModulesScreen(navController: NavController, viewModel: ModulesViewModel = hi
     val sources = entries.filter { !it.isLookOnly }
     val open: (ModuleEntry) -> Unit = { navController.navigate(moduleRoute(it.id)) }
     val findMore = { overlay.showFindModulesSheet(viewModel) { id -> navController.navigate(moduleRoute(id)) } }
-    val updating by viewModel.updating.collectAsState()
+    val updating by viewModel.updating.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val update: (ModuleEntry) -> Unit = { entry -> scope.launch { context.updateModule(viewModel, entry) } }
 
@@ -97,7 +99,9 @@ fun ModulesScreen(navController: NavController, viewModel: ModulesViewModel = hi
         Spacer(Modifier.height(28.dp))
 
         ModuleSectionTitle(stringResource(R.string.modules_looks), showDone = sortingLooks && looks.isNotEmpty(), onDone = { sortingLooks = false })
-        if (looks.isEmpty()) {
+        if (!ready) {
+            ModuleBoneList()
+        } else if (looks.isEmpty()) {
             DashedSlot(stringResource(R.string.modules_looks_empty), onClick = findMore)
         } else {
             ModuleList(
@@ -113,10 +117,14 @@ fun ModulesScreen(navController: NavController, viewModel: ModulesViewModel = hi
             stringResource(R.string.modules_sources), stringResource(R.string.modules_swipe_to_delete),
             showDone = sortingSources && sources.isNotEmpty(), onDone = { sortingSources = false },
         )
-        ModuleList(
-            sources, onOpen = open, onRemove = { removing = it }, onReorder = { viewModel.reorder(it, looks = false) },
-            updating = updating, onUpdate = update, sorting = sortingSources, onStartSorting = { sortingSources = true },
-        )
+        if (!ready) {
+            ModuleBoneList()
+        } else {
+            ModuleList(
+                sources, onOpen = open, onRemove = { removing = it }, onReorder = { viewModel.reorder(it, looks = false) },
+                updating = updating, onUpdate = update, sorting = sortingSources, onStartSorting = { sortingSources = true },
+            )
+        }
         Spacer(Modifier.height(12.dp))
         DashedSlot(stringResource(R.string.modules_add_more), onClick = findMore, compact = true)
         Spacer(Modifier.height(120.dp))

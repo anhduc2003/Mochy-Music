@@ -51,6 +51,9 @@ class ModulesViewModel @Inject constructor(
 
     val entries = modules.entries
 
+    /** false until the first list is in, so the page shows a stand-in instead of "nothing here" while it loads */
+    val ready = registry.ready
+
     /** the provider order: module ids and "youtube" */
     val order = modules.order
 
@@ -383,6 +386,8 @@ class ModulesViewModel @Inject constructor(
         // a zip's pictures and fonts are unpacked on the way in, and its code is copied and started
         val id = withContext(Dispatchers.IO) { registry.install(ready) }
         modules.refresh()
+        // the page this opens lands on the module, so wait for the list to carry it instead of racing the rebuild
+        if (id != null) registry.awaitEntry(id)
         return id
     }
 

@@ -15,28 +15,45 @@ internal object SkinFiles {
     /** unpacks the pictures and fonts under [root], the manifest's folder in the zip; null when nothing was kept */
     fun unpack(context: Context, uri: Uri, moduleId: String, root: String): File? {
         val target = folderFor(context, moduleId)
-        target.deleteRecursively()
-        val targetPath = target.canonicalPath + File.separator
+        // the new files land beside the old folder and only replace it once every one of them is in, so a zip that
+        // fails halfway (a link that went away, a truncated download) leaves the look already installed working
+        val staging = File(target.parentFile, target.name + ".incoming").apply { deleteRecursively(); mkdirs() }
+        val stagingPath = staging.canonicalPath + File.separator
         var total = 0L
         var count = 0
-        context.contentResolver.openInputStream(uri)?.use { raw ->
-            ZipInputStream(raw.buffered()).use { zip ->
-                while (count < MaxFiles && total < MaxTotalBytes) {
-                    val entry = zip.nextEntry ?: break
-                    val relative = entry.name.trimStart('/').takeIf { !entry.isDirectory && it.startsWith(root) }?.removePrefix(root) ?: continue
-                    if (!keeps(relative)) continue
-                    val file = File(target, relative)
-                    if (!file.canonicalPath.startsWith(targetPath)) continue
-                    file.parentFile?.mkdirs()
-                    val written = copyCapped(zip, file, minOf(MaxFileBytes, MaxTotalBytes - total))
-                    if (written < 0) file.delete() else {
-                        total += written
-                        count++
+        try {
+            context.contentResolver.openInputStream(uri)?.use { raw ->
+                ZipInputStream(raw.buffered()).use { zip ->
+                    while (count < MaxFiles && total < MaxTotalBytes) {
+                        val entry = zip.nextEntry ?: break
+                        val relative = entry.name.trimStart('/').takeIf { !entry.isDirectory && it.startsWith(root) }?.removePrefix(root) ?: continue
+                        if (!keeps(relative)) continue
+                        val file = File(staging, relative)
+                        if (!file.canonicalPath.startsWith(stagingPath)) continue
+                        file.parentFile?.mkdirs()
+                        val written = copyCapped(zip, file, minOf(MaxFileBytes, MaxTotalBytes - total))
+                        if (written < 0) file.delete() else {
+                            total += written
+                            count++
+                        }
                     }
                 }
             }
+        } catch (error: Exception) {
+            // nothing was taken from the old folder yet, so it stays exactly as it was
+            staging.deleteRecursively()
+            return null
         }
-        return target.takeIf { count > 0 }
+        if (count == 0) {
+            staging.deleteRecursively()
+            return null
+        }
+        target.deleteRecursively()
+        if (!staging.renameTo(target)) {
+            staging.copyRecursively(target, overwrite = true)
+            staging.deleteRecursively()
+        }
+        return target.takeIf { it.isDirectory }
     }
 
     fun delete(context: Context, moduleId: String) {
