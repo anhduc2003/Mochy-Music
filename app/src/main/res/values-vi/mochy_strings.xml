@@ -873,7 +873,7 @@
     <string name="song_share_go_back">Không, quay lại nhé</string>
     <string name="song_share_type_title">Loại</string>
     <string name="song_share_type_subtitle">Chọn loại nền</string>
-    <string name="song_share_type_video_hint">Video của bạn, video nhạc hoặc ảnh bìa động</string>
+    <string name="song_share_type_video_hint">Ảnh bìa trôi, video YouTube, video của bạn hoặc ảnh bìa động</string>
     <string name="song_share_type_still">Tĩnh</string>
     <string name="song_share_type_still_hint">Một bức ảnh, màu sắc của bài hát hoặc một màu đơn sắc</string>
     <string name="song_share_type_link">Sao chép liên kết</string>
@@ -893,6 +893,11 @@
     <string name="song_share_bg_own_video_hint">Chạm vào vòng tròn để chọn video từ điện thoại</string>
     <string name="song_share_bg_music_video">Video nhạc</string>
     <string name="song_share_bg_music_video_hint">Khớp với bài hát nên hiển thị đúng khoảnh khắc đó</string>
+    <string name="song_share_card_bg_youtube">YouTube</string>
+    <string name="song_share_bg_youtube_video">Tìm video YouTube</string>
+    <string name="song_share_bg_youtube_video_hint">Chạm vào vòng tròn để tìm video trên YouTube</string>
+    <string name="song_share_bg_youtube_picker_subtitle">Tìm video trên YouTube để làm nền</string>
+    <string name="song_share_bg_youtube_failed">Không tải được video đó. Hãy thử video khác.</string>
     <string name="song_share_bg_animated_cover">Ảnh bìa động</string>
     <string name="song_share_bg_animated_cover_hint">Ảnh bìa động của album, phát lặp lại</string>
     <string name="song_share_bg_music">Tạo từ bài hát</string>
