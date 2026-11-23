@@ -138,8 +138,11 @@ internal suspend fun matchMusicVideo(session: SongShareSession, service: MusicSe
 internal suspend fun loadPickedYouTubeVideo(session: SongShareSession, videoId: String, title: String): Boolean {
     val streams = YTPlayerUtils.resolveVideoStreams(videoId).getOrNull() ?: return false
     if (streams.tracks.isEmpty()) return false
+    // choosing the same video again — opening "change video" and confirming what was already picked — keeps the
+    // alignment it was matched with; nothing else re-runs the match, because the id didn't change
+    val alreadyMatched = session.pickedYouTubeVideo.found?.takeIf { it.videoId == videoId }?.videoMsAt
     session.pickedYouTubeTitle = title
-    session.pickedYouTubeVideo = Fetched.Found(ShareMusicVideo(videoId, streams) { it })
+    session.pickedYouTubeVideo = Fetched.Found(ShareMusicVideo(videoId, streams, alreadyMatched ?: { it }))
     return true
 }
 

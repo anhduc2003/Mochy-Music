@@ -64,42 +64,43 @@ class TransferImporter @Inject constructor(
         downloadsStage?.apply { deleteRecursively(); mkdirs() }
         try {
             unpack(source, staging, downloadsStage, total = manifest.bytes, onProgress)
-        } catch (e: Throwable) {
-            downloadsStage?.deleteRecursively()
-            throw e
-        }
 
-        val library = File(staging, TransferArchive.LibraryEntry)
-        if (!library.exists()) {
-            downloadsStage?.deleteRecursively()
-            throw TransferException("Tệp xuất này không chứa thư viện nhạc. Hãy xuất lại từ ứng dụng cũ.")
-        }
+            val library = File(staging, TransferArchive.LibraryEntry)
+            if (!library.exists()) {
+                throw TransferException("Tệp xuất này không chứa thư viện nhạc. Hãy xuất lại từ ứng dụng cũ.")
+            }
 
-        val moveToHere = pathMover(manifest)
-        val missingLocal = convertLibrary(library, File(staging, TransferArchive.LocalSongsEntry), moveToHere)
-        rewriteSettings(File(staging, TransferArchive.SettingsEntry), moveToHere)
-        File(staging, TransferArchive.PrefsPrefix).listFiles().orEmpty().forEach { prefs ->
-            if (prefs.name.removeSuffix(".json") in TransferArchive.PrefsToCarry) rewriteSettings(prefs, moveToHere) else prefs.delete()
-        }
+            val moveToHere = pathMover(manifest)
+            val missingLocal = convertLibrary(library, File(staging, TransferArchive.LocalSongsEntry), moveToHere)
+            rewriteSettings(File(staging, TransferArchive.SettingsEntry), moveToHere)
+            File(staging, TransferArchive.PrefsPrefix).listFiles().orEmpty().forEach { prefs ->
+                if (prefs.name.removeSuffix(".json") in TransferArchive.PrefsToCarry) rewriteSettings(prefs, moveToHere) else prefs.delete()
+            }
 
-        val hasStagedExternalDownloads = downloadsStage != null && downloadsStage.listFiles()?.isNotEmpty() == true
-        if (!hasStagedExternalDownloads) downloadsStage?.deleteRecursively()
+            val hasStagedExternalDownloads = downloadsStage != null && downloadsStage.listFiles()?.isNotEmpty() == true
+            if (!hasStagedExternalDownloads) downloadsStage?.deleteRecursively()
 
-        // written last: without it the next start throws the half-made folder away instead of using it
-        File(staging, TransferRestore.ReadyMarker).writeText(
-            JSONObject()
-                .put("songs", manifest.songs)
-                .put("playlists", manifest.playlists)
-                .put("missingLocal", missingLocal)
-                .apply {
-                    if (hasStagedExternalDownloads) {
-                        put("downloadsRoot", externalDownloadsRoot.path)
+            // written last: without it the next start throws the half-made folder away instead of using it
+            File(staging, TransferRestore.ReadyMarker).writeText(
+                JSONObject()
+                    .put("songs", manifest.songs)
+                    .put("playlists", manifest.playlists)
+                    .put("missingLocal", missingLocal)
+                    .apply {
+                        if (hasStagedExternalDownloads) {
+                            put("downloadsRoot", externalDownloadsRoot.path)
+                        }
                     }
-                }
-                .toString()
-        )
-        onProgress(1f)
-        return manifest
+                    .toString()
+            )
+            onProgress(1f)
+            return manifest
+        } catch (error: Throwable) {
+            // anything that fails after the songs were staged — a broken library, a conversion that threw — leaves the
+            // card holding gigabytes that no start will ever clean up, and the space a retry needs
+            downloadsStage?.deleteRecursively()
+            throw error
+        }
     }
 
     private fun chooseDownloadsRoot(neededBytes: Long): File? {

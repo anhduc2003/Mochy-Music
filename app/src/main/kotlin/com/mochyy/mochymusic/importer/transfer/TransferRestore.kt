@@ -44,7 +44,15 @@ object TransferRestore {
             StoragePlaces.sdCards(app).forEach { File(it.root, DownloadsStagingName).deleteRecursively() }
             return
         }
-        runCatching { swapIn(app, staging, JSONObject(ready.readText())) }
+        val note = runCatching { JSONObject(ready.readText()) }.getOrNull()
+        // the songs were staged on a card that isn't mounted now: swapping the library in would leave them behind with
+        // nothing left to finish the job, so the whole import waits for the card to come back
+        val downloadsRoot = note?.optString("downloadsRoot")?.takeIf { it.isNotBlank() }?.let(::File)
+        if (downloadsRoot != null && !File(downloadsRoot, DownloadsStagingName).exists()) {
+            Log.w(Tag, "Waiting for the card that holds the staged downloads")
+            return
+        }
+        runCatching { swapIn(app, staging, note ?: JSONObject()) }
             .onFailure { Log.e(Tag, "Couldn't finish the import", it) }
         staging.deleteRecursively()
     }
