@@ -5,6 +5,7 @@ package com.mochyy.mochymusic.modules.skin
 import android.content.Context
 import android.net.Uri
 import java.io.File
+import java.io.IOException
 import java.util.zip.ZipInputStream
 
 internal object SkinFiles {
@@ -12,12 +13,23 @@ internal object SkinFiles {
     fun folderFor(context: Context, moduleId: String): File =
         File(context.filesDir, "module_files/" + moduleId.replace(Regex("[^a-z0-9._-]"), "-"))
 
-    /** unpacks the pictures and fonts under [root], the manifest's folder in the zip; null when nothing was kept */
+    /**
+     * Unpacks the pictures and fonts under [root], the manifest's folder in the zip; null when the zip simply had
+     * nothing to keep. A zip that can't be read throws instead, so the caller can refuse the install rather than
+     * taking in a look whose font and shader are missing.
+     */
     fun unpack(context: Context, uri: Uri, moduleId: String, root: String): File? {
         val target = folderFor(context, moduleId)
         // the new files land beside the old folder and only replace it once every one of them is in, so a zip that
-        // fails halfway (a link that went away, a truncated download) leaves the look already installed working
-        val staging = File(target.parentFile, target.name + ".incoming").apply { deleteRecursively(); mkdirs() }
+        // fails halfway (a link that went away, a truncated download) leaves the look already installed working.
+        // The name comes from the file system, not from the module id: a module called "foo.incoming" would otherwise
+        // find its own live folder picked as staging and deleted.
+        val stagingRoot = File(context.filesDir, "module_files_staging").apply { mkdirs() }
+        val staging = File.createTempFile("unpack-", "", stagingRoot).let { placeholder ->
+            placeholder.delete()
+            placeholder.mkdirs()
+            placeholder
+        }
         val stagingPath = staging.canonicalPath + File.separator
         var total = 0L
         var count = 0
@@ -42,7 +54,7 @@ internal object SkinFiles {
         } catch (error: Exception) {
             // nothing was taken from the old folder yet, so it stays exactly as it was
             staging.deleteRecursively()
-            return null
+            throw IOException("couldn't unpack the module's files", error)
         }
         if (count == 0) {
             staging.deleteRecursively()

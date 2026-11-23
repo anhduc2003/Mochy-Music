@@ -164,6 +164,9 @@ class ModuleRegistry @Inject constructor(
     // quick flips cost one rebuild. Before this, every flip read every module's account state on the drawing thread.
     private val refreshes = Channel<Unit>(Channel.CONFLATED)
 
+    // one module's settings reach it in the order they were made, whichever thread is handing them over
+    private val fieldLock = Any()
+
     init {
         // the module player picked last time, kept here beside the switches
         ActiveSkin.restorePick(prefs.getString(PlayerPickKey, null).orEmpty())
@@ -233,8 +236,12 @@ class ModuleRegistry @Inject constructor(
 
     // the module hears every value before its first call, so a song asked for straight after a start already gets them
     private fun handValues(module: MochyModule) {
-        val values = valuesFor(module).takeIf { it.isNotEmpty() } ?: return
-        runCatching { (module as? ModuleFields)?.onFields(values) }
+        // read and handed over under one lock: two quick edits used to race, and the older callback could finish last
+        // and put the values it had read back, leaving the page showing one choice and the module using another
+        synchronized(fieldLock) {
+            val values = valuesFor(module).takeIf { it.isNotEmpty() } ?: return
+            runCatching { (module as? ModuleFields)?.onFields(values) }
+        }
     }
 
     /** keeps one of a module's settings; a look that's on changes over to what the new value brings on the refresh */
@@ -504,7 +511,16 @@ class ModuleRegistry @Inject constructor(
         val base = ready.base
         val newId = if (base != null) WebModuleManifest.idFor(base, manifest) else LocalModule.idFor(manifest)
         // the zip's pictures and fonts go in first, so the module is built with them in place; a link brings none, and old ones go
-        val files = ready.zip?.let { SkinFiles.unpack(context, it, newId, ready.zipRoot) }
+        val files = ready.zip?.let { zip ->
+            try {
+                SkinFiles.unpack(context, zip, newId, ready.zipRoot)
+            } catch (error: Exception) {
+                // a zip that reads as a manifest but not as pictures would install a look whose font and shader are
+                // missing: nothing is replaced, and the sheet says the file couldn't be read
+                Timber.tag(Tag).w(error, "Couldn't unpack ${ready.from}")
+                return null
+            }
+        }
         if (ready.zip == null) SkinFiles.delete(context, newId)
         val (module, origin) = if (base != null) {
             WebModule(base, manifest, context.resources, files) to ModuleOrigin.Web(base)

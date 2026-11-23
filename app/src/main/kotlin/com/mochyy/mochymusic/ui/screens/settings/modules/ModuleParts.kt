@@ -25,6 +25,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -89,7 +91,10 @@ internal fun ModuleLogo(id: String, name: String, size: Int = 46, art: String? =
                 // underneath until the picture is actually in, so a slow or broken link still leaves the module
                 // recognisable instead of a blank square.
                 val painter = coil3.compose.rememberAsyncImagePainter(model = artModel(art))
-                if (painter.state !is coil3.compose.AsyncImagePainter.State.Success) LetterMark(name, size)
+                // coil 3 hands the state over as a flow, so it is collected: reading the flow itself and asking whether
+                // it is a Success is a check that can never be true, which left the letter under every picture
+                val state by painter.state.collectAsState()
+                if (state !is coil3.compose.AsyncImagePainter.State.Success) LetterMark(name, size)
                 Image(painter, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(size.dp))
             }
             logo != null -> Image(painterResource(logo), null, contentScale = ContentScale.Crop, modifier = Modifier.size(size.dp))
