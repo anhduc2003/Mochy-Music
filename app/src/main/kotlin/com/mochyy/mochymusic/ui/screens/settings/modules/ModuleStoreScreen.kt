@@ -4,6 +4,7 @@ package com.mochyy.mochymusic.ui.screens.settings.modules
 
 import android.graphics.Shader
 import android.os.Build
+import android.net.Uri
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.BlendMode
@@ -95,7 +96,10 @@ import java.util.Date
 import java.util.Locale
 
 const val ModuleStoreRoutePattern = "module_store/{post}"
-fun moduleStoreRoute(post: String) = "module_store/$post"
+// the fork's store keys its rows by their address, and an address is full of slashes: as a raw path
+// segment they split the route and navigation finds no destination for it, so it goes in encoded and
+// comes back decoded on the page
+fun moduleStoreRoute(post: String) = "module_store/${Uri.encode(post)}"
 
 private val StoreBannerHeight = 330.dp
 // how far the icon row climbs into the banner's faded bottom
@@ -193,13 +197,17 @@ fun ModuleStoreScreen(navController: NavController, post: String, viewModel: Mod
                 Spacer(Modifier.height(24.dp))
                 StorePreviews(module, column, wide)
             }
-            Spacer(Modifier.height(22.dp))
-            Box(column) {
-                Box(
-                    Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(26.dp)).background(PageCard).clickable { context.openDevUrl(module.postUrl) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(stringResource(R.string.module_store_open_post), color = PageInk, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+            // only a module that lives on a forum post has one to open; the fork's own rows point at
+            // their folder in the repo, and a browser there shows json, not a page
+            if (module.postUrl != module.link) {
+                Spacer(Modifier.height(22.dp))
+                Box(column) {
+                    Box(
+                        Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(26.dp)).background(PageCard).clickable { context.openDevUrl(module.postUrl) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(stringResource(R.string.module_store_open_post), color = PageInk, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                    }
                 }
             }
             Spacer(Modifier.height(bottom + 40.dp))

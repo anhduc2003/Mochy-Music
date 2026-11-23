@@ -316,7 +316,7 @@ class ModuleFeed @Inject constructor(
                 // a zip module is fetched by its zip's address; a plain look by its manifest's
                 id = module.zip ?: module.url,
                 name = module.name,
-                moduleId = null,
+                moduleId = module.moduleId,
                 version = module.version,
                 author = module.author,
                 description = module.description,

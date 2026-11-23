@@ -594,7 +594,8 @@ fun NavGraphBuilder.navigationBuilder(
         CompositionLocalProvider(LocalNavAnimatedContentScope provides this) {
             com.mochyy.mochymusic.ui.screens.settings.modules.ModuleStoreScreen(
                 navController = navController,
-                post = entry.arguments?.getString("post").orEmpty(),
+                // the row's address went in encoded (see moduleStoreRoute); decoded is what the list is keyed by
+                post = entry.arguments?.getString("post")?.let { android.net.Uri.decode(it) }.orEmpty(),
                 viewModel = hiltViewModel(browser),
             )
         }

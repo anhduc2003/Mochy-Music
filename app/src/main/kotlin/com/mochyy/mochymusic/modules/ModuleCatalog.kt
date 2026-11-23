@@ -32,6 +32,8 @@ data class CatalogModule(
     val tags: List<String> = emptyList(),
     /** its zip, for the kinds a link can't carry (glass, bar, fonts, shaders); null when its manifest is enough */
     val zip: String? = null,
+    /** the id inside its manifest, so the store can tell its row is already in once it's added */
+    val moduleId: String? = null,
 )
 
 @Singleton
@@ -69,6 +71,7 @@ class ModuleCatalog @Inject constructor() {
                         (0 until list.length()).mapNotNull { i -> list.optString(i).takeIf { it.isNotBlank() } }
                     }.orEmpty(),
                     zip = item.optString("zip").takeIf { it.startsWith("https://") },
+                    moduleId = item.optString("id").takeIf { it.isNotBlank() },
                 )
             }
         }
