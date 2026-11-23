@@ -1,0 +1,18 @@
+{
+  "id": "muc",
+  "name": "Mực",
+  "version": "1.0.0",
+  "description": "Tối giản một màu: bìa vuông góc cạnh, chữ mảnh, không hiệu ứng thừa.",
+  "author": "Mochy Việt",
+  "look": {
+    "accentColor": "#9AA0A6",
+    "pureBlack": "true",
+    "dynamicTheme": "false",
+    "thumbnailCornerRadius": "6",
+    "playerStyle": "CLASSIC",
+    "playlistStyle": "MINIMAL",
+    "lyricsMotionStyle": "PLAIN",
+    "blurQuality": "LOW",
+    "blurStrengthPx": "16"
+  }
+}

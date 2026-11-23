@@ -64,6 +64,7 @@ class ModuleCatalog @Inject constructor() {
     }
 
     private companion object {
-        const val CatalogUrl = "https://raw.githubusercontent.com/realidkroo/Mochy-Music/main/modules/catalog.json"
+        // this fork's own catalog, not upstream's: the store it lists is the one this fork serves
+        const val CatalogUrl = "https://raw.githubusercontent.com/anhduc2003/Mochy-Music/main/modules/catalog.json"
     }
 }

@@ -1,0 +1,19 @@
+{
+  "id": "sen",
+  "name": "Sen",
+  "version": "1.0.0",
+  "description": "Hồng sen dịu, nền chuyển theo bìa, lời chuyển động nhẹ và sáng dần ở viền.",
+  "author": "Mochy Việt",
+  "look": {
+    "accentColor": "#E4739A",
+    "pureBlack": "false",
+    "dynamicTheme": "true",
+    "thumbnailCornerRadius": "18",
+    "playerStyle": "FLAGSHIP",
+    "flagshipBackground": "COVER_GRADIENT",
+    "lyricsMotionStyle": "MOTION",
+    "homeStyle": "LISTEN_NOW",
+    "enableProgressiveBlur": "true",
+    "blurStrengthPx": "32"
+  }
+}
