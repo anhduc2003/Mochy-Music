@@ -2,7 +2,6 @@
 
 package com.mochyy.mochymusic.ui.screens.settings
 
-import com.mochyy.mochymusic.modules.browser.ModuleFeed
 import com.mochyy.mochymusic.ui.screens.settings.modules.ModuleBrowserRoute
 import com.mochyy.mochymusic.ui.component.navigateToTab
 import androidx.activity.compose.BackHandler
@@ -437,14 +436,12 @@ fun MochySettingsScreen(navController: NavController, pane: SettingsPane? = null
                 ) {
                     RecommendedCard(recommendations = recommendations, open = open)
 
-                    // a build without the module feed (most forks) has no store to open
-                    if (ModuleFeed.FeedUrl.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(14.dp))
-                        ModuleStoreCard(
-                            onClick = { navController.navigate(ModuleBrowserRoute) },
-                            modifier = Modifier.padding(horizontal = 20.dp),
-                        )
-                    }
+                    // the store this fork serves itself, from modules/catalog.json, so the card is always a door to something
+                    Spacer(modifier = Modifier.height(14.dp))
+                    ModuleStoreCard(
+                        onClick = { navController.navigate(ModuleBrowserRoute) },
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                    )
 
                     Spacer(modifier = Modifier.height(18.dp))
 

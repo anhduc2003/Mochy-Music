@@ -15,6 +15,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.RequestBody.Companion.toRequestBody
+import com.mochyy.mochymusic.modules.ModuleCatalog
 import com.mochyy.mochymusic.constants.SimulateForkKey
 import com.mochyy.mochymusic.ui.component.DiscordMarkdown
 import com.mochyy.mochymusic.utils.dataStore
@@ -98,6 +99,7 @@ sealed interface FeedResult {
 @Singleton
 class ModuleFeed @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val moduleCatalog: ModuleCatalog,
 ) {
     private val prefs = context.getSharedPreferences(PrefsName, Context.MODE_PRIVATE)
     private val client by lazy {
@@ -150,7 +152,10 @@ class ModuleFeed @Inject constructor(
     }
 
     suspend fun load(): FeedResult = withContext(Dispatchers.IO) {
-        if (!isSetUp) return@withContext FeedResult.NotSetUp
+        // this fork's own store first: the official feed only answers builds signed with mochy's key,
+        // so rather than the "you're using a fork" page the store lists what modules/catalog.json holds
+        ownStore()?.let { return@withContext it }
+        if (!isSetUp) return@withContext FeedResult.Offline
         // a build without the official key and signature would only be turned away, so it doesn't ask; experimental can pretend to be one, to see what a fork gets
         if (!isAllowed()) return@withContext FeedResult.Unofficial
         val session = _session.value ?: return@withContext FeedResult.SignedOut
@@ -176,8 +181,7 @@ class ModuleFeed @Inject constructor(
         }
     }
 
-    /** the module's zip, or one of a pack's by its [item] id, into the cache, ready to be checked like a zip picked from the phone; null when it couldn't be fetched */
-    suspend fun download(postId: String, item: String? = null): File? = withContext(Dispatchers.IO) {
+    /** the module's zip, or one of a pack's by its [item] id, into the cache, ready to be checked like a zip picked from the phone; null when it couldn't be fetched */    suspend fun download(postId: String, item: String? = null): File? = withContext(Dispatchers.IO) {
         if (!isSetUp || !isAllowed()) return@withContext null
         if (!PostIdPattern.matches(postId) || (item != null && !ItemIdPattern.matches(item))) return@withContext null
         val session = _session.value ?: return@withContext null
@@ -286,11 +290,58 @@ class ModuleFeed @Inject constructor(
         }
     }
 
+    /**
+     * This fork's own store, built from modules/catalog.json instead of the forum. Every row is a
+     * link the registry can add, so the store page, its featured row and its category chips all work
+     * with no server of mochy's behind them. Null when the catalog couldn't be read at all.
+     */
+    private suspend fun ownStore(): FeedResult? {
+        val listed = moduleCatalog.load().getOrNull()?.takeIf { it.isNotEmpty() } ?: return null
+        val modules = listed.map { module ->
+            FeedModule(
+                id = module.url,
+                name = module.name,
+                moduleId = null,
+                version = module.version,
+                author = module.author,
+                description = module.description,
+                blurb = module.description,
+                kind = FeedKind.Look,
+                tags = module.tags,
+                paid = false,
+                locked = false,
+                icon = module.icon,
+                banner = module.banner,
+                previews = module.previews,
+                install = FeedInstall.Link,
+                pack = emptyList(),
+                size = null,
+                updated = null,
+                link = module.url,
+                postUrl = module.url,
+            )
+        }
+        return FeedResult.Modules(
+            // nobody signs in to this one: it's the fork's own files, so whoever opens it is a member
+            person = FeedPerson(name = OwnStoreName, avatar = null, member = true, invite = null),
+            modules = modules,
+            // the first few are the row above the categories
+            chart = modules.take(FeaturedCount),
+            categories = listed.flatMap { it.tags }.distinct(),
+        )
+    }
+
     companion object {
         // the worker's address (see the mochy-module-feed project); blank makes the browser say it isn't set up.
         // This fork has no official key, so the store can only ever answer "you're using a fork": leaving it
         // blank keeps the Module Store card out of Settings instead of offering a page that cannot work.
         const val FeedUrl = ""
+
+        /** who the fork's own store belongs to, shown at the top of it */
+        private const val OwnStoreName = "Mochy Việt"
+
+        /** how many modules the featured row over the categories holds */
+        private const val FeaturedCount = 3
 
         private const val SessionKey = "session"
         private const val PrefsName = "module_browser"

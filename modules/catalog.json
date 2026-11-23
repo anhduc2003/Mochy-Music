@@ -1,26 +1,32 @@
 {
-  "about": "Module giao diện của bản Mochy Việt. Mỗi mục là một liên kết Mochy thêm được ở Settings → Modules → Add a module. Thêm một thư mục dưới modules/store/ rồi thêm một mục ở đây là có module mới, không phải build lại app.",
+  "about": "Module giao diện của bản Mochy Việt. Mỗi mục là một liên kết Mochy thêm được; cửa hàng đọc tệp này nên thêm module mới không phải build lại app.",
   "modules": [
     {
       "name": "Đêm Sài Gòn",
       "description": "Đen tuyệt đối, hồng neon, bìa đĩa xoay như thanh nhạc số.",
       "url": "https://raw.githubusercontent.com/anhduc2003/Mochy-Music/main/modules/store/dem-sai-gon",
       "adds": ["look"],
-      "author": "Mochy Việt"
+      "author": "Mochy Việt",
+      "version": "1.0.0",
+      "tags": ["Looks", "Giao diện tối"]
     },
     {
       "name": "Mực",
       "description": "Tối giản một màu: bìa vuông góc cạnh, chữ mảnh, không hiệu ứng thừa.",
       "url": "https://raw.githubusercontent.com/anhduc2003/Mochy-Music/main/modules/store/muc",
       "adds": ["look"],
-      "author": "Mochy Việt"
+      "author": "Mochy Việt",
+      "version": "1.0.0",
+      "tags": ["Looks", "Tối giản"]
     },
     {
       "name": "Sen",
       "description": "Hồng sen dịu, nền chuyển theo bìa, lời chuyển động nhẹ.",
       "url": "https://raw.githubusercontent.com/anhduc2003/Mochy-Music/main/modules/store/sen",
       "adds": ["look"],
-      "author": "Mochy Việt"
+      "author": "Mochy Việt",
+      "version": "1.0.0",
+      "tags": ["Looks", "Màu theo bìa"]
     }
   ]
 }

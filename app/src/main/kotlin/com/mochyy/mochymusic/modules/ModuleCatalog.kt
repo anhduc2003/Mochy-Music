@@ -22,6 +22,14 @@ data class CatalogModule(
     val author: String?,
     /** a link to its icon, shown on its row before it's added */
     val icon: String? = null,
+    /** what its row shows beside the author */
+    val version: String? = null,
+    /** the wide picture over its store page */
+    val banner: String? = null,
+    /** the store page's screenshots */
+    val previews: List<String> = emptyList(),
+    /** the store's categories, which are the chips over the list */
+    val tags: List<String> = emptyList(),
 )
 
 @Singleton
@@ -50,6 +58,14 @@ class ModuleCatalog @Inject constructor() {
                     adds = adds,
                     author = item.optString("author").takeIf { it.isNotBlank() },
                     icon = item.optString("icon").takeIf { it.startsWith("https://") },
+                    version = item.optString("version").takeIf { it.isNotBlank() },
+                    banner = item.optString("banner").takeIf { it.startsWith("https://") },
+                    previews = item.optJSONArray("previews")?.let { list ->
+                        (0 until list.length()).mapNotNull { i -> list.optString(i).takeIf { it.startsWith("https://") } }
+                    }.orEmpty(),
+                    tags = item.optJSONArray("tags")?.let { list ->
+                        (0 until list.length()).mapNotNull { i -> list.optString(i).takeIf { it.isNotBlank() } }
+                    }.orEmpty(),
                 )
             }
         }
