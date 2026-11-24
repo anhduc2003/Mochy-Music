@@ -105,9 +105,10 @@ private fun AddCheckedContent(ready: LinkCheck.Ready, viewModel: ModulesViewMode
                 scope.launch {
                     val id = viewModel.install(ready)
                     if (id != null) return@launch onAdded(id)
-                    // only a zip's own code can fail here
+                    // a zip's own code not starting, or its pictures and fonts not unpacking: either way nothing was
+                    // installed and the sheet says so, rather than reporting a look that lost half its files
                     adding = false
-                    problem = context.getString(R.string.modules_code_broken)
+                    problem = context.getString(R.string.module_add_failed)
                 }
             },
             onCancel = onCancel,
@@ -179,11 +180,12 @@ private fun FindModulesContent(viewModel: ModulesViewModel, onAdded: (String) ->
                     scope.launch {
                         val id = viewModel.install(confirming)
                         if (id != null) return@launch onAdded(id)
-                        // only a zip's own code can fail here, so the problem shows under the file button
+                        // a zip's code not starting, or its pictures and fonts not unpacking: either way nothing was
+                        // installed, so the problem shows under the file button and names both causes
                         checking = false
                         ready = null
                         problemFromFile = true
-                        problem = context.getString(R.string.modules_code_broken)
+                        problem = context.getString(R.string.module_add_failed)
                     }
                 },
                 onCancel = { ready = null },

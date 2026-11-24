@@ -135,6 +135,7 @@
     <string name="module_items_broken">What\'s in there is broken, so it can\'t run. Ask whoever made it for a fixed copy.</string>
     <string name="module_items_too_big">That\'s too big for %1$s to take.</string>
     <string name="modules_file_not_signed">This module runs its own code, so it has to be signed with the same key as your Mochy, and this copy isn\'t. Get the one made for your build of Mochy.</string>
+    <string name="module_add_failed">This module couldn\'t be added. The file may be damaged, or made for a different version of Mochy.</string>
     <string name="modules_code_broken">This module\'s code didn\'t start. It may be made for a different version of Mochy.</string>
     <string name="modules_github_no_release">That GitHub project hasn\'t published a release yet. Ask whoever made it to publish one with the module\'s .zip attached.</string>
     <string name="modules_github_no_module">The newest release has no module in it. Mochy looks for a .zip with \"mochyymodule\" in its name, like glass.mochyymodule.zip.</string>
@@ -240,6 +241,8 @@
     <string name="module_store_preview">A preview of %1$s</string>
     <string name="module_store_open_post">Open its post on Discord</string>
     <string name="module_store_gone">This module isn\'t in the store any more.</string>
+    <string name="module_missing">This module isn\'t installed any more. It may have been removed on another screen.</string>
+    <string name="module_missing_back">Back to modules</string>
     <!-- buttons and notes on a module's own pages, and on pages a module shows in place of Mochy's -->
     <string name="module_page_play">Play</string>
     <string name="module_page_shuffle">Shuffle</string>

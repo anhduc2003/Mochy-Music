@@ -53,7 +53,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -73,6 +72,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.mochyy.mochymusic.LocalPlayerAwareWindowInsets
@@ -120,9 +120,9 @@ private val StoreFootMask = Brush.verticalGradient(0f to Color.Transparent, 0.55
 /** [viewModel] is the browser's own, so the page shows the list already on screen instead of asking the feed again */
 @Composable
 fun ModuleStoreScreen(navController: NavController, post: String, viewModel: ModuleBrowserViewModel, modules: ModulesViewModel = hiltViewModel()) {
-    val page by viewModel.page.collectAsState()
-    val fetching by viewModel.fetching.collectAsState()
-    val entries by modules.entries.collectAsState()
+    val page by viewModel.page.collectAsStateWithLifecycle()
+    val fetching by viewModel.fetching.collectAsStateWithLifecycle()
+    val entries by modules.entries.collectAsStateWithLifecycle()
     val module = (page as? FeedResult.Modules)?.modules?.firstOrNull { it.id == post }
     val added = remember(entries) { addedModules(entries) }
     val act = rememberStoreAdd(viewModel, modules, navController)
@@ -324,7 +324,8 @@ private fun GetButton(action: BrowserAction, fetching: Boolean, onClick: () -> U
     }
     Box(
         Modifier
-            .size(42.dp)
+            // 48dp: the smallest a finger is expected to hit, where this was 42
+            .size(48.dp)
             .clip(CircleShape)
             .background(fill)
             .clickable(enabled = !fetching, onClick = onClick),

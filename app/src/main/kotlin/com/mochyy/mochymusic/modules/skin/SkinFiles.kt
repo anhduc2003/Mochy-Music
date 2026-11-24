@@ -5,6 +5,7 @@ package com.mochyy.mochymusic.modules.skin
 import android.content.Context
 import android.net.Uri
 import java.io.File
+import java.io.IOException
 import java.util.zip.ZipInputStream
 
 internal object SkinFiles {
@@ -12,31 +13,59 @@ internal object SkinFiles {
     fun folderFor(context: Context, moduleId: String): File =
         File(context.filesDir, "module_files/" + moduleId.replace(Regex("[^a-z0-9._-]"), "-"))
 
-    /** unpacks the pictures and fonts under [root], the manifest's folder in the zip; null when nothing was kept */
+    /**
+     * Unpacks the pictures and fonts under [root], the manifest's folder in the zip; null when the zip simply had
+     * nothing to keep. A zip that can't be read throws instead, so the caller can refuse the install rather than
+     * taking in a look whose font and shader are missing.
+     */
     fun unpack(context: Context, uri: Uri, moduleId: String, root: String): File? {
         val target = folderFor(context, moduleId)
-        target.deleteRecursively()
-        val targetPath = target.canonicalPath + File.separator
+        // the new files land beside the old folder and only replace it once every one of them is in, so a zip that
+        // fails halfway (a link that went away, a truncated download) leaves the look already installed working.
+        // The name comes from the file system, not from the module id: a module called "foo.incoming" would otherwise
+        // find its own live folder picked as staging and deleted.
+        val stagingRoot = File(context.filesDir, "module_files_staging").apply { mkdirs() }
+        val staging = File.createTempFile("unpack-", "", stagingRoot).let { placeholder ->
+            placeholder.delete()
+            placeholder.mkdirs()
+            placeholder
+        }
+        val stagingPath = staging.canonicalPath + File.separator
         var total = 0L
         var count = 0
-        context.contentResolver.openInputStream(uri)?.use { raw ->
-            ZipInputStream(raw.buffered()).use { zip ->
-                while (count < MaxFiles && total < MaxTotalBytes) {
-                    val entry = zip.nextEntry ?: break
-                    val relative = entry.name.trimStart('/').takeIf { !entry.isDirectory && it.startsWith(root) }?.removePrefix(root) ?: continue
-                    if (!keeps(relative)) continue
-                    val file = File(target, relative)
-                    if (!file.canonicalPath.startsWith(targetPath)) continue
-                    file.parentFile?.mkdirs()
-                    val written = copyCapped(zip, file, minOf(MaxFileBytes, MaxTotalBytes - total))
-                    if (written < 0) file.delete() else {
-                        total += written
-                        count++
+        try {
+            context.contentResolver.openInputStream(uri)?.use { raw ->
+                ZipInputStream(raw.buffered()).use { zip ->
+                    while (count < MaxFiles && total < MaxTotalBytes) {
+                        val entry = zip.nextEntry ?: break
+                        val relative = entry.name.trimStart('/').takeIf { !entry.isDirectory && it.startsWith(root) }?.removePrefix(root) ?: continue
+                        if (!keeps(relative)) continue
+                        val file = File(staging, relative)
+                        if (!file.canonicalPath.startsWith(stagingPath)) continue
+                        file.parentFile?.mkdirs()
+                        val written = copyCapped(zip, file, minOf(MaxFileBytes, MaxTotalBytes - total))
+                        if (written < 0) file.delete() else {
+                            total += written
+                            count++
+                        }
                     }
                 }
             }
+        } catch (error: Exception) {
+            // nothing was taken from the old folder yet, so it stays exactly as it was
+            staging.deleteRecursively()
+            throw IOException("couldn't unpack the module's files", error)
         }
-        return target.takeIf { count > 0 }
+        if (count == 0) {
+            staging.deleteRecursively()
+            return null
+        }
+        target.deleteRecursively()
+        if (!staging.renameTo(target)) {
+            staging.copyRecursively(target, overwrite = true)
+            staging.deleteRecursively()
+        }
+        return target.takeIf { it.isDirectory }
     }
 
     fun delete(context: Context, moduleId: String) {

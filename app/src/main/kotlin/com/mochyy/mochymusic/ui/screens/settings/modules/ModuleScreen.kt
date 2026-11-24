@@ -24,7 +24,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -41,11 +40,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.mochyy.mochymusic.LocalPlayerAwareWindowInsets
@@ -68,7 +69,12 @@ private val BannerHeight = 260.dp
 
 @Composable
 fun ModuleScreen(navController: NavController, id: String, viewModel: ModulesViewModel = hiltViewModel()) {
-    val entries by viewModel.entries.collectAsState()
+    val entries by viewModel.entries.collectAsStateWithLifecycle()
+    // collected once for the page: reading them again inside the body made a new subscription on every recomposition
+    val updating by viewModel.updating.collectAsStateWithLifecycle()
+    val checkingUpdate by viewModel.checkingUpdate.collectAsStateWithLifecycle()
+    val checkingAccount by viewModel.checking.collectAsStateWithLifecycle()
+    val ready by viewModel.ready.collectAsStateWithLifecycle()
     val entry = entries.firstOrNull { it.id == id }
     val context = LocalContext.current
     val overlay = LocalZoomOutOverlayState.current
@@ -97,7 +103,19 @@ fun ModuleScreen(navController: NavController, id: String, viewModel: ModulesVie
     ) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             if (entry == null) {
+                // a module that was removed on another screen, or a link that points at nothing: say so and offer the
+                // way back instead of leaving a blank page
                 Spacer(Modifier.height(BannerHeight))
+                // before the first list is in there is nothing to say yet: the module may well be on its way
+                if (!ready) return@Column
+                Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        stringResource(R.string.module_missing), color = Color.White, fontFamily = InterFontFamily,
+                        fontWeight = FontWeight.SemiBold, fontSize = 15.sp, textAlign = TextAlign.Center,
+                    )
+                    Spacer(Modifier.height(18.dp))
+                    PillButton(text = stringResource(R.string.module_missing_back), filled = true) { navController.navigateUp() }
+                }
                 return@Column
             }
             ModuleBanner(entry.banner, entry.icon, builtInBannerRes(entry.id))
@@ -111,8 +129,8 @@ fun ModuleScreen(navController: NavController, id: String, viewModel: ModulesVie
                 InfoCard(entry, onRaise = { viewModel.raise(id) })
                 UpdateCard(
                     entry = entry,
-                    updating = viewModel.updating.collectAsState().value == id,
-                    checking = viewModel.checkingUpdate.collectAsState().value == id,
+                    updating = updating == id,
+                    checking = checkingUpdate == id,
                     onUpdate = { scope.launch { context.updateModule(viewModel, entry) } },
                     onCheck = { viewModel.checkUpdate(id) },
                 )
@@ -121,7 +139,7 @@ fun ModuleScreen(navController: NavController, id: String, viewModel: ModulesVie
                 // so its sign-in stays reachable while the switch is still off
                 if (canQueryModule || entry.accountOptional) AccountActions(
                     entry = entry,
-                    checking = viewModel.checking.collectAsState().value,
+                    checking = checkingAccount,
                     onSignIn = ::signIn,
                     onCheck = { viewModel.verify(id) },
                     onSignOut = { viewModel.signOut(id) },

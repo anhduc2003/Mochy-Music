@@ -97,6 +97,9 @@
     <string name="module_run_test">Chạy kiểm tra</string>
     <string name="module_test_passed">Mọi thứ đều hoạt động. Khi %1$s đang bật, hãy phát bất kỳ bài nào và một thông báo sẽ cho biết mỗi bài hát đến từ đâu.</string>
     <string name="module_remove">Xóa module này</string>
+    <string name="module_add_failed">Không thêm được module này. Tệp có thể bị hỏng, hoặc được làm cho phiên bản Mochy khác.</string>
+    <string name="module_missing">Module này không còn được cài nữa. Có thể nó đã bị gỡ ở màn hình khác.</string>
+    <string name="module_missing_back">Quay lại danh sách module</string>
     <string name="module_apple_limits">Không khả dụng: lossless, Dolby Atmos và Spatial mix của Apple (Apple chỉ mã hóa những định dạng này cho DRM riêng của họ, FairPlay) và tải xuống (trình phát web không có giấy phép ngoại tuyến).</string>
     <string name="quality_module_stream">Phát trực tuyến</string>
     <string name="web_quality_lossless_detail">FLAC chất lượng CD nếu dịch vụ có.</string>
