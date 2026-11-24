@@ -24,6 +24,7 @@ import kotlin.system.exitProcess
 object TransferRestore {
     private const val Tag = "TransferRestore"
     private const val StagingName = "transfer_staging"
+    internal const val DownloadsStagingName = "transfer_staging_download"
     private const val NoteName = "transfer_restored.json"
     internal const val ReadyMarker = "ready.json"
 
@@ -40,9 +41,25 @@ object TransferRestore {
         if (!ready.exists()) {
             // the import was closed halfway through unpacking, so there's nothing whole to use
             staging.deleteRecursively()
+            StoragePlaces.sdCards(app).forEach { File(it.root, DownloadsStagingName).deleteRecursively() }
             return
         }
-        runCatching { swapIn(app, staging, JSONObject(ready.readText())) }
+        val note = runCatching { JSONObject(ready.readText()) }.getOrNull()
+        if (note == null) {
+            // a marker that can't be read says nothing about where the songs were staged, so nothing is swapped in:
+            // replacing the library without its downloads is worse than not importing at all
+            Log.e(Tag, "Couldn't read the import's marker, so nothing was swapped in")
+            staging.deleteRecursively()
+            return
+        }
+        // the songs were staged on a card that isn't mounted now: swapping the library in would leave them behind with
+        // nothing left to finish the job, so the whole import waits for the card to come back
+        val downloadsRoot = note.optString("downloadsRoot").takeIf { it.isNotBlank() }?.let(::File)
+        if (downloadsRoot != null && !File(downloadsRoot, DownloadsStagingName).exists()) {
+            Log.w(Tag, "Waiting for the card that holds the staged downloads")
+            return
+        }
+        runCatching { swapIn(app, staging, note) }
             .onFailure { Log.e(Tag, "Couldn't finish the import", it) }
         staging.deleteRecursively()
     }
@@ -73,10 +90,29 @@ object TransferRestore {
 
     // files first and the library last, so a stop halfway leaves an app that still starts and can import again
     private fun swapIn(context: Context, staging: File, ready: JSONObject) {
-        val carriesDownloads = File(staging, TransferArchive.FilesPrefix + StoredKind.Downloads.folder).exists()
+        val externalDownloadsRoot = ready.optString("downloadsRoot").takeIf { it.isNotBlank() }?.let(::File)
+        val externalDownloadsStage = externalDownloadsRoot?.let { File(it, DownloadsStagingName) }?.takeIf { it.exists() }
+        val carriesDownloads = externalDownloadsStage != null || File(staging, TransferArchive.FilesPrefix + StoredKind.Downloads.folder).exists()
         moveFiles(context, File(staging, TransferArchive.FilesPrefix))
-        // the import's downloads land on the phone, so a card that held the old ones is let go; a backup without songs leaves them be
-        if (carriesDownloads) StoragePlaces.resetToPhone(context, StoredKind.Downloads)
+        if (externalDownloadsStage != null) {
+            val target = File(externalDownloadsRoot, StoredKind.Downloads.folder)
+            target.deleteRecursively()
+            if (!externalDownloadsStage.renameTo(target)) {
+                externalDownloadsStage.copyRecursively(target, overwrite = true)
+                externalDownloadsStage.deleteRecursively()
+            }
+            // keep downloads pointed at the SD card where they were staged instead of moving back to internal storage
+            StoragePlaces.pointToRoot(context, StoredKind.Downloads, externalDownloadsRoot)
+            // the stage is used up: a start that lands between this move and the swap below would otherwise find the
+            // marker naming a folder that no longer exists and wait for it forever, never finishing the import
+            runCatching {
+                val left = JSONObject(ready.toString()).apply { remove("downloadsRoot") }
+                File(staging, ReadyMarker).writeText(left.toString())
+            }
+        } else if (carriesDownloads) {
+            // the import's downloads landed on the phone, so a card that held the old ones is let go; a backup without songs leaves them be
+            StoragePlaces.resetToPhone(context, StoredKind.Downloads)
+        }
         File(staging, TransferArchive.MediaEntry).takeIf { it.exists() }?.let { media ->
             // the streaming cache's index lived in the old media database, so the cache starts over with the new one
             StoragePlaces.dir(context, StoredKind.SongCache).deleteRecursively()
