@@ -137,7 +137,7 @@ class AppleMusicModule : SourceModule {
             host.storage.set("expired", "Apple signed this session out")
             return AccountState.Expired("Apple signed this session out")
         }
-        if (!response.ok) return AccountState.Expired("Apple Music didn't answer (${response.code})")
+        if (!response.ok) return AccountState.Unreachable("Apple Music didn't answer (${response.code})")
         val front = parse(response).array("data")?.firstOrNull()?.jsonObject
         val id = front?.string("id")
         val country = front?.get("attributes")?.jsonObject?.string("name")

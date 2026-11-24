@@ -26,6 +26,7 @@
     <string name="aq_dl_desc_low">Tệp nhỏ nhất, ~50–70 kbps</string>
     <string name="aq_status_sign_in">Đăng nhập để phát từ nguồn này</string>
     <string name="aq_status_sign_in_again">Đăng nhập lại</string>
+    <string name="aq_status_unreachable">Máy chủ không trả lời</string>
     <string name="aq_status_on">Đang bật</string>
     <string name="aq_status_off_tap">Đang tắt, chạm để bật</string>
     <string name="aq_status_not_installed">Chưa cài đặt</string>

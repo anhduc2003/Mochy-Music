@@ -339,6 +339,12 @@ class ModulesViewModel @Inject constructor(
                     refusedSignIns += key
                     signedIn = false
                 }
+                // the server didn't answer, which says nothing about the key just handed over: keep
+                // it rather than making the person sign in a second time for a check that never ran
+                is AccountState.Unreachable -> {
+                    signedIn = false
+                    onDone(state)
+                }
                 AccountState.SignedOut -> {
                     signedIn = false
                     onDone(state)

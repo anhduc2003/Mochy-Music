@@ -161,6 +161,8 @@ internal fun moduleStatus(entry: ModuleEntry): String = when (val account = entr
     AccountState.SignedOut -> stringResource(R.string.module_status_signed_out)
     // a module with no account can't be signed in again, its reason is only that the server didn't answer
     is AccountState.Expired -> if (entry.module.signIn == null) account.reason else stringResource(R.string.module_status_expired, account.reason)
+    // nothing to sign in again: the server didn't answer, and the reason already says which one
+    is AccountState.Unreachable -> account.reason
     is AccountState.SignedIn -> stringResource(if (entry.enabled) R.string.module_status_on else R.string.module_status_off, account.label)
 }
 

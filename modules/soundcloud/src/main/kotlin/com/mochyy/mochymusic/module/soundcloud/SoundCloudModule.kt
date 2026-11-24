@@ -521,14 +521,13 @@ class SoundCloudModule : SourceModule {
         host.storage.set("unreachable_at", System.currentTimeMillis().toString())
     }
 
-    // the song cache is a convenience, not a library: bound it so a long session can't grow it forever
+    // the song cache is a convenience, not a library: the bounded caches drop the oldest, so a
+    // long session can't grow it forever and a full cache no longer throws every song away at once
     private fun rememberMatch(key: String, track: ScTrack) {
-        if (matches.size >= MaxCachedMatches) matches.clear()
         matches[key] = track
     }
 
     private fun rememberMiss(key: String) {
-        if (misses.size >= MaxCachedMisses) misses.clear()
         misses[key] = System.currentTimeMillis()
     }
 
@@ -1059,8 +1058,8 @@ class SoundCloudModule : SourceModule {
 
     companion object {
         /** the songs this module remembers for the session; a long session plays more than this, so the oldest go */
-        private const val RememberedMatches = 500
-        private const val RememberedMisses = 2000
+        private const val RememberedMatches = 300
+        private const val RememberedMisses = 300
 
         /** the media id the app gives an upload of this module: the upload's own id, so playback opens it by id */
         const val MediaIdPrefix = "SC_"
@@ -1099,8 +1098,6 @@ class SoundCloudModule : SourceModule {
         /** how long a key is trusted before it is read again even if it still answers */
         private const val ClientIdLifeMs = 30L * 24 * 60 * 60 * 1000
         private const val MissMemoryMs = 30L * 60 * 1000
-        private const val MaxCachedMatches = 300
-        private const val MaxCachedMisses = 300
 
         /** where the account's session and its label live in the module's own storage */
         private const val TokenKey = "session_token"

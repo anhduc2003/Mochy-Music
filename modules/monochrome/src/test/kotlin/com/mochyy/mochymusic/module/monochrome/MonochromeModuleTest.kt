@@ -100,15 +100,15 @@ class MonochromeModuleTest {
     fun `needs no account, and says when the server is down`() = runBlocking {
         val (module, _) = module { HttpResponse(503, ByteArray(0)) }
         assertTrue(module.accountState() is AccountState.SignedIn)
-        assertTrue(module.verifyAccount() is AccountState.Expired)
-        assertTrue(module.accountState() is AccountState.Expired)
+        assertTrue(module.verifyAccount() is AccountState.Unreachable)
+        assertTrue(module.accountState() is AccountState.Unreachable)
     }
 
     @Test
     fun `a lookup the server doesn't answer passes the module over for a while`() = runBlocking {
         val (module, _) = module { throw java.io.IOException("no route to host") }
         assertTrue(module.resolve(eastside, emptyMap()) is ResolveResult.Unavailable)
-        assertTrue(module.accountState() is AccountState.Expired)
+        assertTrue(module.accountState() is AccountState.Unreachable)
     }
 
     @Test

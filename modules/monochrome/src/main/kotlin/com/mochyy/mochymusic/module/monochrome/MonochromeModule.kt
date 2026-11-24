@@ -80,7 +80,7 @@ class MonochromeModule : SourceModule, ServerListModule {
     override fun accountState(): AccountState {
         val reasons = all.map { downReason(it) }
         val down = reasons.filterNotNull()
-        return if (down.size == reasons.size) AccountState.Expired(down.first()) else AccountState.SignedIn(NO_ACCOUNT_LABEL)
+        return if (down.size == reasons.size) AccountState.Unreachable(down.first()) else AccountState.SignedIn(NO_ACCOUNT_LABEL)
     }
 
     override fun onSignInHeader(name: String, value: String, url: String): Boolean = false

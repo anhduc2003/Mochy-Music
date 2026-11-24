@@ -178,11 +178,17 @@ internal fun AccountActions(entry: ModuleEntry, checking: Boolean, onSignIn: () 
     val needsAccount = module.signIn != null
     Spacer(Modifier.height(10.dp))
     if (needsAccount && entry.account !is AccountState.SignedIn) {
+        // a server that didn't answer is not a sign-in problem, so the button checks it again
+        // instead of asking for the account a second time
+        val unreachable = entry.account is AccountState.Unreachable
         PillButton(
-            text = if (entry.account is AccountState.Expired) stringResource(R.string.module_sign_in_again)
-            else stringResource(R.string.module_sign_in_to, module.info.name),
+            text = when {
+                unreachable -> stringResource(R.string.module_check_server)
+                entry.account is AccountState.Expired -> stringResource(R.string.module_sign_in_again)
+                else -> stringResource(R.string.module_sign_in_to, module.info.name)
+            },
             filled = true,
-            onClick = onSignIn,
+            onClick = if (unreachable) onCheck else onSignIn,
         )
         return
     }

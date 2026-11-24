@@ -31,6 +31,7 @@
     <string name="aq_dl_desc_low">The smallest files, ~50–70 kbps</string>
     <string name="aq_status_sign_in">Sign in to play from it</string>
     <string name="aq_status_sign_in_again">Sign in again</string>
+    <string name="aq_status_unreachable">Server didn't answer</string>
     <string name="aq_status_on">On</string>
     <string name="aq_status_off_tap">Off, tap to turn on</string>
     <string name="aq_status_not_installed">Not installed</string>

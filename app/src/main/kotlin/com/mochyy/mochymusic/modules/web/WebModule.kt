@@ -134,7 +134,7 @@ internal class WebModule(
     override fun accountState(): AccountState {
         val reason = host.storage.get("unreachable") ?: return AccountState.SignedIn(NO_ACCOUNT_LABEL)
         val markedAt = host.storage.get("unreachable_at")?.toLongOrNull() ?: 0L
-        return if (System.currentTimeMillis() - markedAt < UnreachableRetryMs) AccountState.Expired(reason) else AccountState.SignedIn(NO_ACCOUNT_LABEL)
+        return if (System.currentTimeMillis() - markedAt < UnreachableRetryMs) AccountState.Unreachable(reason) else AccountState.SignedIn(NO_ACCOUNT_LABEL)
     }
 
     override suspend fun verifyAccount(): AccountState {
@@ -145,7 +145,7 @@ internal class WebModule(
         } else {
             val reason = "$siteName didn't answer (${response?.code ?: "offline"})"
             markUnreachable(reason)
-            AccountState.Expired(reason)
+            AccountState.Unreachable(reason)
         }
     }
 

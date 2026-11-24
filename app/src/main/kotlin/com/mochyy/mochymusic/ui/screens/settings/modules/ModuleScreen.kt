@@ -87,6 +87,8 @@ fun ModuleScreen(navController: NavController, id: String, viewModel: ModulesVie
             val message = when (state) {
                 is AccountState.SignedIn -> context.getString(R.string.module_signed_in, module.info.name)
                 is AccountState.Expired -> context.getString(R.string.module_sign_in_refused, module.info.name, state.reason)
+                // the server, not the account: the reason is the whole message
+                is AccountState.Unreachable -> state.reason
                 AccountState.SignedOut -> context.getString(R.string.module_sign_in_refused, module.info.name, "")
             }
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
