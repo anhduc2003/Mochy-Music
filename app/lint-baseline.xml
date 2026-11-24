@@ -1,0 +1,839 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<issues format="6" by="lint 9.0.0" type="baseline" client="gradle" dependencies="false" name="AGP (9.0.0)" variant="all" version="9.0.0">
+    <issue id="MissingPermission" message="Call requires permission which may be rejected by user: code should explicitly check to see if permission is available (with `checkPermission`) or explicitly handle a potential `SecurityException`" errorLine1="                NotificationManagerCompat.from(context)" errorLine2="                ^">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/core/updater/UpdateInstallReceiver.kt" line="97" column="17" />
+    </issue>
+    <issue id="NewApi" message="Call requires API level 28 (current min is 24): `android.media.AudioDeviceInfo#getAddress`" errorLine1="                kind == AudioOutputs.Kind.BLUETOOTH -&gt; bluetoothSpeaker(context, device.address)" errorLine2="                                                                                        ~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/eq/stage/StageOutput.kt" line="48" column="89" />
+    </issue>
+    <issue id="NonObservableLocale" message="Reading locale in a non-observable way in a composable function" errorLine1="            BasicText(time.shortDate.lowercase(Locale.getDefault()), style = labelStyle(line * 0.17f, FontWeight.Bold), color = ink.main)" errorLine2="                                               ~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/player/bedside/BedsideInfoTile.kt" line="103" column="48" />
+    </issue>
+    <issue id="NonObservableLocale" message="Reading locale in a non-observable way in a composable function" errorLine1="    val seconds = String.format(Locale.getDefault(), &quot;%+.1f&quot;, state.lyricsOffsetMs / 1000f)" errorLine2="                                ~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/menu/songedit/SongEditContent.kt" line="200" column="33" />
+    </issue>
+    <issue id="NonObservableLocale" message="Reading locale in a non-observable way in a composable function" errorLine1="    val value = String.format(Locale.getDefault(), &quot;%.2f&quot;, state.speed)" errorLine2="                              ~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/menu/songedit/SongEditContent.kt" line="223" column="31" />
+    </issue>
+    <issue id="NonObservableLocale" message="Reading locale in a non-observable way in a composable function" errorLine1="            day.getDisplayName(JavaTextStyle.FULL, Locale.getDefault())," errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/recap/StatsScreen.kt" line="813" column="52" />
+    </issue>
+    <issue id="RestrictedApi" message="WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST can only be accessed from within the same library group (referenced groupId=`androidx.webkit` from groupId=`mochy`)" errorLine1="    if (WebViewFeature.isFeatureSupported(WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST)) {" errorLine2="                                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/importsync/CaptureWebView.kt" line="470" column="58" />
+    </issue>
+    <issue id="RestrictedApi" message="NavController.getCurrentBackStack can only be called from within the same library group (referenced groupId=`androidx.navigation` from groupId=`mochy`)" errorLine1="                val backStack by navController.currentBackStack.collectAsState()" errorLine2="                                               ~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/MainActivity.kt" line="734" column="48" />
+    </issue>
+    <issue id="RestrictedApi" message="NavController.getCurrentBackStack can only be called from within the same library group (referenced groupId=`androidx.navigation` from groupId=`mochy`)" errorLine1="                                                val stack = navController.currentBackStack.value" errorLine2="                                                                          ~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/MainActivity.kt" line="1277" column="75" />
+    </issue>
+    <issue id="RestrictedApi" message="NavController.getCurrentBackStack can only be called from within the same library group (referenced groupId=`androidx.navigation` from groupId=`mochy`)" errorLine1="                                                val stack = navController.currentBackStack.value" errorLine2="                                                                          ~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/MainActivity.kt" line="1290" column="75" />
+    </issue>
+    <issue id="RestrictedApi" message="NavController.getCurrentBackStack can only be called from within the same library group (referenced groupId=`androidx.navigation` from groupId=`mochy`)" errorLine1="                                                val stack = navController.currentBackStack.value" errorLine2="                                                                          ~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/MainActivity.kt" line="1303" column="75" />
+    </issue>
+    <issue id="RestrictedApi" message="NavController.getCurrentBackStack can only be called from within the same library group (referenced groupId=`androidx.navigation` from groupId=`mochy`)" errorLine1="                                                val stack = navController.currentBackStack.value" errorLine2="                                                                          ~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/MainActivity.kt" line="1316" column="75" />
+    </issue>
+    <issue id="ContextCastToActivity" message="LocalContext should not be cast to Activity, use LocalActivity instead" errorLine1="    val activity = LocalContext.current as Activity" errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/tv/TvShell.kt" line="110" column="20" />
+    </issue>
+    <issue id="CoroutineCreationDuringComposition" message="Calls to launch should happen inside a LaunchedEffect and not composition" errorLine1="                                        coroutineScope.launch {" errorLine2="                                                       ~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/menu/ArtistMenu.kt" line="102" column="56" />
+    </issue>
+    <issue id="CoroutineCreationDuringComposition" message="Calls to launch should happen inside a LaunchedEffect and not composition" errorLine1="                                        coroutineScope.launch {" errorLine2="                                                       ~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/menu/ArtistMenu.kt" line="133" column="56" />
+    </issue>
+    <issue id="CoroutineCreationDuringComposition" message="Calls to launch should happen inside a LaunchedEffect and not composition" errorLine1="                                coroutineScope.launch(Dispatchers.IO) {" errorLine2="                                               ~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/menu/ArtistMenu.kt" line="167" column="48" />
+    </issue>
+    <issue id="CoroutineCreationDuringComposition" message="Calls to launch should happen inside a LaunchedEffect and not composition" errorLine1="                                coroutineScope.launch(Dispatchers.IO) {" errorLine2="                                               ~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/menu/YouTubeArtistMenu.kt" line="138" column="48" />
+    </issue>
+    <issue id="FlowOperatorInvokedInComposition" message="Flow operator functions should not be invoked within composition" errorLine1="    val shown = CustomiseSection.entries.filter { it.available &amp;&amp; it.matches(query, titles.getValue(it)) }" errorLine2="                                         ~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/gesture/GestureScreen.kt" line="170" column="42" />
+    </issue>
+    <issue id="FlowOperatorInvokedInComposition" message="Flow operator functions should not be invoked within composition" errorLine1="                            item.songs.drop(3).take(2).forEach { song -&gt;" errorLine2="                                       ~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/HomeScreen.kt" line="408" column="40" />
+    </issue>
+    <issue id="FlowOperatorInvokedInComposition" message="Flow operator functions should not be invoked within composition" errorLine1="                                            items = editorialItems.drop(1)," errorLine2="                                                                   ~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/HomeScreen.kt" line="1559" column="68" />
+    </issue>
+    <issue id="FlowOperatorInvokedInComposition" message="Flow operator functions should not be invoked within composition" errorLine1="        ) + shuffleAndRepeat + extras.map { extra -&gt;" errorLine2="                                      ~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/player/styles/StyleKit.kt" line="596" column="39" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="            context.getString(R.string.account_resync_looking, service.label) +" errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/importsync/AccountImportScreen.kt" line="200" column="13" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                if (missing.isEmpty()) &quot;&quot; else context.getString(R.string.account_resync_missing, missing.joinToString(&quot;, &quot;))" errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/importsync/AccountImportScreen.kt" line="201" column="48" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="        link.pairing.paired.collect { TopToaster.show(context.getString(R.string.devices_paired_with, it.name), iconRes = R.drawable.cast_connected) }" errorLine2="                                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/devices/AddDeviceSheet.kt" line="101" column="55" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="        (attempt.state as? PairUi.Done)?.let { TopToaster.show(context.getString(R.string.devices_paired_with, it.name), iconRes = R.drawable.cast_connected) }" errorLine2="                                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/devices/AddDeviceSheet.kt" line="104" column="64" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="            is ItemsOutcome.Added -&gt; context.getString(R.string.module_items_added, outcome.names.joinToString(&quot;, &quot;))" errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/modules/AddItemsSheet.kt" line="66" column="38" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="            is ItemsOutcome.AddedAsModule -&gt; context.getString(R.string.module_items_added_as_module, outcome.name)" errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/modules/AddItemsSheet.kt" line="67" column="46" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                problem = context.getString(problemText(outcome.problem), name)" errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/modules/AddItemsSheet.kt" line="69" column="27" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="            problem = context.getString(" errorLine2="                      ^">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/modules/AddServerSheet.kt" line="68" column="23" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                Toast.makeText(context, context.getString(R.string.backup_done_toast, account?.kind?.label.orEmpty()), Toast.LENGTH_SHORT).show()" errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/backup/BackupScreen.kt" line="76" column="41" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    Toast.makeText(context, context.getString(R.string.backup_connected_toast, host), Toast.LENGTH_LONG).show()" errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/backup/BackupScreen.kt" line="102" column="45" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                Toast.makeText(context, context.getString(R.string.backup_no_browser), Toast.LENGTH_LONG).show()" errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/backup/BackupScreen.kt" line="119" column="41" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        text = context.getString(R.string.pc_version_switched, song.title)," errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/menu/ChooseVersionSheet.kt" line="129" column="32" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                                        context.getString(R.string.cipher_updated_to_player, result.second)" errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/CipherSettingsScreen.kt" line="267" column="41" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                                        context.getString(R.string.cipher_refresh_failed)" errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/CipherSettingsScreen.kt" line="269" column="41" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                                message = context.getString(R.string.cipher_cache_cleared_msg)" errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/CipherSettingsScreen.kt" line="284" column="43" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                                    TopToaster.show(toastContext.getString(R.string.pc_playlist_created), thumbnail = cover, iconRes = R.drawable.playlist_add)" errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/component/CreatePlaylistDialog.kt" line="128" column="53" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                                    Toast.makeText(ctx, ctx.getString(R.string.not_logged_in_youtube), Toast.LENGTH_SHORT).show()" errorLine2="                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/component/CreatePlaylistDialog.kt" line="171" column="57" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                                    Toast.makeText(ctx, ctx.getString(R.string.sync_disabled), Toast.LENGTH_SHORT).show()" errorLine2="                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/component/CreatePlaylistDialog.kt" line="173" column="57" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    TopToaster.show(context.getString(if (sent != null) R.string.tv_menu_next_sent else R.string.tv_menu_unreachable, device.name))" errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/player/menu/DeviceMenuRows.kt" line="63" column="37" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                            TopToaster.show(context.getString(R.string.devices_sync_asked, device.name), iconRes = R.drawable.sync)" errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/devices/DeviceSheet.kt" line="150" column="45" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                            TopToaster.error(context.getString(R.string.tv_menu_unreachable, device.name))" errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/devices/DeviceSheet.kt" line="152" column="46" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                Toast.makeText(context, context.getString(R.string.discord_no_browser_toast), Toast.LENGTH_LONG).show()" errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordScreen.kt" line="110" column="41" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                            Toast.makeText(context, context.getString(R.string.discord_custom_failed), Toast.LENGTH_LONG).show()" errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordScreen.kt" line="155" column="53" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    PresenceKind.LISTENING -&gt; context.getString(R.string.discord_kind_listening)" errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordScreen.kt" line="295" column="47" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    PresenceKind.PLAYING -&gt; context.getString(R.string.discord_kind_playing)" errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordScreen.kt" line="296" column="45" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    PresenceImage.OFF -&gt; context.getString(R.string.discord_image_turn_off)" errorLine2="                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordSettingCards.kt" line="381" column="42" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    PresenceImage.ARTWORK -&gt; context.getString(R.string.discord_image_artwork)" errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordSettingCards.kt" line="382" column="46" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    PresenceImage.ARTIST -&gt; context.getString(R.string.discord_image_artist)" errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordSettingCards.kt" line="383" column="45" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    PresenceImage.PLAYBACK_STATUS -&gt; context.getString(R.string.discord_image_playback_status)" errorLine2="                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordSettingCards.kt" line="384" column="54" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    PresenceImage.APP_LOGO -&gt; context.getString(R.string.discord_image_app_logo)" errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordSettingCards.kt" line="385" column="47" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    PresenceImage.SPINNING_ARTIST -&gt; context.getString(R.string.discord_image_spinning_artist)" errorLine2="                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordSettingCards.kt" line="386" column="54" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    PresenceImage.SPINNING_ARTWORK -&gt; context.getString(R.string.discord_image_spinning_artwork)" errorLine2="                                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordSettingCards.kt" line="387" column="55" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    PresenceImage.CUSTOM -&gt; context.getString(R.string.discord_image_custom)" errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordSettingCards.kt" line="388" column="45" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    PresenceImage.SPOTIFY_CANVAS -&gt; context.getString(R.string.discord_image_spotify_canvas)" errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordSettingCards.kt" line="389" column="53" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    PresenceImage.APPLE_COVER -&gt; context.getString(R.string.discord_image_apple_cover)" errorLine2="                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordSettingCards.kt" line="390" column="50" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    PresenceImage.CANVAS_OR_APPLE -&gt; context.getString(R.string.discord_image_canvas_or_apple)" errorLine2="                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordSettingCards.kt" line="391" column="54" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    PresenceButtonTarget.YOUTUBE_MUSIC -&gt; context.getString(R.string.discord_target_youtube_music)" errorLine2="                                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordSettingCards.kt" line="517" column="59" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    PresenceButtonTarget.SPOTIFY -&gt; context.getString(R.string.discord_target_spotify)" errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordSettingCards.kt" line="518" column="53" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    PresenceButtonTarget.APPLE_MUSIC -&gt; context.getString(R.string.discord_target_apple_music)" errorLine2="                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordSettingCards.kt" line="519" column="57" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    PresenceButtonTarget.TIDAL -&gt; context.getString(R.string.discord_target_tidal)" errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordSettingCards.kt" line="520" column="51" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    PresenceButtonTarget.MOCHY -&gt; context.getString(R.string.discord_target_mochy)" errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/discord/DiscordSettingCards.kt" line="521" column="51" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="    fun takenNames(): List&lt;String&gt; = presets.map { it.name } + context.getString(R.string.eqx_custom) +" errorLine2="                                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/equalizer/EqualizerScreen.kt" line="67" column="64" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="        EqPresets.BuiltIn.map { preset -&gt; builtInPresetNameRes(preset.id)?.let { res -&gt; context.getString(res) } ?: preset.name }" errorLine2="                                                                                        ~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/equalizer/EqualizerScreen.kt" line="68" column="89" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    problem = context.getString(R.string.modules_code_broken)" errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/modules/FindModulesSheet.kt" line="110" column="31" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        problem = context.getString(R.string.modules_code_broken)" errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/modules/FindModulesSheet.kt" line="186" column="35" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                                            context.getString(R.string.import_progress_copied_toast, progress.unmatched.size)," errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/importsync/ImportProgressScreen.kt" line="202" column="45" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        Toast.makeText(context, context.getString(R.string.import_component_already_running), Toast.LENGTH_SHORT).show()" errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/importsync/ImportSyncComponents.kt" line="183" column="49" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                text = context.getString(R.string.lib_local_no_access)," errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryLocalImport.kt" line="115" column="24" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                actionLabel = context.getString(R.string.settings)," errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryLocalImport.kt" line="117" column="31" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                !rescan.alreadyTold -&gt; TopToaster.show(context.getString(R.string.lib_local_no_new_songs), iconRes = R.drawable.library_music)" errorLine2="                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryLocalImport.kt" line="143" column="56" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    title = context.getString(R.string.lib_manage_delete_all_imports_title)," errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryManageSheets.kt" line="66" column="29" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    message = context.getString(R.string.lib_manage_delete_all_imports_msg)," errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryManageSheets.kt" line="67" column="31" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    action = context.getString(R.string.lib_manage_delete_all_imports)," errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryManageSheets.kt" line="68" column="30" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    title = context.getString(R.string.lib_manage_undo_last_title)," errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryManageSheets.kt" line="74" column="29" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    message = context.getString(R.string.lib_manage_undo_last_msg)," errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryManageSheets.kt" line="75" column="31" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    action = context.getString(R.string.lib_manage_undo_import)," errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryManageSheets.kt" line="76" column="30" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        title = context.getString(R.string.lib_manage_delete_source_title, source.label)," errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryManageSheets.kt" line="87" column="33" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        message = context.getString(" errorLine2="                                  ^">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryManageSheets.kt" line="88" column="35" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        action = context.getString(R.string.lib_manage_delete)," errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryManageSheets.kt" line="93" column="34" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        title = context.getString(R.string.lib_manage_undo_local_title)," errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryManageSheets.kt" line="131" column="33" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        message = context.getString(R.string.lib_manage_undo_local_msg)," errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryManageSheets.kt" line="132" column="35" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        action = context.getString(R.string.lib_manage_undo_import)," errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryManageSheets.kt" line="133" column="34" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    title = context.getString(R.string.lib_manage_clear_cache_title)," errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryManageSheets.kt" line="159" column="29" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    message = context.getString(R.string.lib_manage_clear_cache_msg)," errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryManageSheets.kt" line="160" column="31" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    action = context.getString(R.string.lib_manage_clear_cache)," errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryManageSheets.kt" line="161" column="30" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                            snackbarHostState.showSnackbar(context.getString(R.string.playlist_synced))" errorLine2="                                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/playlist/LocalPlaylistScreen.kt" line="451" column="60" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        text = context.getString(" errorLine2="                               ^">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/playlist/LocalPlaylistScreen.kt" line="651" column="32" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                            playlist?.playlist?.name ?: context.getString(R.string.playlist_fallback_name)," errorLine2="                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/playlist/LocalPlaylistScreen.kt" line="654" column="57" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        actionLabel = context.getString(R.string.undo)," errorLine2="                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/playlist/LocalPlaylistScreen.kt" line="658" column="39" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                                                title = context.getString(R.string.queue_searched_songs)," errorLine2="                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/search/LocalSearchScreen.kt" line="229" column="57" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                TopToaster.show(text = context.getString(R.string.song_edit_lyrics_unreadable), iconRes = R.drawable.lyrics)" errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/menu/songedit/LyricsFileBox.kt" line="66" column="40" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        text = context.getString(R.string.app_name)," errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/component/LyricsImageCard.kt" line="414" column="32" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="            .map { (code, res) -&gt; code to context.getString(res) }" errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/player/menu/LyricsToolSheets.kt" line="502" column="43" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                                        context.getString(R.string.storage_manage_confirm_remove_one)" errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/storage/ManageDownloadsSheet.kt" line="165" column="41" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                                        context.getString(R.string.storage_manage_confirm_remove_many, ids.size)" errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/storage/ManageDownloadsSheet.kt" line="167" column="41" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                                message = context.getString(R.string.storage_manage_confirm_message)," errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/storage/ManageDownloadsSheet.kt" line="169" column="43" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                                action = context.getString(R.string.storage_manage_confirm_action)," errorLine2="                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/storage/ManageDownloadsSheet.kt" line="170" column="42" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    (it.titleRes ?: LocalizedSettingsTitles[it.title])?.let { id -&gt; context.getString(id).contains(q, ignoreCase = true) } == true ||" errorLine2="                                                                                    ~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/MochySettingsScreen.kt" line="320" column="85" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    (it.pageRes ?: LocalizedSettingsPages[it.page])?.let { id -&gt; context.getString(id).contains(q, ignoreCase = true) } == true ||" errorLine2="                                                                                 ~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/MochySettingsScreen.kt" line="321" column="82" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="            Toast.makeText(context, context.getString(R.string.module_browser_no_browser), Toast.LENGTH_LONG).show()" errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/modules/ModuleBrowserScreen.kt" line="133" column="37" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                Toast.makeText(context, context.getString(R.string.module_browser_locked_note, module.name), Toast.LENGTH_LONG).show()" errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/modules/ModuleBrowserScreen.kt" line="324" column="41" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        LinkCheck.Unreachable -&gt; Toast.makeText(context, context.getString(R.string.module_browser_fetch_failed, module.name), Toast.LENGTH_LONG).show()" errorLine2="                                                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/modules/ModuleBrowserScreen.kt" line="334" column="74" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                Toast.makeText(context, context.getString(R.string.module_browser_locked_note, module.name), Toast.LENGTH_LONG).show()" errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/modules/ModuleBrowserScreen.kt" line="352" column="41" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        LinkCheck.Unreachable -&gt; Toast.makeText(context, context.getString(R.string.module_browser_fetch_failed, item.name), Toast.LENGTH_LONG).show()" errorLine2="                                                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/modules/ModuleBrowserScreen.kt" line="358" column="74" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                is AccountState.SignedIn -&gt; context.getString(R.string.module_signed_in, module.info.name)" errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/modules/ModuleScreen.kt" line="82" column="45" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                is AccountState.Expired -&gt; context.getString(R.string.module_sign_in_refused, module.info.name, state.reason)" errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/modules/ModuleScreen.kt" line="83" column="44" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                AccountState.SignedOut -&gt; context.getString(R.string.module_sign_in_refused, module.info.name, &quot;&quot;)" errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/modules/ModuleScreen.kt" line="84" column="43" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                            Toast.makeText(context, context.getString(R.string.playback_logs_copied_toast), Toast.LENGTH_SHORT).show()" errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/PlaybackDiagnosticsScreen.kt" line="102" column="53" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    val clip = android.content.ClipData.newPlainText(context.getString(R.string.playback_logs_clip_label), textToCopy)" errorLine2="                                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/component/PlaybackLogsDialog.kt" line="75" column="70" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        title = context.getString(R.string.eqx_delete_title, name)," errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/audiolab/PresetSheet.kt" line="95" column="33" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        message = context.getString(R.string.preset_delete_body)," errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/audiolab/PresetSheet.kt" line="96" column="35" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        action = context.getString(R.string.delete)," errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/audiolab/PresetSheet.kt" line="97" column="34" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                TopToaster.error(context.getString(R.string.remote_setting_failed, target.name))" errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/devices/RemoteSettings.kt" line="65" column="34" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    Toast.makeText(context, context.getString(R.string.scrobble_signed_in, site.label, name), Toast.LENGTH_LONG).show()" errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/ScrobbleServiceScreen.kt" line="70" column="45" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    context.getString(R.string.scrobble_sign_in_wrong)" errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/ScrobbleSignInSheet.kt" line="81" column="21" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    context.getString(R.string.scrobble_sign_in_busy, site.label)" errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/ScrobbleSignInSheet.kt" line="83" column="21" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                problem = context.getString(R.string.scrobble_sign_in_offline, site.label)" errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/integrations/ScrobbleSignInSheet.kt" line="86" column="27" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                                    title = context.getString(R.string.pc_selection)," errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/menu/SelectionSongsMenu.kt" line="201" column="45" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                                            title = context.getString(R.string.pc_selection)," errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/menu/SelectionSongsMenu.kt" line="261" column="53" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        TopToaster.show(text = context.getString(R.string.song_edit_artist_pick_one), iconRes = R.drawable.person)" errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/menu/songedit/SongArtistPicker.kt" line="115" column="48" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    TopToaster.show(text = context.getString(R.string.song_edit_failed), iconRes = R.drawable.edit)" errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/menu/songedit/SongEditSheet.kt" line="203" column="44" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        TopToaster.show(context.getString(R.string.song_share_link_copied), thumbnail = session.song.thumbnailUrl)" errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/player/share/song/SongSharePages.kt" line="100" column="41" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="            else context.getString(R.string.pc_stream_error_timeout, ceil((1f - p) * f.timeoutMs / 1000f).toInt().coerceAtLeast(0))" errorLine2="                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/player/StreamFailureUi.kt" line="63" column="18" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="            TopToaster.show(text = context.getString(R.string.remove_download), thumbnail = thumb, iconRes = R.drawable.offline)" errorLine2="                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/component/SwipeActions.kt" line="564" column="36" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="            TopToaster.show(text = context.getString(R.string.local_already_on_phone), thumbnail = thumb, iconRes = R.drawable.offline)" errorLine2="                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/component/SwipeActions.kt" line="567" column="36" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="            TopToaster.show(text = &quot;${context.getString(R.string.downloading)} ${title.ifBlank { context.getString(R.string.pc_song_fallback) }}&quot;, thumbnail = thumb, iconRes = R.drawable.download)" errorLine2="                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/component/SwipeActions.kt" line="575" column="39" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="            TopToaster.show(text = &quot;${context.getString(R.string.downloading)} ${title.ifBlank { context.getString(R.string.pc_song_fallback) }}&quot;, thumbnail = thumb, iconRes = R.drawable.download)" errorLine2="                                                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/component/SwipeActions.kt" line="575" column="98" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="            text = context.getString(R.string.pc_playing_next, target.mediaMetadata.title ?: context.getString(R.string.pc_song_fallback))," errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/component/SwipeActions.kt" line="594" column="20" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="            text = context.getString(R.string.pc_playing_next, target.mediaMetadata.title ?: context.getString(R.string.pc_song_fallback))," errorLine2="                                                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/component/SwipeActions.kt" line="594" column="94" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="            text = context.getString(if (inLibrary) R.string.removed_from_library else R.string.added_to_library)," errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/component/SwipeActions.kt" line="652" column="20" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="            text = context.getString(R.string.removed_from_import_and_library, source.label)," errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/component/SwipeActions.kt" line="680" column="20" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="            text = context.getString(if (adding) R.string.added_to_library else R.string.removed_from_library)," errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/component/SwipeActions.kt" line="713" column="20" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                                Toast.makeText(context, context.getString(R.string.tunemymusic_no_browser), Toast.LENGTH_SHORT).show()" errorLine2="                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/importsync/TuneMyMusicImportScreen.kt" line="80" column="57" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    error = context.getString(R.string.update_allow_unknown_apps)" errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/update/UpdateSheet.kt" line="539" column="29" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                                onFailure = { error = it.message ?: context.getString(R.string.update_download_failed) }," errorLine2="                                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/update/UpdateSheet.kt" line="679" column="69" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        info?.name?.let { context.getString(R.string.yt_login_signed_in_as, it) }" errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/importsync/YouTubeLoginScreen.kt" line="128" column="43" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                            ?: context.getString(R.string.yt_login_signed_in_general)," errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/importsync/YouTubeLoginScreen.kt" line="129" column="32" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        Toast.makeText(context, context.getString(R.string.yt_login_failed), Toast.LENGTH_LONG).show()" errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/settings/importsync/YouTubeLoginScreen.kt" line="200" column="49" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                                title = context.getString(R.string.queue_all_songs)," errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/menu/YouTubeSelectionSongMenu.kt" line="219" column="41" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                                    title = context.getString(R.string.queue_all_songs)," errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/menu/YouTubeSelectionSongMenu.kt" line="245" column="45" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="        listOf(ReleaseMetadata(versionTag, versionTag, context.getString(R.string.current), null))" errorLine2="                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/core/changelog/changelogscreen.kt" line="114" column="56" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        val currentVersion = ReleaseMetadata(versionTag, versionTag, context.getString(R.string.current), null)" errorLine2="                                                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/core/changelog/changelogscreen.kt" line="252" column="86" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                        snackbarHostState.showSnackbar(context.getString(R.string.download_failed))" errorLine2="                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/core/updater/mochyupdater.kt" line="160" column="56" />
+    </issue>
+    <issue id="LocalContextGetResourceValueCall" message="Querying resource values using LocalContext.current" errorLine1="                    status = MochyUpdateStatus.Error(context.getString(R.string.cant_check_updates))" errorLine2="                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/core/updater/mochyupdater.kt" line="209" column="54" />
+    </issue>
+    <issue id="StateFlowValueCalledInComposition" message="StateFlow.value should not be called within composition" errorLine1="    }.collectAsState(initial = downloadUtil.downloads.value[songId]?.state == Download.STATE_COMPLETED)" errorLine2="                                                      ~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/component/OnDeviceMarks.kt" line="53" column="55" />
+    </issue>
+    <issue id="StateFlowValueCalledInComposition" message="StateFlow.value should not be called within composition" errorLine1="    }.collectAsState(initial = connection.uiState.progressState.value.duration)" errorLine2="                                                                ~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/player/styles/StyleKit.kt" line="248" column="65" />
+    </issue>
+    <issue id="StateFlowValueCalledInComposition" message="StateFlow.value should not be called within composition" errorLine1="            tvName = pairing.code.value?.deviceName.orEmpty()," errorLine2="                                  ~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/tv/TvWelcome.kt" line="255" column="35" />
+    </issue>
+    <issue id="StateFlowValueCalledInComposition" message="StateFlow.value should not be called within composition" errorLine1="    }.collectAsState(initial = connection.progressState.value.position / 1000L)" errorLine2="                                                        ~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/player/video/VideoModeControls.kt" line="397" column="57" />
+    </issue>
+    <issue id="UnrememberedGetBackStackEntry" message="Calling getBackStackEntry during composition without using `remember` with a NavBackStackEntry key" errorLine1="        val homeViewModel: HomeViewModel = hiltViewModel(navController.getBackStackEntry(Screens.Home.route))" errorLine2="                                                                       ~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/NavigationBuilder.kt" line="250" column="72" />
+    </issue>
+    <issue id="UnusedBoxWithConstraintsScope" message="BoxWithConstraints scope is not used" errorLine1="    BoxWithConstraints(modifier = modifier) {" errorLine2="                                            ^">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/screens/library/LibraryIndex.kt" line="435" column="45" />
+    </issue>
+    <issue id="UnusedBoxWithConstraintsScope" message="BoxWithConstraints scope is not used" errorLine1="    ) {" errorLine2="      ^">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/ui/tv/TvWelcome.kt" line="130" column="7" />
+    </issue>
+    <issue id="StringFormatMatches" message="Suspicious argument type for formatting argument #1 in `server_error`: conversion is `s`, received `int` (argument #2 in method call) (Did you mean formatting character `d`, 'o' or `x`?)" errorLine1="                    context.getString(R.string.server_error, connection.responseCode)" errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/core/updater/downloadmanager/UpdateDownloadWorker.kt" line="38" column="62" />
+        <location file="src/main/res/values-fr/updater_strings.xml" line="3" column="5" message="Conflicting argument declaration here" />
+    </issue>
+    <issue id="StringFormatMatches" message="Suspicious argument type for formatting argument #1 in `server_error`: conversion is `s`, received `int` (argument #2 in method call) (Did you mean formatting character `d`, 'o' or `x`?)" errorLine1="                    context.getString(R.string.server_error, connection.responseCode)" errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/core/updater/downloadmanager/UpdateDownloadWorker.kt" line="38" column="62" />
+        <location file="src/main/res/values-in/updater_strings.xml" line="3" column="5" message="Conflicting argument declaration here" />
+    </issue>
+    <issue id="StringFormatMatches" message="Suspicious argument type for formatting argument #1 in `server_error`: conversion is `s`, received `int` (argument #2 in method call) (Did you mean formatting character `d`, 'o' or `x`?)" errorLine1="                    context.getString(R.string.server_error, connection.responseCode)" errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/core/updater/downloadmanager/UpdateDownloadWorker.kt" line="38" column="62" />
+        <location file="src/main/res/values-ja/updater_strings.xml" line="3" column="5" message="Conflicting argument declaration here" />
+    </issue>
+    <issue id="StringFormatMatches" message="Suspicious argument type for formatting argument #1 in `server_error`: conversion is `s`, received `int` (argument #2 in method call) (Did you mean formatting character `d`, 'o' or `x`?)" errorLine1="                    context.getString(R.string.server_error, connection.responseCode)" errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/core/updater/downloadmanager/UpdateDownloadWorker.kt" line="38" column="62" />
+        <location file="src/main/res/values-ko/updater_strings.xml" line="3" column="5" message="Conflicting argument declaration here" />
+    </issue>
+    <issue id="StringFormatMatches" message="Suspicious argument type for formatting argument #1 in `server_error`: conversion is `s`, received `int` (argument #2 in method call) (Did you mean formatting character `d`, 'o' or `x`?)" errorLine1="                    context.getString(R.string.server_error, connection.responseCode)" errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/core/updater/downloadmanager/UpdateDownloadWorker.kt" line="38" column="62" />
+        <location file="src/main/res/values-pt-rBR/updater_strings.xml" line="3" column="5" message="Conflicting argument declaration here" />
+    </issue>
+    <issue id="StringFormatMatches" message="Suspicious argument type for formatting argument #1 in `server_error`: conversion is `s`, received `int` (argument #2 in method call) (Did you mean formatting character `d`, 'o' or `x`?)" errorLine1="                    context.getString(R.string.server_error, connection.responseCode)" errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/core/updater/downloadmanager/UpdateDownloadWorker.kt" line="38" column="62" />
+        <location file="src/main/res/values-tr/updater_strings.xml" line="3" column="5" message="Conflicting argument declaration here" />
+    </issue>
+    <issue id="StringFormatMatches" message="Suspicious argument type for formatting argument #1 in `server_error`: conversion is `s`, received `int` (argument #2 in method call) (Did you mean formatting character `d`, 'o' or `x`?)" errorLine1="                    context.getString(R.string.server_error, connection.responseCode)" errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/core/updater/downloadmanager/UpdateDownloadWorker.kt" line="38" column="62" />
+        <location file="src/main/res/values-vi/updater_strings.xml" line="3" column="5" message="Conflicting argument declaration here" />
+    </issue>
+    <issue id="StringFormatMatches" message="Suspicious argument type for formatting argument #1 in `server_error`: conversion is `s`, received `int` (argument #2 in method call) (Did you mean formatting character `d`, 'o' or `x`?)" errorLine1="                    context.getString(R.string.server_error, connection.responseCode)" errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/core/updater/downloadmanager/UpdateDownloadWorker.kt" line="38" column="62" />
+        <location file="src/main/res/values/updater_strings.xml" line="3" column="5" message="Conflicting argument declaration here" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;backup_every_minutes&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/backup_strings.xml" line="46" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;backup_every_hours&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/backup_strings.xml" line="50" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;backup_every_days&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/backup_strings.xml" line="54" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;backup_every_weeks&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/backup_strings.xml" line="58" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;backup_keep_count&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/backup_strings.xml" line="62" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;car_pair_connected_more&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/car_strings.xml" line="38" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;eqx_filters_count&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/equalizer_strings.xml" line="46" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;import_notice_added_missing&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/import_notice_strings.xml" line="7" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;import_notice_added&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/import_notice_strings.xml" line="11" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;import_notice_missing&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/import_notice_strings.xml" line="15" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;import_notice_many_current&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/import_notice_strings.xml" line="21" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;lib_song_count&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/library_strings.xml" line="9" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;lib_imported_songs_subtitle&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/library_strings.xml" line="36" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;lib_local_repaired&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/library_strings.xml" line="67" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;lib_picker_add_songs&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/library_strings.xml" line="84" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;lib_picker_remove_songs&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/library_strings.xml" line="88" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;local_import_skipped_formats&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/local_playback_strings.xml" line="14" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;local_missing_files&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/local_playback_strings.xml" line="20" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;fr&quot; (French) the following quantity should also be defined: `many` (e.g. &quot;1000000 de jours&quot;)" errorLine1="    &lt;plurals name=&quot;n_element&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-fr/mochy_strings.xml" line="95" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;fr&quot; (French) the following quantity should also be defined: `many` (e.g. &quot;1000000 de jours&quot;)" errorLine1="    &lt;plurals name=&quot;n_time&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-fr/mochy_strings.xml" line="99" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;n_element&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/mochy_strings.xml" line="115" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;n_time&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/mochy_strings.xml" line="119" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;fr&quot; (French) the following quantity should also be defined: `many` (e.g. &quot;1000000 de jours&quot;)" errorLine1="    &lt;plurals name=&quot;seconds&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-fr/mochy_strings.xml" line="243" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;seconds&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/mochy_strings.xml" line="291" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;fr&quot; (French) the following quantity should also be defined: `many` (e.g. &quot;1000000 de jours&quot;)" errorLine1="    &lt;plurals name=&quot;profiles_count&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-fr/mochy_strings.xml" line="389" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;scrobble_plays_waiting&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/mochy_strings.xml" line="393" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;fr&quot; (French) the following quantity should also be defined: `many` (e.g. &quot;1000000 de jours&quot;)" errorLine1="    &lt;plurals name=&quot;band_count&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-fr/mochy_strings.xml" line="398" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;profiles_count&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/mochy_strings.xml" line="509" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;band_count&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/mochy_strings.xml" line="518" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;video_mode_seek_seconds&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/mochy_strings.xml" line="1074" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;yt_sync_undo_failed&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/mochy_strings.xml" line="1186" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;yt_sync_lost_likes_dialog_title&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/mochy_strings.xml" line="1192" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;yt_sync_lost_likes_done&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/mochy_strings.xml" line="1201" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;settings_blend_ahead_value&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/mochy_strings.xml" line="1217" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;onb_songs&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/onboarding_strings.xml" line="41" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;onb_playlists&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/onboarding_strings.xml" line="45" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;onb_plays&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/onboarding_strings.xml" line="49" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;onb_link_import_songs&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/onboarding_strings.xml" line="74" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;pc_detail_songs&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/player_core_strings.xml" line="247" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;pc_detail_minutes&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/player_core_strings.xml" line="251" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;pc_artist_songs_in_library&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/player_core_strings.xml" line="255" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;pc_resync_looking_playlists&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/player_core_strings.xml" line="259" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;pc_resync_need_link&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/player_core_strings.xml" line="263" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;ps_share_lines_selected&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/player_sheets_strings.xml" line="340" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;profile_unit_songs&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/profile_strings.xml" line="51" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;profile_unit_minutes&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/profile_strings.xml" line="55" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;profile_unit_hours&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/profile_strings.xml" line="59" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;rc_stats_fact_songs&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/recap_strings.xml" line="22" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;rc_stats_fact_artists&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/recap_strings.xml" line="26" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;rc_stats_fact_albums&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/recap_strings.xml" line="30" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;rc_stats_fact_plays&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/recap_strings.xml" line="34" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;rc_stats_artist_row&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/recap_strings.xml" line="44" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;rc_stats_artist_summary&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/recap_strings.xml" line="48" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;rc_stats_song_row&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/recap_strings.xml" line="54" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;rc_stats_song_summary&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/recap_strings.xml" line="59" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;rc_stats_repeat_times&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/recap_strings.xml" line="81" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;rc_stats_new_songs&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/recap_strings.xml" line="87" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;rc_stats_habit_streak_value&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/recap_strings.xml" line="99" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;rc_story_hours&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/recap_strings.xml" line="128" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;rc_story_minutes&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/recap_strings.xml" line="132" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;rc_story_plays&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/recap_strings.xml" line="142" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;cipher_manual_refreshes_left&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/settings_extra_strings.xml" line="58" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;song_edit_lyrics_lines&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/song_edit_strings.xml" line="14" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;storage_export_done&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/storage_strings.xml" line="80" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;storage_export_skipped&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/storage_strings.xml" line="84" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;fr&quot; (French) the following quantities should also be defined: `many` (e.g. &quot;1000000 de jours&quot;), `one` (e.g. &quot;1 jour&quot;)" errorLine1="    &lt;plurals name=&quot;n_selected&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-fr/strings.xml" line="8" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;tr&quot; (Turkish) the following quantity should also be defined: `one` (e.g. &quot;Sepetinizde 1 X var. Bunu almak istiyor musunuz?&quot;)" errorLine1="    &lt;plurals name=&quot;n_selected&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-tr/strings.xml" line="9" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantities should also be defined: `many`, `one` (e.g. &quot;1&quot;)" errorLine1="    &lt;plurals name=&quot;n_selected&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/strings.xml" line="12" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;fr&quot; (French) the following quantity should also be defined: `many` (e.g. &quot;1000000 de jours&quot;)" errorLine1="    &lt;plurals name=&quot;n_song&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-fr/strings.xml" line="142" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;fr&quot; (French) the following quantity should also be defined: `many` (e.g. &quot;1000000 de jours&quot;)" errorLine1="    &lt;plurals name=&quot;n_artist&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-fr/strings.xml" line="146" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;fr&quot; (French) the following quantity should also be defined: `many` (e.g. &quot;1000000 de jours&quot;)" errorLine1="    &lt;plurals name=&quot;n_album&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-fr/strings.xml" line="150" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;fr&quot; (French) the following quantity should also be defined: `many` (e.g. &quot;1000000 de jours&quot;)" errorLine1="    &lt;plurals name=&quot;n_playlist&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-fr/strings.xml" line="154" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;fr&quot; (French) the following quantity should also be defined: `many` (e.g. &quot;1000000 de jours&quot;)" errorLine1="    &lt;plurals name=&quot;n_week&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-fr/strings.xml" line="158" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;fr&quot; (French) the following quantity should also be defined: `many` (e.g. &quot;1000000 de jours&quot;)" errorLine1="    &lt;plurals name=&quot;n_month&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-fr/strings.xml" line="162" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;fr&quot; (French) the following quantity should also be defined: `many` (e.g. &quot;1000000 de jours&quot;)" errorLine1="    &lt;plurals name=&quot;n_year&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-fr/strings.xml" line="166" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;fr&quot; (French) the following quantity should also be defined: `many` (e.g. &quot;1000000 de jours&quot;)" errorLine1="    &lt;plurals name=&quot;n_apk_found&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-fr/strings.xml" line="170" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;fr&quot; (French) the following quantity should also be defined: `many` (e.g. &quot;1000000 de jours&quot;)" errorLine1="    &lt;plurals name=&quot;minute&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-fr/strings.xml" line="182" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;n_song&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/strings.xml" line="184" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;n_artist&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/strings.xml" line="188" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;n_album&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/strings.xml" line="192" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;n_playlist&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/strings.xml" line="196" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;n_week&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/strings.xml" line="200" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;n_month&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/strings.xml" line="204" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;n_year&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/strings.xml" line="208" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;n_apk_found&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/strings.xml" line="212" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;minute&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/strings.xml" line="228" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;sleep_timer_preset_minutes&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/strings.xml" line="242" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;supplemental_add_song_count&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/supplemental_ui_strings.xml" line="35" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;supplemental_song_count&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/supplemental_ui_strings.xml" line="52" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;tv_ledger_songs&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/tv_strings.xml" line="44" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;tv_ledger_minutes&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/tv_strings.xml" line="48" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;tv_song_count&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/tv_strings.xml" line="52" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;tv_sync_minutes_ago&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/tv_strings.xml" line="89" column="5" />
+    </issue>
+    <issue id="MissingQuantity" message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`" errorLine1="    &lt;plurals name=&quot;tv_sync_copying&quot;&gt;" errorLine2="    ^">
+        <location file="src/main/res/values-pt-rBR/tv_strings.xml" line="93" column="5" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;A cada minuto&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-pt-rBR/backup_strings.xml" line="47" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;A cada hora&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-pt-rBR/backup_strings.xml" line="51" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;A cada dia&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-pt-rBR/backup_strings.xml" line="55" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;A cada semana&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-pt-rBR/backup_strings.xml" line="59" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;مورد&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-fa/mochy_strings.xml" line="76" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;1 seconde&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-fr/mochy_strings.xml" line="244" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;1 segundo&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-pt-rBR/mochy_strings.xml" line="292" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Alterações desfeitas, mas não foi possível remover 1 curtida do YouTube. Tente novamente mais tarde.&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-pt-rBR/mochy_strings.xml" line="1187" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Restaurar 1 curtida?&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-pt-rBR/mochy_strings.xml" line="1193" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;1 curtida foi restaurada em Músicas curtidas.&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-pt-rBR/mochy_strings.xml" line="1202" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Música&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-pt-rBR/profile_strings.xml" line="52" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Min&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-pt-rBR/profile_strings.xml" line="56" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Hora&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-pt-rBR/profile_strings.xml" line="60" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;hora&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-pt-rBR/recap_strings.xml" line="129" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;minuto&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-pt-rBR/recap_strings.xml" line="133" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;1 minute&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-fr/strings.xml" line="183" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;1 minuto&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-pt-rBR/strings.xml" line="229" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Sincronizado há um minuto&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-pt-rBR/tv_strings.xml" line="90" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Copiando uma música para esta TV…&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/main/res/values-pt-rBR/tv_strings.xml" line="94" column="9" />
+    </issue>
+    <issue id="ByteOrderMark" message="Found byte-order-mark in the middle of a file" errorLine1="    name.removePrefix(&quot;﻿&quot;).trim().lowercase().replace(Regex(&quot;[\\s_]+&quot;), &quot; &quot;)" errorLine2="                       ~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/importer/CsvImport.kt" line="98" column="24" />
+    </issue>
+    <issue id="ByteOrderMark" message="Found byte-order-mark in the middle of a file" errorLine1="    val content = text.removePrefix(&quot;﻿&quot;)" errorLine2="                                     ~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/importer/CsvImport.kt" line="125" column="38" />
+    </issue>
+    <issue id="ByteOrderMark" message="Found byte-order-mark in the middle of a file" errorLine1="        return text.removePrefix(&quot;﻿&quot;)" errorLine2="                                  ~">
+        <location file="src/main/kotlin/com/mochyy/mochymusic/songedit/LyricsFileFormats.kt" line="68" column="35" />
+    </issue>
+</issues>
