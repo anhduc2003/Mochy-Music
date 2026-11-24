@@ -30,7 +30,7 @@ import java.net.URI
 import java.net.URLEncoder
 import java.text.Normalizer
 import java.time.Instant
-import java.util.concurrent.ConcurrentHashMap
+import com.mochyy.mochymusic.module.BoundedCache
 
 /**
  * SoundCloud's catalog, played the way the web player plays it: an HLS stream behind a signed URL.
@@ -55,8 +55,8 @@ class SoundCloudModule : SourceModule {
 
     private lateinit var host: ModuleHost
     private val json = Json { ignoreUnknownKeys = true }
-    private val matches = ConcurrentHashMap<String, ScTrack>()
-    private val misses = ConcurrentHashMap<String, Long>()
+    private val matches = BoundedCache<String, ScTrack>(RememberedMatches)
+    private val misses = BoundedCache<String, Long>(RememberedMisses)
 
     override fun attach(host: ModuleHost) {
         this.host = host
@@ -1058,6 +1058,10 @@ class SoundCloudModule : SourceModule {
     internal class ScStream(val url: String, val format: StreamFormat, val quality: String, val codec: String?)
 
     companion object {
+        /** the songs this module remembers for the session; a long session plays more than this, so the oldest go */
+        private const val RememberedMatches = 500
+        private const val RememberedMisses = 2000
+
         /** the media id the app gives an upload of this module: the upload's own id, so playback opens it by id */
         const val MediaIdPrefix = "SC_"
 

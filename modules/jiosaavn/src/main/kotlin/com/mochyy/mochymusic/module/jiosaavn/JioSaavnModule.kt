@@ -22,7 +22,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import java.net.URLEncoder
-import java.util.concurrent.ConcurrentHashMap
+import com.mochyy.mochymusic.module.BoundedCache
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 import kotlin.io.encoding.Base64
@@ -39,8 +39,8 @@ class JioSaavnModule : SourceModule {
 
     private lateinit var host: ModuleHost
     private val json = Json { ignoreUnknownKeys = true }
-    private val matches = ConcurrentHashMap<String, SaavnSong>()
-    private val misses = ConcurrentHashMap<String, Long>()
+    private val matches = BoundedCache<String, SaavnSong>(RememberedMatches)
+    private val misses = BoundedCache<String, Long>(RememberedMisses)
 
     override fun attach(host: ModuleHost) {
         this.host = host
@@ -224,6 +224,10 @@ class JioSaavnModule : SourceModule {
     private fun enc(text: String) = URLEncoder.encode(text, "UTF-8").replace("+", "%20")
 
     companion object {
+        /** the songs this module remembers for the session; a long session plays more than this, so the oldest go */
+        private const val RememberedMatches = 500
+        private const val RememberedMisses = 2000
+
         const val Id = "jiosaavn"
         const val ChoiceQuality = "quality"
         const val Option320 = "320"

@@ -32,7 +32,7 @@ import kotlinx.serialization.json.put
 import java.io.IOException
 import java.net.URLEncoder
 import java.util.Base64
-import java.util.concurrent.ConcurrentHashMap
+import com.mochyy.mochymusic.module.BoundedCache
 
 /**
  * Plays the user's own Apple Music subscription inside Mochy.
@@ -58,8 +58,8 @@ class AppleMusicModule : SourceModule {
 
     private lateinit var host: ModuleHost
     private val json = Json { ignoreUnknownKeys = true }
-    private val matches = ConcurrentHashMap<String, CatalogTrack>()
-    private val misses = ConcurrentHashMap<String, Long>()
+    private val matches = BoundedCache<String, CatalogTrack>(RememberedMatches)
+    private val misses = BoundedCache<String, Long>(RememberedMisses)
 
     override fun attach(host: ModuleHost) {
         this.host = host
@@ -399,6 +399,10 @@ class AppleMusicModule : SourceModule {
     private fun enc(text: String) = URLEncoder.encode(text, "UTF-8").replace("+", "%20")
 
     companion object {
+        /** the songs this module remembers for the session; a long session plays more than this, so the oldest go */
+        private const val RememberedMatches = 500
+        private const val RememberedMisses = 2000
+
         const val Id = "applemusic"
         const val ChoiceQuality = "quality"
         const val ChoiceRegion = "region"
