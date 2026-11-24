@@ -224,7 +224,10 @@ private suspend fun AwaitPointerEventScope.dragHold(
             val end = value <= range.start || value >= range.end
             if (end && !atEnd) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             atEnd = end
-            editor.overrides[key] = formatSetting(value)
+            // a stepped setting lands on the same value for many moves of the finger; writing it
+            // again would redraw the preview for a number that did not change
+            val next = formatSetting(value)
+            if (editor.overrides[key] != next) editor.overrides[key] = next
         }
     } finally {
         editor.held = null

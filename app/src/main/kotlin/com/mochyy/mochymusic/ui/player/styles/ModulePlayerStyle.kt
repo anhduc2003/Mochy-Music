@@ -270,8 +270,12 @@ internal fun rememberSkinContext(
     val position = rememberLivePosition(animated = !preview)
     val lyricsPosition = position.withLyricsOffset()
     val duration = rememberDurationMs()
-    // a layout without lyrics never fetches or parses any, unless one of its shaders reads the sung line
-    val shaderLyrics = skin.playerShaders.any { file -> ActiveSkin.shader(skin.moduleId, file)?.declared?.any { it in LyricUniformNames } == true }
+    // a layout without lyrics never fetches or parses any, unless one of its shaders reads the sung
+    // line; the skin's shaders only change with the skin, so the lookup is kept instead of redone
+    // on every recomposition of the player
+    val shaderLyrics = remember(skin) {
+        skin.playerShaders.any { file -> ActiveSkin.shader(skin.moduleId, file)?.declared?.any { it in LyricUniformNames } == true }
+    }
     val lyrics = if (layout.lyrics || shaderLyrics) rememberStyleLyrics(readings = !preview) else NoLyrics
     val lyricClock = rememberLyricClock(lyrics.lines, lyricsPosition)
     // a still layout never starts the clock at all

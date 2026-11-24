@@ -113,6 +113,17 @@ sealed interface AccountState {
     data object SignedOut : AccountState
     data class SignedIn(val label: String) : AccountState
     data class Expired(val reason: String) : AccountState
+
+    /**
+     * The service did not answer, so there is nothing wrong with the sign-in and nothing to sign
+     * in to again: the module is simply unusable until the server comes back. Kept apart from
+     * [Expired] because the two read very differently to the person holding the phone, and only
+     * one of them is worth asking them to act on.
+     *
+     * Modules built against an older API never return it, and Mochy treats it as "not usable
+     * right now" exactly like [Expired], so adding it does not break an installed module APK.
+     */
+    data class Unreachable(val reason: String) : AccountState
 }
 
 /** One of a choice's options, best or most usual first. */

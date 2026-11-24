@@ -22,7 +22,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import java.net.URLEncoder
-import java.util.concurrent.ConcurrentHashMap
+import com.mochyy.mochymusic.module.BoundedCache
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 import kotlin.io.encoding.Base64
@@ -39,8 +39,8 @@ class JioSaavnModule : SourceModule {
 
     private lateinit var host: ModuleHost
     private val json = Json { ignoreUnknownKeys = true }
-    private val matches = ConcurrentHashMap<String, SaavnSong>()
-    private val misses = ConcurrentHashMap<String, Long>()
+    private val matches = BoundedCache<String, SaavnSong>(RememberedMatches)
+    private val misses = BoundedCache<String, Long>(RememberedMisses)
 
     override fun attach(host: ModuleHost) {
         this.host = host
@@ -62,7 +62,7 @@ class JioSaavnModule : SourceModule {
     override fun accountState(): AccountState {
         val reason = host.storage.get("unreachable") ?: return AccountState.SignedIn(NO_ACCOUNT_LABEL)
         val markedAt = host.storage.get("unreachable_at")?.toLongOrNull() ?: 0L
-        return if (System.currentTimeMillis() - markedAt < UnreachableRetryMs) AccountState.Expired(reason) else AccountState.SignedIn(NO_ACCOUNT_LABEL)
+        return if (System.currentTimeMillis() - markedAt < UnreachableRetryMs) AccountState.Unreachable(reason) else AccountState.SignedIn(NO_ACCOUNT_LABEL)
     }
 
     override suspend fun verifyAccount(): AccountState {
@@ -73,7 +73,7 @@ class JioSaavnModule : SourceModule {
         } else {
             val reason = "JioSaavn didn't answer (${response?.code ?: "offline"})"
             markUnreachable(reason)
-            AccountState.Expired(reason)
+            AccountState.Unreachable(reason)
         }
     }
 
@@ -224,6 +224,10 @@ class JioSaavnModule : SourceModule {
     private fun enc(text: String) = URLEncoder.encode(text, "UTF-8").replace("+", "%20")
 
     companion object {
+        /** the songs this module remembers for the session; a long session plays more than this, so the oldest go */
+        private const val RememberedMatches = 500
+        private const val RememberedMisses = 2000
+
         const val Id = "jiosaavn"
         const val ChoiceQuality = "quality"
         const val Option320 = "320"

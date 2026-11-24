@@ -406,6 +406,12 @@ fun SoundCloudScreen(
     ) {
         val account = entry?.account ?: AccountState.SignedOut
         val signedIn = account is AccountState.SignedIn
+        // the session ended or the comment server didn't answer: either way the reason is what to show
+        val trouble = when (account) {
+            is AccountState.Expired -> account.reason
+            is AccountState.Unreachable -> account.reason
+            else -> null
+        }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -436,10 +442,10 @@ fun SoundCloudScreen(
                 Spacer(Modifier.width(10.dp))
                 if (entry != null) AccountPill(account = account, onSignIn = onSignIn)
             }
-            if (account is AccountState.Expired) {
+            if (trouble != null) {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    account.reason,
+                    trouble,
                     color = Color(0xFFFFB340),
                     fontFamily = InterFontFamily,
                     fontSize = 11.sp,

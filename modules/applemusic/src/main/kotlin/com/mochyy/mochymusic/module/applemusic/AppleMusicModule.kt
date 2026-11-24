@@ -32,7 +32,7 @@ import kotlinx.serialization.json.put
 import java.io.IOException
 import java.net.URLEncoder
 import java.util.Base64
-import java.util.concurrent.ConcurrentHashMap
+import com.mochyy.mochymusic.module.BoundedCache
 
 /**
  * Plays the user's own Apple Music subscription inside Mochy.
@@ -58,8 +58,8 @@ class AppleMusicModule : SourceModule {
 
     private lateinit var host: ModuleHost
     private val json = Json { ignoreUnknownKeys = true }
-    private val matches = ConcurrentHashMap<String, CatalogTrack>()
-    private val misses = ConcurrentHashMap<String, Long>()
+    private val matches = BoundedCache<String, CatalogTrack>(RememberedMatches)
+    private val misses = BoundedCache<String, Long>(RememberedMisses)
 
     override fun attach(host: ModuleHost) {
         this.host = host
@@ -137,7 +137,7 @@ class AppleMusicModule : SourceModule {
             host.storage.set("expired", "Apple signed this session out")
             return AccountState.Expired("Apple signed this session out")
         }
-        if (!response.ok) return AccountState.Expired("Apple Music didn't answer (${response.code})")
+        if (!response.ok) return AccountState.Unreachable("Apple Music didn't answer (${response.code})")
         val front = parse(response).array("data")?.firstOrNull()?.jsonObject
         val id = front?.string("id")
         val country = front?.get("attributes")?.jsonObject?.string("name")
@@ -167,7 +167,13 @@ class AppleMusicModule : SourceModule {
             report(DiagnosticStep("Account", null, "Checking your account…"))
             val state = verifyAccount()
             if (state !is AccountState.SignedIn) {
-                report(DiagnosticStep("Account", false, (state as? AccountState.Expired)?.reason ?: "Signed out"))
+                // an outage is not a signed-out account: the reason says which one it was
+                val why = when (state) {
+                    is AccountState.Expired -> state.reason
+                    is AccountState.Unreachable -> state.reason
+                    else -> "Signed out"
+                }
+                report(DiagnosticStep("Account", false, why))
                 return ResolveResult.Unavailable("Apple Music account isn't signed in")
             }
         }
@@ -399,6 +405,10 @@ class AppleMusicModule : SourceModule {
     private fun enc(text: String) = URLEncoder.encode(text, "UTF-8").replace("+", "%20")
 
     companion object {
+        /** the songs this module remembers for the session; a long session plays more than this, so the oldest go */
+        private const val RememberedMatches = 500
+        private const val RememberedMisses = 2000
+
         const val Id = "applemusic"
         const val ChoiceQuality = "quality"
         const val ChoiceRegion = "region"

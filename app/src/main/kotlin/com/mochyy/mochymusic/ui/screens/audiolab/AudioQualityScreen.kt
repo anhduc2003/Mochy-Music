@@ -96,6 +96,7 @@ fun AudioQualityScreen(navController: NavController, modules: ModulesViewModel =
     val context = LocalContext.current
     val statusSignIn = stringResource(R.string.aq_status_sign_in)
     val statusSignInAgain = stringResource(R.string.aq_status_sign_in_again)
+    val statusUnreachable = stringResource(R.string.aq_status_unreachable)
     val statusOn = stringResource(R.string.aq_status_on)
     val statusOffTap = stringResource(R.string.aq_status_off_tap)
     val statusNotInstalled = stringResource(R.string.aq_status_not_installed)
@@ -103,6 +104,7 @@ fun AudioQualityScreen(navController: NavController, modules: ModulesViewModel =
         when {
             entry.account is AccountState.SignedOut -> statusSignIn
             entry.account is AccountState.Expired -> statusSignInAgain
+            entry.account is AccountState.Unreachable -> statusUnreachable
             entry.enabled -> statusOn
             else -> statusOffTap
         }

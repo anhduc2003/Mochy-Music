@@ -145,6 +145,10 @@ internal object Wire {
                 put("state", "expired")
                 put("text", state.reason)
             }
+            is AccountState.Unreachable -> {
+                put("state", "unreachable")
+                put("text", state.reason)
+            }
         }
     }
 
@@ -154,6 +158,7 @@ internal object Wire {
         return when (o.text("state")) {
             "signedIn" -> AccountState.SignedIn(text)
             "expired" -> AccountState.Expired(text)
+            "unreachable" -> AccountState.Unreachable(text)
             else -> AccountState.SignedOut
         }
     }

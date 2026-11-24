@@ -32,7 +32,7 @@ import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 import java.net.URI
 import java.net.URLEncoder
-import java.util.concurrent.ConcurrentHashMap
+import com.mochyy.mochymusic.module.BoundedCache
 
 // lossless flac from monochrome's own track streamer, and from any server people add off a monochrome site (docs/notes/modules.md)
 class MonochromeModule : SourceModule, ServerListModule {
@@ -55,8 +55,8 @@ class MonochromeModule : SourceModule, ServerListModule {
 
     private lateinit var host: ModuleHost
     private val json = Json { ignoreUnknownKeys = true }
-    private val matches = ConcurrentHashMap<String, CatalogTrack>()
-    private val misses = ConcurrentHashMap<String, Long>()
+    private val matches = BoundedCache<String, CatalogTrack>(RememberedMatches)
+    private val misses = BoundedCache<String, Long>(RememberedMisses)
 
     // the servers people added, tried before the built-in one since they were added for a reason
     @Volatile
@@ -80,7 +80,7 @@ class MonochromeModule : SourceModule, ServerListModule {
     override fun accountState(): AccountState {
         val reasons = all.map { downReason(it) }
         val down = reasons.filterNotNull()
-        return if (down.size == reasons.size) AccountState.Expired(down.first()) else AccountState.SignedIn(NO_ACCOUNT_LABEL)
+        return if (down.size == reasons.size) AccountState.Unreachable(down.first()) else AccountState.SignedIn(NO_ACCOUNT_LABEL)
     }
 
     override fun onSignInHeader(name: String, value: String, url: String): Boolean = false
@@ -264,8 +264,8 @@ class MonochromeModule : SourceModule, ServerListModule {
         added = added.filterNot { it.url == url }
         saveServers()
         clearDown(url)
-        matches.keys.removeIf { it.startsWith("$url|") }
-        misses.keys.removeIf { it.startsWith("$url|") }
+        matches.removeWhere { it.startsWith("$url|") }
+        misses.removeWhere { it.startsWith("$url|") }
     }
 
     // which kind of server answers a search at this link, if either does
@@ -383,6 +383,10 @@ class MonochromeModule : SourceModule, ServerListModule {
     private fun originOf(url: String): String = URI(url).let { "${it.scheme}://${it.rawAuthority}" }
 
     companion object {
+        /** the songs this module remembers for the session; a long session plays more than this, so the oldest go */
+        private const val RememberedMatches = 500
+        private const val RememberedMisses = 2000
+
         const val Id = "monochrome"
         private val DefaultServer = Server("https://tracks.monochrome.st", Kind.Streamer, "tracks.monochrome.st")
         private const val ServersKey = "servers"
