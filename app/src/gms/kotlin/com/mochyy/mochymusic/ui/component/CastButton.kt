@@ -46,6 +46,7 @@ fun CastButton(
     val context = LocalContext.current
     val playerConnection = LocalPlayerConnection.current
     val menuState = LocalMenuState.current
+    val playFirst = stringResource(R.string.platform_cast_play_first)
 
     var castAvailable by remember { mutableStateOf(false) }
     var mediaRouter by remember { mutableStateOf<MediaRouter?>(null) }
@@ -144,7 +145,7 @@ fun CastButton(
                     .clip(RoundedCornerShape(20.dp))
                     .clickable {
                     if (currentMetadata == null && !isCasting) {
-                        Toast.makeText(context, context.getString(R.string.platform_cast_play_first), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, playFirst, Toast.LENGTH_SHORT).show()
                         return@clickable
                     }
 

@@ -358,8 +358,15 @@ extensions.configure<ApplicationExtension> {
     lint {
         lintConfig = file("lint.xml")
         // Errors fail the build so a broken resource, manifest entry or API usage cannot ship.
-        // Warnings stay non-blocking: there is no lint baseline yet, and turning every warning
-        // into an error would fail the first CI run instead of guarding against regressions.
+        // Warnings stay non-blocking: turning every warning into an error would fail the build
+        // instead of guarding against regressions.
+        //
+        // The baseline holds the errors this project already carried before the pull request gate
+        // ran lint. It is temporary, and it exists so the gate reports what a change introduces
+        // instead of the whole backlog on every pull request. It only ever shrinks: fix an error,
+        // run `./gradlew :app:updateLintBaselineUniversalFossDebug`, and the entry leaves the file.
+        // Delete the file and this line once the audit's second pass has cleared the backlog.
+        baseline = file("lint-baseline.xml")
         warningsAsErrors = false
         abortOnError = true
         checkDependencies = false
