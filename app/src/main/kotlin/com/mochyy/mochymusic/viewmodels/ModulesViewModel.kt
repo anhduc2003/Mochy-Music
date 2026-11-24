@@ -340,9 +340,12 @@ class ModulesViewModel @Inject constructor(
                     signedIn = false
                 }
                 // the server didn't answer, which says nothing about the key just handed over: keep
-                // it rather than making the person sign in a second time for a check that never ran
+                // it rather than making the person sign in a second time for a check that never ran.
+                // The page saved those tokens before the check ran, so the module may already count
+                // as signed in and the page has to ask it again rather than keep showing signed out
                 is AccountState.Unreachable -> {
                     signedIn = false
+                    modules.refresh()
                     onDone(state)
                 }
                 AccountState.SignedOut -> {

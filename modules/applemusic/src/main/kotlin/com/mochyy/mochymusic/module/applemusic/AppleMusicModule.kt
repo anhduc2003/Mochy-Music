@@ -167,7 +167,13 @@ class AppleMusicModule : SourceModule {
             report(DiagnosticStep("Account", null, "Checking your account…"))
             val state = verifyAccount()
             if (state !is AccountState.SignedIn) {
-                report(DiagnosticStep("Account", false, (state as? AccountState.Expired)?.reason ?: "Signed out"))
+                // an outage is not a signed-out account: the reason says which one it was
+                val why = when (state) {
+                    is AccountState.Expired -> state.reason
+                    is AccountState.Unreachable -> state.reason
+                    else -> "Signed out"
+                }
+                report(DiagnosticStep("Account", false, why))
                 return ResolveResult.Unavailable("Apple Music account isn't signed in")
             }
         }
