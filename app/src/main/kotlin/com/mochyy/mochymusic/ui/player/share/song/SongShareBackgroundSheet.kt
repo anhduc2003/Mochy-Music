@@ -128,6 +128,8 @@ private fun pageOf(background: SongBackground): BackgroundPage = when (backgroun
 @Composable
 private fun SongBackgroundContent(session: SongShareSession, popup: PopupSheetState, video: Boolean) {
     val context = LocalContext.current
+    val youtubePickerSubtitle = stringResource(R.string.song_share_bg_youtube_picker_subtitle)
+    val youtubeFailed = stringResource(R.string.song_share_bg_youtube_failed)
     val scope = rememberCoroutineScope()
     val pages = remember(video, session.musicVideo is Fetched.Found, session.animatedCover is Fetched.Found) {
         BackgroundPage.entries.filter { page ->
@@ -195,13 +197,13 @@ private fun SongBackgroundContent(session: SongShareSession, popup: PopupSheetSt
             initialQuery = initialQuery,
             currentVideoId = session.pickedYouTubeVideo.found?.videoId,
             currentTitle = session.pickedYouTubeTitle,
-            subtitle = context.getString(R.string.song_share_bg_youtube_picker_subtitle),
+            subtitle = youtubePickerSubtitle,
         ) { videoId, title ->
             val ok = loadPickedYouTubeVideo(session, videoId, title)
             if (ok) {
                 session.setVideo(SongBackground.Video(ShareVideoSource.YouTube, dim))
             } else {
-                TopToaster.show(context.getString(R.string.song_share_bg_youtube_failed))
+                TopToaster.show(youtubeFailed)
             }
             ok
         }

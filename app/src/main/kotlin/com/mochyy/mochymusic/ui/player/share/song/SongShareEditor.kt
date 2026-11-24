@@ -202,6 +202,8 @@ internal fun PopupSheetState.showCardStyle(session: SongShareSession) {
     val popup = this
     show(buttonBar = { SheetPillButton(text = stringResource(R.string.song_share_ok), onClick = popup::dismiss) }) {
         val context = LocalContext.current
+        val youtubePickerSubtitle = stringResource(R.string.song_share_bg_youtube_picker_subtitle)
+        val youtubeFailed = stringResource(R.string.song_share_bg_youtube_failed)
         val live = popup.rememberIsFront()
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = sheetHandleRoom())) {
             ShareTitle(stringResource(R.string.song_share_card_title))
@@ -229,7 +231,7 @@ internal fun PopupSheetState.showCardStyle(session: SongShareSession) {
                         initialQuery = initialQuery,
                         currentVideoId = session.pickedYouTubeVideo.found?.videoId,
                         currentTitle = session.pickedYouTubeTitle,
-                        subtitle = context.getString(R.string.song_share_bg_youtube_picker_subtitle),
+                        subtitle = youtubePickerSubtitle,
                     ) { videoId, title ->
                         val ok = loadPickedYouTubeVideo(session, videoId, title)
                         if (ok) {
@@ -237,7 +239,7 @@ internal fun PopupSheetState.showCardStyle(session: SongShareSession) {
                             session.cardOnlyBg = CardOnlyBackground.Video(ShareVideoSource.YouTube)
                             if (session.pick != null && !session.windowTouched) session.fitWindowToPick()
                         } else {
-                            TopToaster.show(context.getString(R.string.song_share_bg_youtube_failed))
+                            TopToaster.show(youtubeFailed)
                         }
                         ok
                     }
