@@ -295,6 +295,9 @@ private const val INSTANT_SILENCE_SKIP_STEP_MS = 15_000L
 
 /** A saved volume below this is taken as one saved while muted or mid-fade, not the user's own. */
 private const val MinRestoredVolume = 0.02f
+// how long the place the last session was left at waits for that song to be read back onto the player
+private const val RestorePlaceTimeoutMs = 10_000L
+private const val RestorePlacePollMs = 100L
 private const val INSTANT_SILENCE_SKIP_SETTLE_MS = 350L
 
 // how often at most a speed or pitch being dragged reaches the player; quick enough to feel live
@@ -1395,16 +1398,11 @@ class MusicService :
                         // (PlayerVolumeKey, read at start) stands otherwise
                         if (playerState.volume >= MinRestoredVolume) playerVolume.value = playerState.volume
 
-                        // the saved place is the restored song's: once the listener has picked their
-                        // own, the index and the second below it are another song's, and seeking there
-                        // started a different song in the middle, seconds after the one they chose
-                        if (restoredQueueGeneration != queueGeneration) return@launch
-                        if (player.currentMediaItem?.mediaId != restoredSongId) return@launch
-                        if (playerState.currentMediaItemIndex < player.mediaItemCount &&
-                            player.currentMediaItemIndex == playerState.currentMediaItemIndex
-                        ) {
-                            player.seekTo(playerState.currentMediaItemIndex, playerState.currentPosition)
-                        }
+                        // the saved place is the restored song's, and only once that song is really the
+                        // one on the player: the queue reads itself in the background, so a fixed wait
+                        // placed the second before the song arrived (it then played from 0:00) or, when
+                        // the listener had picked their own queue meanwhile, on another song entirely
+                        placeRestoredPosition(playerState.currentPosition)
                     }
                 }.onFailure { error ->
                     Timber.tag(TAG).w(error, "Failed to read player state, clearing data")
@@ -1760,6 +1758,30 @@ class MusicService :
         if (!wasPlayingBeforeCall) return
         wasPlayingBeforeCall = false
         if (castConnectionHandler?.isCasting?.value != true) player.play()
+    }
+
+    /**
+     * Puts the place the last session stopped at back on the song it belongs to, once that song is
+     * really the one on the player: the restored queue reads itself in the background and may take a
+     * while to land, and placing the second before it arrived left the song starting from 0:00. False
+     * when the listener started a queue of their own meanwhile, or the song never came back, so the
+     * saved second is never taken on a song that isn't its own.
+     */
+    private suspend fun placeRestoredPosition(positionMs: Long): Boolean {
+        val deadline = System.currentTimeMillis() + RestorePlaceTimeoutMs
+        while (currentCoroutineContext().isActive) {
+            // the same two the queue itself was restored under: this queue, and the song it left playing
+            if (restoredQueueGeneration != queueGeneration) return false
+            val saved = restoredSongId ?: return false
+            val index = player.currentMediaItemIndex
+            if (index != C.INDEX_UNSET && player.currentMediaItem?.mediaId == saved) {
+                player.seekTo(index, positionMs)
+                return true
+            }
+            if (System.currentTimeMillis() >= deadline) return false
+            delay(RestorePlacePollMs)
+        }
+        return false
     }
 
     /** Marks the songs the user had queued by hand when the queue was saved, so a restart doesn't turn them into ordinary ones. */
