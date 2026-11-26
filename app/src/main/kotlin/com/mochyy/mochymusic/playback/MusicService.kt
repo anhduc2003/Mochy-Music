@@ -439,6 +439,12 @@ class MusicService :
     private var initialQueueLoading = false
     private var runwayJob: Job? = null
 
+    // What the last session left playing, and the queue it was put on. The saved place may only be
+    // taken while that is still the queue and the song: a song the listener picked after the restore
+    // has its own place, and moving it to an old one started another song over.
+    private var restoredQueueGeneration = -1
+    private var restoredSongId: String? = null
+
     // Radio source used to keep the queue going once the current queue runs out (infinite queue).
     private var infiniteSource: Queue? = null
     private val usedInfiniteSeeds = HashSet<String>()
@@ -1323,14 +1329,21 @@ class MusicService :
                     runCatching {
 
                         val restoredQueue = queue.toQueue().withRestoredManualSongs()
+                        // the song this save left playing: the place to come back to belongs to it
+                        val savedSongId = queue.items.getOrNull(queue.mediaItemIndex)?.id
 
+                        // the queue as it was when the service came up: a queue the listener starts
+                        // while this is still loading is theirs, and the restore leaves it alone
+                        val generation = queueGeneration
                         scope.launch {
                             playerInitialized.first { it }
-                            if (isActive) {
+                            if (isActive && queueGeneration == generation) {
                                 playQueue(
                                     queue = restoredQueue,
                                     playWhenReady = false,
                                 )
+                                restoredQueueGeneration = queueGeneration
+                                restoredSongId = savedSongId
                             }
                         }
                     }.onFailure { error ->
@@ -1382,7 +1395,14 @@ class MusicService :
                         // (PlayerVolumeKey, read at start) stands otherwise
                         if (playerState.volume >= MinRestoredVolume) playerVolume.value = playerState.volume
 
-                        if (playerState.currentMediaItemIndex < player.mediaItemCount) {
+                        // the saved place is the restored song's: once the listener has picked their
+                        // own, the index and the second below it are another song's, and seeking there
+                        // started a different song in the middle, seconds after the one they chose
+                        if (restoredQueueGeneration != queueGeneration) return@launch
+                        if (player.currentMediaItem?.mediaId != restoredSongId) return@launch
+                        if (playerState.currentMediaItemIndex < player.mediaItemCount &&
+                            player.currentMediaItemIndex == playerState.currentMediaItemIndex
+                        ) {
                             player.seekTo(playerState.currentMediaItemIndex, playerState.currentPosition)
                         }
                     }
@@ -3295,6 +3315,10 @@ class MusicService :
             isPlayingFlow.value = player.isPlaying
             updateWidgetUI(player.isPlaying)
             if (player.isPlaying) {
+                // the song is heard again, so the skip a failed stream was waiting to make is called off:
+                // left armed, it moved on six seconds later over a song that had recovered - or that the
+                // listener had just started again themselves
+                clearStreamFailure()
                 startWidgetUpdates()
             } else {
                 stopWidgetUpdates()
