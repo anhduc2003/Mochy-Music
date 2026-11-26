@@ -30,8 +30,8 @@ extensions.configure<ApplicationExtension> {
         targetSdk = 37
         // the fork follows upstream's number, and keeps its own build count and code so an
         // update still installs over what people already have
-        versionCode = 97
-        versionName = "8.4.6 build#1302"
+        versionCode = 98
+        versionName = "8.4.7 build#1303"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
